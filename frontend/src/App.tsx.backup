@@ -1,0 +1,303 @@
+import { useState, useEffect } from 'react';
+import FileTree from './components/FileTree';
+import Editor from './components/Editor';
+import Preview from './components/Preview';
+import VersionHistory from './components/VersionHistory';
+import { FileSystemItem, FileContent, GitCommit } from './types';
+import { fileAPI, gitAPI } from './utils/api';
+import { FileText, Folder, Sun, Moon, Menu, X } from 'lucide-react';
+import { useTheme } from './hooks/useTheme';
+
+function App() {
+  const [files, setFiles] = useState<FileSystemItem[]>([]);
+  const [activeFile, setActiveFile] = useState<FileContent | null>(null);
+  const [content, setContent] = useState('');
+  const [history, setHistory] = useState<GitCommit[]>([]);
+  const [showPreview, setShowPreview] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
+
+  const { isDark, toggleTheme } = useTheme();
+
+  // Load file tree on mount
+  useEffect(() => {
+    loadFiles();
+  }, []);
+
+  // Load git history when active file changes
+  useEffect(() => {
+    if (activeFile) {
+      loadHistory(activeFile.path);
+    }
+  }, [activeFile]);
+
+  // Close sidebar when clicking outside on mobile
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      const sidebar = document.querySelector('.sidebar');
+      const hamburger = document.querySelector('.hamburger-menu');
+      
+      if (window.innerWidth <= 768 && sidebarOpen && sidebar && !sidebar.contains(target) && !hamburger?.contains(target)) {
+        setSidebarOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [sidebarOpen]);
+
+  // Handle escape key to close sidebar on mobile
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [sidebarOpen]);
+
+  const loadFiles = async () => {
+    try {
+      const fileData = await fileAPI.getFiles();
+      setFiles(fileData);
+    } catch (error) {
+      console.error('Failed to load files:', error);
+    }
+  };
+
+  const loadHistory = async (path?: string) => {
+    try {
+      const historyData = await gitAPI.getHistory(path);
+      setHistory(historyData.commits);
+    } catch (error) {
+      console.error('Failed to load history:', error);
+    }
+  };
+
+  const handleFileSelect = async (file: FileSystemItem) => {
+    if (file.isDirectory) return;
+    
+    try {
+      setLoading(true);
+      const fileContent = await fileAPI.getFile(file.path);
+      setActiveFile(fileContent);
+      setContent(fileContent.content);
+      
+      // Close sidebar on mobile after file selection
+      if (window.innerWidth <= 768) {
+        setSidebarOpen(false);
+      }
+    } catch (error) {
+      console.error('Failed to load file:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleContentChange = (newContent: string) => {
+    setContent(newContent);
+  };
+
+  const handleSave = async () => {
+    if (!activeFile) return;
+
+    try {
+      await fileAPI.saveFile(activeFile.path, content);
+      setActiveFile({ ...activeFile, content });
+      await loadHistory(activeFile.path); // Refresh history after save
+    } catch (error) {
+      console.error('Failed to save file:', error);
+    }
+  };
+
+  const handleCreateFile = async (name: string, isDirectory: boolean) => {
+    try {
+      if (isDirectory) {
+        await fileAPI.createDirectory(name);
+      } else {
+        await fileAPI.createFile(name);
+      }
+      await loadFiles();
+    } catch (error) {
+      console.error('Failed to create item:', error);
+    }
+  };
+
+  const handleDelete = async (path: string) => {
+    try {
+      await fileAPI.deleteItem(path);
+      if (activeFile?.path === path) {
+        setActiveFile(null);
+        setContent('');
+      }
+      await loadFiles();
+    } catch (error) {
+      console.error('Failed to delete item:', error);
+    }
+  };
+
+  const handleRevert = async (commit: GitCommit) => {
+    if (!activeFile) return;
+    
+    try {
+      await gitAPI.revertToCommit(commit.hash, activeFile.path);
+      // Reload the file content after revert
+      await handleFileSelect({ name: activeFile.path, path: activeFile.path, isDirectory: false });
+      await loadHistory(activeFile.path);
+    } catch (error) {
+      console.error('Failed to revert:', error);
+    }
+  };
+
+  return (
+    <div className="app">
+      {/* Sidebar */}
+      <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+        <div className="header">
+          <div className="header-left">
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FileText size={20} />
+              MD Office
+            </h2>
+          </div>
+          
+          {/* Mobile close button */}
+          <button 
+            className="hamburger-menu"
+            onClick={() => setSidebarOpen(false)}
+            style={{ display: window.innerWidth <= 768 ? 'flex' : 'none' }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+        
+        <FileTree 
+          files={files} 
+          onFileSelect={handleFileSelect}
+          onCreateFile={handleCreateFile}
+          onDelete={handleDelete}
+          activeFile={activeFile?.path}
+        />
+        
+        <VersionHistory 
+          commits={history}
+          onRevert={handleRevert}
+        />
+      </div>
+
+      {/* Main content area */}
+      <div className="main-content">
+        <div className="header">
+          <div className="header-left">
+            {/* Mobile hamburger menu */}
+            <button 
+              className="hamburger-menu"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu size={20} />
+            </button>
+            
+            {activeFile && (
+              <>
+                <span>{activeFile.path}</span>
+                <button onClick={handleSave} className="primary">
+                  Save
+                </button>
+                {/* Desktop preview toggle */}
+                <button 
+                  onClick={() => setShowPreview(!showPreview)}
+                  style={{ display: window.innerWidth > 768 ? 'flex' : 'none' }}
+                >
+                  {showPreview ? 'Hide Preview' : 'Show Preview'}
+                </button>
+              </>
+            )}
+          </div>
+
+          <div className="header-right">
+            <button 
+              className="theme-toggle"
+              onClick={toggleTheme}
+              title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+            >
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile tabs */}
+        {activeFile && (
+          <div className="mobile-tabs">
+            <button 
+              className={`mobile-tab ${activeTab === 'editor' ? 'active' : ''}`}
+              onClick={() => setActiveTab('editor')}
+            >
+              Editor
+            </button>
+            <button 
+              className={`mobile-tab ${activeTab === 'preview' ? 'active' : ''}`}
+              onClick={() => setActiveTab('preview')}
+            >
+              Preview
+            </button>
+          </div>
+        )}
+
+        {activeFile ? (
+          <div className="editor-container">
+            {/* Editor */}
+            <div className={`editor ${activeTab === 'preview' ? '' : ''}`}>
+              {loading ? (
+                <div>Loading...</div>
+              ) : (
+                <Editor 
+                  content={content}
+                  onChange={handleContentChange}
+                />
+              )}
+            </div>
+            
+            {/* Preview - Desktop: side by side, Mobile: tab */}
+            {((window.innerWidth > 768 && showPreview) || (window.innerWidth <= 768 && activeTab === 'preview')) && (
+              <Preview 
+                content={content} 
+                className={window.innerWidth <= 768 ? 'active' : ''}
+              />
+            )}
+          </div>
+        ) : (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            height: '100%',
+            flexDirection: 'column',
+            gap: '20px',
+            color: 'var(--text-secondary)',
+            padding: '20px',
+            textAlign: 'center'
+          }}>
+            <Folder size={48} />
+            <p>Select a file to start editing</p>
+            <p style={{ fontSize: '14px' }}>Create a new file or open an existing one from the sidebar</p>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && window.innerWidth <= 768 && (
+        <div 
+          className="modal-overlay" 
+          onClick={() => setSidebarOpen(false)}
+          style={{ background: 'rgba(0, 0, 0, 0.5)', zIndex: 999 }}
+        />
+      )}
+    </div>
+  );
+}
+
+export default App;

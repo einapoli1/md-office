@@ -1,0 +1,14 @@
+{
+  "name": "md-office-collaboration-server",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.19.0",
+    "y-websocket": "^2.1.0",
+    "yjs": "^13.6.29"
+  }
+}
