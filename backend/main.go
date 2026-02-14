@@ -60,6 +60,21 @@ type GitBranch struct {
 	Hash      string `json:"hash"`
 }
 
+type GitDiffChange struct {
+	File      string `json:"file"`
+	Type      string `json:"type"` // "added", "modified", "deleted"
+	Additions int    `json:"additions"`
+	Deletions int    `json:"deletions"`
+	Content   string `json:"content,omitempty"` // Unified diff content
+}
+
+type GitDiff struct {
+	From    string          `json:"from"`
+	To      string          `json:"to"`
+	Changes []GitDiffChange `json:"changes"`
+	Summary string          `json:"summary,omitempty"`
+}
+
 // Workspace management
 type Workspace struct {
 	ID          string             `json:"id"`
@@ -1475,6 +1490,87 @@ func getGitDiff(c *fiber.Ctx) error {
 		return c.JSON(APIResponse{Error: err.Error()})
 	}
 
-	// This is a placeholder - implement git diff functionality as needed
-	return c.JSON(APIResponse{Data: "Git diff functionality placeholder"})
+	if gitRepo == nil {
+		return c.JSON(APIResponse{Error: "Git repository not available"})
+	}
+
+	// Get query parameters
+	fromCommit := c.Query("from", "")
+	toCommit := c.Query("to", "HEAD")
+	filePath := c.Query("file", "")
+
+	// If no from commit specified, show working directory changes
+	if fromCommit == "" {
+		worktree, err := gitRepo.Worktree()
+		if err != nil {
+			return c.JSON(APIResponse{Error: err.Error()})
+		}
+
+		status, err := worktree.Status()
+		if err != nil {
+			return c.JSON(APIResponse{Error: err.Error()})
+		}
+
+		var changes []GitDiffChange
+		for file, fileStatus := range status {
+			if filePath != "" && file != filePath {
+				continue
+			}
+
+			var changeType string
+			switch {
+			case fileStatus.Staging == git.Added:
+				changeType = "added"
+			case fileStatus.Staging == git.Modified:
+				changeType = "modified"
+			case fileStatus.Staging == git.Deleted:
+				changeType = "deleted"
+			case fileStatus.Worktree == git.Modified:
+				changeType = "modified"
+			case fileStatus.Worktree == git.Deleted:
+				changeType = "deleted"
+			default:
+				changeType = "unknown"
+			}
+
+			changes = append(changes, GitDiffChange{
+				File:       file,
+				Type:       changeType,
+				Additions:  0, // Would need file content comparison
+				Deletions:  0, // Would need file content comparison
+				Content:    "", // Could implement unified diff format
+			})
+		}
+
+		diff := GitDiff{
+			From:    "working-directory",
+			To:      "HEAD",
+			Changes: changes,
+		}
+		return c.JSON(APIResponse{Data: diff})
+	}
+
+	// Compare two commits
+	fromHash := plumbing.NewHash(fromCommit)
+	toHash := plumbing.NewHash(toCommit)
+
+	fromCommitObj, err := gitRepo.CommitObject(fromHash)
+	if err != nil {
+		return c.JSON(APIResponse{Error: "Invalid from commit: " + err.Error()})
+	}
+
+	toCommitObj, err := gitRepo.CommitObject(toHash)
+	if err != nil {
+		return c.JSON(APIResponse{Error: "Invalid to commit: " + err.Error()})
+	}
+
+	// Basic diff implementation - in production you'd use git.PlainDiff
+	diff := GitDiff{
+		From:    fromCommit,
+		To:      toCommit,
+		Changes: []GitDiffChange{}, // Placeholder for now
+		Summary: fmt.Sprintf("Comparing %s to %s", fromCommitObj.Hash.String()[:7], toCommitObj.Hash.String()[:7]),
+	}
+
+	return c.JSON(APIResponse{Data: diff})
 }
