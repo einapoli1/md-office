@@ -182,6 +182,31 @@ type InviteUserRequest struct {
 	Permission string `json:"permission"` // editor, viewer
 }
 
+type SearchRequest struct {
+	Query    string `json:"query"`
+	FileType string `json:"fileType,omitempty"` // md, txt, etc.
+	Limit    int    `json:"limit,omitempty"`
+}
+
+type SearchResult struct {
+	File      string   `json:"file"`
+	Matches   []SearchMatch `json:"matches"`
+	Score     float64  `json:"score"`
+}
+
+type SearchMatch struct {
+	Line     int    `json:"line"`
+	Content  string `json:"content"`
+	Start    int    `json:"start"`
+	End      int    `json:"end"`
+}
+
+type SearchResponse struct {
+	Results []SearchResult `json:"results"`
+	Total   int           `json:"total"`
+	Query   string        `json:"query"`
+}
+
 // Global variables
 var (
 	workspaceDir    string
@@ -265,6 +290,10 @@ func main() {
 	files.Post("/mkdir", createDirectory)
 	files.Delete("/:path", deleteItem)
 	files.Put("/rename", renameItem)
+
+	// Search operations
+	search := protected.Group("/search")
+	search.Get("/", searchFiles)
 
 	// Git operations
 	gitRoutes := protected.Group("/git")
@@ -1573,4 +1602,140 @@ func getGitDiff(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(APIResponse{Data: diff})
+}
+
+func searchFiles(c *fiber.Ctx) error {
+	userID := c.Locals("userID").(string)
+	
+	if err := checkWorkspacePermission(userID, "viewer"); err != nil {
+		return c.JSON(APIResponse{Error: err.Error()})
+	}
+
+	query := c.Query("q", "")
+	if query == "" {
+		return c.JSON(APIResponse{Error: "Search query required"})
+	}
+
+	fileType := c.Query("type", "")
+	limitStr := c.Query("limit", "50")
+	limit := 50
+	if l, err := fmt.Sscanf(limitStr, "%d", &limit); err != nil || l != 1 {
+		limit = 50
+	}
+
+	var results []SearchResult
+	
+	// Walk through workspace directory
+	err := filepath.Walk(workspaceDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // Continue on errors
+		}
+
+		// Skip hidden files and directories
+		if strings.HasPrefix(info.Name(), ".") {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// Skip directories
+		if info.IsDir() {
+			return nil
+		}
+
+		// Filter by file type if specified
+		if fileType != "" {
+			ext := strings.TrimPrefix(filepath.Ext(path), ".")
+			if ext != fileType {
+				return nil
+			}
+		}
+
+		// Only search text files (basic check)
+		if !isTextFile(path) {
+			return nil
+		}
+
+		// Search within file
+		matches, score := searchInFile(path, query)
+		if len(matches) > 0 {
+			relativePath := strings.TrimPrefix(path, workspaceDir)
+			relativePath = strings.TrimPrefix(relativePath, string(filepath.Separator))
+			
+			results = append(results, SearchResult{
+				File:    relativePath,
+				Matches: matches,
+				Score:   score,
+			})
+		}
+
+		// Limit total results
+		if len(results) >= limit {
+			return filepath.SkipAll
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return c.JSON(APIResponse{Error: err.Error()})
+	}
+
+	response := SearchResponse{
+		Results: results,
+		Total:   len(results),
+		Query:   query,
+	}
+
+	return c.JSON(APIResponse{Data: response})
+}
+
+func isTextFile(path string) bool {
+	ext := strings.ToLower(filepath.Ext(path))
+	textExts := []string{".md", ".txt", ".json", ".yaml", ".yml", ".html", ".css", ".js", ".ts", ".go", ".py", ".java", ".c", ".cpp", ".h", ".hpp"}
+	
+	for _, textExt := range textExts {
+		if ext == textExt {
+			return true
+		}
+	}
+	return false
+}
+
+func searchInFile(path, query string) ([]SearchMatch, float64) {
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, 0
+	}
+
+	lines := strings.Split(string(content), "\n")
+	var matches []SearchMatch
+	score := 0.0
+	queryLower := strings.ToLower(query)
+
+	for lineNum, line := range lines {
+		lineLower := strings.ToLower(line)
+		if strings.Contains(lineLower, queryLower) {
+			start := strings.Index(lineLower, queryLower)
+			end := start + len(query)
+			
+			matches = append(matches, SearchMatch{
+				Line:    lineNum + 1, // 1-indexed
+				Content: line,
+				Start:   start,
+				End:     end,
+			})
+			
+			// Simple scoring: more matches = higher score
+			score += 1.0
+			
+			// Bonus for exact case matches
+			if strings.Contains(line, query) {
+				score += 0.5
+			}
+		}
+	}
+
+	return matches, score
 }
