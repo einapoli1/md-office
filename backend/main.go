@@ -182,6 +182,13 @@ type InviteUserRequest struct {
 	Permission string `json:"permission"` // editor, viewer
 }
 
+type UploadResponse struct {
+	Filename string `json:"filename"`
+	Path     string `json:"path"`
+	Size     int64  `json:"size"`
+	URL      string `json:"url"`
+}
+
 type SearchRequest struct {
 	Query    string `json:"query"`
 	FileType string `json:"fileType,omitempty"` // md, txt, etc.
@@ -290,6 +297,7 @@ func main() {
 	files.Post("/mkdir", createDirectory)
 	files.Delete("/:path", deleteItem)
 	files.Put("/rename", renameItem)
+	files.Post("/upload", uploadFile)
 
 	// Search operations
 	search := protected.Group("/search")
@@ -1602,6 +1610,97 @@ func getGitDiff(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(APIResponse{Data: diff})
+}
+
+func uploadFile(c *fiber.Ctx) error {
+	userID := c.Locals("userID").(string)
+	
+	if err := checkWorkspacePermission(userID, "editor"); err != nil {
+		return c.JSON(APIResponse{Error: err.Error()})
+	}
+
+	// Get the uploaded file
+	file, err := c.FormFile("file")
+	if err != nil {
+		return c.JSON(APIResponse{Error: "No file provided"})
+	}
+
+	// Get upload directory (default to assets/)
+	uploadDir := c.FormValue("dir")
+	if uploadDir == "" {
+		uploadDir = "assets"
+	}
+
+	// Ensure upload directory exists
+	uploadPath := filepath.Join(workspaceDir, uploadDir)
+	if err := os.MkdirAll(uploadPath, 0755); err != nil {
+		return c.JSON(APIResponse{Error: "Failed to create upload directory"})
+	}
+
+	// Generate safe filename
+	safeFilename := generateSafeFilename(file.Filename)
+	filePath := filepath.Join(uploadPath, safeFilename)
+
+	// Check if file already exists and generate unique name if needed
+	counter := 1
+	for {
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			break
+		}
+		// File exists, generate new name
+		ext := filepath.Ext(safeFilename)
+		nameWithoutExt := strings.TrimSuffix(safeFilename, ext)
+		filePath = filepath.Join(uploadPath, fmt.Sprintf("%s_%d%s", nameWithoutExt, counter, ext))
+		counter++
+	}
+
+	// Save the file
+	if err := c.SaveFile(file, filePath); err != nil {
+		return c.JSON(APIResponse{Error: "Failed to save file"})
+	}
+
+	// Get file info
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return c.JSON(APIResponse{Error: "Failed to get file info"})
+	}
+
+	// Generate relative path and URL
+	relativePath := strings.TrimPrefix(filePath, workspaceDir)
+	relativePath = strings.TrimPrefix(relativePath, string(filepath.Separator))
+	fileURL := fmt.Sprintf("/files/%s", relativePath)
+
+	// Commit the upload to git
+	username := c.Locals("username").(string)
+	commitMessage := fmt.Sprintf("Upload file: %s", relativePath)
+	if err := commitChangesWithAuthor(commitMessage, username); err != nil {
+		log.Printf("Failed to commit file upload: %v", err)
+	}
+
+	response := UploadResponse{
+		Filename: filepath.Base(filePath),
+		Path:     relativePath,
+		Size:     fileInfo.Size(),
+		URL:      fileURL,
+	}
+
+	return c.JSON(APIResponse{Data: response})
+}
+
+func generateSafeFilename(filename string) string {
+	// Remove/replace unsafe characters
+	safe := strings.ReplaceAll(filename, " ", "_")
+	safe = strings.ReplaceAll(safe, "..", "")
+	safe = strings.ReplaceAll(safe, "/", "_")
+	safe = strings.ReplaceAll(safe, "\\", "_")
+	safe = strings.ReplaceAll(safe, "\x00", "")
+	
+	// Ensure filename is not empty
+	if safe == "" {
+		safe = "uploaded_file"
+	}
+	
+	return safe
 }
 
 func searchFiles(c *fiber.Ctx) error {
