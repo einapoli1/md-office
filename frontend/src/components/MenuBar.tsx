@@ -18,6 +18,7 @@ interface MenuBarProps {
   onSwitchToGuest?: () => void;
   activeFile?: FileContent | null;
   onTitleChange?: (newPath: string) => void;
+  editor?: any;
 }
 
 const MenuBar: React.FC<MenuBarProps> = ({
@@ -35,7 +36,8 @@ const MenuBar: React.FC<MenuBarProps> = ({
   onLogout,
   onSwitchToGuest,
   activeFile,
-  onTitleChange
+  onTitleChange,
+  editor,
 }) => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -87,6 +89,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Undo', action: () => console.log('Undo'), shortcut: 'Ctrl+Z' },
       { label: 'Redo', action: () => console.log('Redo'), shortcut: 'Ctrl+Y' },
       { label: 'divider' },
+      { label: 'Undo', action: () => editor?.chain().focus().undo().run(), shortcut: 'Ctrl+Z' },
+      { label: 'Redo', action: () => editor?.chain().focus().redo().run(), shortcut: 'Ctrl+Y' },
+      { label: 'divider' },
       { label: 'Find and replace', action: () => console.log('Find'), shortcut: 'Ctrl+F' },
     ],
     View: [
@@ -96,18 +101,30 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: isDarkMode ? 'Light mode' : 'Dark mode', action: onToggleDarkMode, icon: isDarkMode ? Sun : Moon },
     ],
     Insert: [
-      { label: 'Image', action: () => console.log('Insert image') },
-      { label: 'Link', action: () => console.log('Insert link'), shortcut: 'Ctrl+K' },
-      { label: 'Table', action: () => console.log('Insert table') },
+      { label: 'Image', action: () => {
+        const url = prompt('Image URL:');
+        if (url && editor) editor.chain().focus().setImage({ src: url }).run();
+      }},
+      { label: 'Link', action: () => {
+        const url = prompt('Link URL:');
+        if (url && editor) editor.chain().focus().setLink({ href: url }).run();
+      }, shortcut: 'Ctrl+K' },
+      { label: 'Table', action: () => {
+        if (editor) editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+      }},
       { label: 'divider' },
+      { label: 'Horizontal rule', action: () => {
+        if (editor) editor.chain().focus().setHorizontalRule().run();
+      }},
       { label: 'Equation', action: () => console.log('Insert equation') },
     ],
     Format: [
-      { label: 'Bold', action: () => console.log('Bold'), shortcut: 'Ctrl+B' },
-      { label: 'Italic', action: () => console.log('Italic'), shortcut: 'Ctrl+I' },
-      { label: 'Underline', action: () => console.log('Underline'), shortcut: 'Ctrl+U' },
+      { label: 'Bold', action: () => editor?.chain().focus().toggleBold().run(), shortcut: 'Ctrl+B' },
+      { label: 'Italic', action: () => editor?.chain().focus().toggleItalic().run(), shortcut: 'Ctrl+I' },
+      { label: 'Underline', action: () => editor?.chain().focus().toggleUnderline().run(), shortcut: 'Ctrl+U' },
+      { label: 'Strikethrough', action: () => editor?.chain().focus().toggleStrike().run() },
       { label: 'divider' },
-      { label: 'Clear formatting', action: () => console.log('Clear formatting') },
+      { label: 'Clear formatting', action: () => editor?.chain().focus().clearNodes().unsetAllMarks().run() },
     ],
     Tools: [
       { label: 'Word count', action: () => console.log('Word count') },

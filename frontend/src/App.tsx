@@ -428,6 +428,7 @@ function App() {
         onSwitchToGuest={handleSwitchToGuest}
         activeFile={activeFile}
         onTitleChange={handleTitleChange}
+        editor={editorRef}
       />
 
       {/* Formatting Toolbar - Google Docs style */}
