@@ -18,13 +18,15 @@ interface DocumentEditorProps {
   onChange: (content: string) => void;
   onTitleChange: (newTitle: string) => void;
   onEditorReady?: (editor: any) => void;
+  marginOverride?: { left: number; right: number } | null;
 }
 
 const DocumentEditor: React.FC<DocumentEditorProps> = ({ 
   activeFile, 
   content, 
   onChange, 
-  onEditorReady
+  onEditorReady,
+  marginOverride
 }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [parsedDocument, setParsedDocument] = useState(() => parseFrontmatter(content));
@@ -103,7 +105,11 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
             ...documentStyles 
           }}
         >
-          <div className="editor-content-area" style={{ padding: pageStyles.padding }}>
+          <div className="editor-content-area" style={{ 
+            padding: marginOverride 
+              ? `${parseInt(pageStyles.padding)}px ${marginOverride.right}px ${parseInt(pageStyles.padding)}px ${marginOverride.left}px`
+              : pageStyles.padding 
+          }}>
             <div className="page-break-wrapper" style={{ position: 'relative' }}>
               <Editor
                 content={parsedDocument.content}

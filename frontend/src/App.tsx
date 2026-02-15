@@ -6,8 +6,10 @@ import StatusBar from './components/StatusBar';
 import TemplateSelector from './components/TemplateSelector';
 import Login from './components/Login';
 import DocsToolbar from './components/DocsToolbar';
+import Ruler from './components/Ruler';
 import { FileSystemItem, FileContent } from './types';
 import { fileAPI } from './utils/api';
+import { parseFrontmatter, getPageStyles } from './utils/frontmatter';
 import { localFileAPI, initializeLocalStorage } from './utils/localApi';
 import { Template } from './utils/templates';
 import CommentsSidebar, { Comment } from './components/CommentsSidebar';
@@ -57,6 +59,8 @@ function App() {
   const [showExport, setShowExport] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showOutline, setShowOutline] = useState(false);
+  const [showRuler, setShowRuler] = useState(true);
+  const [rulerMargins, setRulerMargins] = useState<{ left: number; right: number } | null>(null);
   const [inputDialog, setInputDialog] = useState<{
     title: string;
     fields: { key: string; label: string; placeholder?: string; defaultValue?: string }[];
@@ -205,6 +209,7 @@ function App() {
       const fileContent = await currentAPI.getFile(file.path);
       setActiveFile(fileContent);
       setContent(fileContent.content);
+      setRulerMargins(null);
       setSaveStatus('saved');
       setLastSaved(undefined);
       originalContentRef.current = fileContent.content;
@@ -597,13 +602,16 @@ function App() {
     window.addEventListener('find-replace-open', handleEvent);
     window.addEventListener('word-count-open', handleWordCount);
     window.addEventListener('export-open', handleExport);
+    const handleRulerToggle = () => setShowRuler(prev => !prev);
     window.addEventListener('outline-toggle', handleOutline);
+    window.addEventListener('ruler-toggle', handleRulerToggle);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('find-replace-open', handleEvent);
       window.removeEventListener('word-count-open', handleWordCount);
       window.removeEventListener('export-open', handleExport);
       window.removeEventListener('outline-toggle', handleOutline);
+      window.removeEventListener('ruler-toggle', handleRulerToggle);
       window.removeEventListener('insert-link', handleInsertLink);
       window.removeEventListener('insert-image', handleInsertImage);
     };
@@ -689,6 +697,22 @@ function App() {
         )}
 
         <div className="main-editor">
+          {showRuler && activeFile && (() => {
+            const parsed = parseFrontmatter(content);
+            const ps = getPageStyles(parsed.metadata);
+            const pageW = parseInt(ps.maxWidth) || 816;
+            const defaultPad = parseInt(ps.padding) || 72;
+            const lm = rulerMargins?.left ?? defaultPad;
+            const rm = rulerMargins?.right ?? defaultPad;
+            return (
+              <Ruler
+                pageWidthPx={pageW}
+                leftMarginPx={lm}
+                rightMarginPx={rm}
+                onMarginsChange={(left, right) => setRulerMargins({ left, right })}
+              />
+            );
+          })()}
           {loading ? (
             <div className="editor-loading">Loading document...</div>
           ) : (
@@ -698,6 +722,7 @@ function App() {
               onChange={handleContentChange}
               onTitleChange={handleTitleChange}
               onEditorReady={setEditorRef}
+              marginOverride={rulerMargins}
             />
           )}
         </div>

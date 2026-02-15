@@ -106,6 +106,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
       }, shortcut: '⌘F' },
     ],
     View: [
+      { label: 'Show ruler', action: () => {
+        window.dispatchEvent(new CustomEvent('ruler-toggle'));
+      }},
       { label: 'Document outline', action: () => {
         window.dispatchEvent(new CustomEvent('outline-toggle'));
       }},
