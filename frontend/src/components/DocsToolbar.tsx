@@ -5,8 +5,9 @@ import {
   List, ListOrdered, Link as LinkIcon, Image as ImageIcon,
   Type, Palette, Highlighter, Undo, Redo, CheckSquare,
   ChevronDown, MoreHorizontal, Minus, Quote, Code2,
-  RotateCcw, Printer, MessageSquare, PenTool
+  RotateCcw, Printer, MessageSquare, PenTool, Smile
 } from 'lucide-react';
+import EmojiPicker from './EmojiPicker';
 
 interface DocsToolbarProps {
   editor: any;
@@ -19,7 +20,9 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
   const [showTextColor, setShowTextColor] = useState(false);
   const [showHighlightColor, setShowHighlightColor] = useState(false);
   const [showLineSpacing, setShowLineSpacing] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const lineSpacingRef = useRef<HTMLDivElement>(null);
+  const emojiRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!showLineSpacing) return;
@@ -586,6 +589,26 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
         </button>
+
+        {/* Emoji Picker */}
+        <div ref={emojiRef} style={{ position: 'relative' }}>
+          <button
+            className="toolbar-btn"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            title="Insert emoji"
+          >
+            <Smile size={16} />
+          </button>
+          {showEmojiPicker && (
+            <EmojiPicker
+              onSelect={(emoji) => {
+                editor.chain().focus().insertContent(emoji).run();
+                setShowEmojiPicker(false);
+              }}
+              onClose={() => setShowEmojiPicker(false)}
+            />
+          )}
+        </div>
 
         {/* More options */}
         <button 

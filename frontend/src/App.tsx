@@ -21,6 +21,7 @@ import ExportDialog from './components/ExportDialog';
 import KeyboardShortcutsDialog from './components/KeyboardShortcutsDialog';
 import TableOfContents from './components/TableOfContents';
 import InputDialog from './components/InputDialog';
+import SpecialChars from './components/SpecialChars';
 import './comments-styles.css';
 
 function App() {
@@ -59,6 +60,7 @@ function App() {
   const [showExport, setShowExport] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showOutline, setShowOutline] = useState(false);
+  const [showSpecialChars, setShowSpecialChars] = useState(false);
   const [showRuler, setShowRuler] = useState(true);
   const [rulerMargins, setRulerMargins] = useState<{ left: number; right: number } | null>(null);
   const [inputDialog, setInputDialog] = useState<{
@@ -597,8 +599,10 @@ function App() {
         },
       });
     };
+    const handleSpecialChars = () => setShowSpecialChars(true);
     window.addEventListener('insert-link', handleInsertLink);
     window.addEventListener('insert-image', handleInsertImage);
+    window.addEventListener('special-chars-open', handleSpecialChars);
     window.addEventListener('find-replace-open', handleEvent);
     window.addEventListener('word-count-open', handleWordCount);
     window.addEventListener('export-open', handleExport);
@@ -614,6 +618,7 @@ function App() {
       window.removeEventListener('ruler-toggle', handleRulerToggle);
       window.removeEventListener('insert-link', handleInsertLink);
       window.removeEventListener('insert-image', handleInsertImage);
+      window.removeEventListener('special-chars-open', handleSpecialChars);
     };
   }, []);
 
@@ -794,6 +799,20 @@ function App() {
           onSubmit={inputDialog.onSubmit}
           onClose={() => setInputDialog(null)}
         />
+      )}
+
+      {/* Special Characters */}
+      {showSpecialChars && (
+        <div className="special-chars-overlay">
+          <SpecialChars
+            onSelect={(char) => {
+              if (editorRef) {
+                editorRef.chain().focus().insertContent(char).run();
+              }
+            }}
+            onClose={() => setShowSpecialChars(false)}
+          />
+        </div>
       )}
 
       {/* Keyboard Shortcuts */}

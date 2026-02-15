@@ -2357,3 +2357,159 @@ input:focus-visible {
   background: var(--border-light, #e8eaed);
   margin: 0 2px;
 }
+
+/* ========== Emoji Picker ========== */
+.emoji-picker-panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 1000;
+  width: 300px;
+  max-height: 360px;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-light, #dadce0);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.emoji-picker-header {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  gap: 4px;
+  border-bottom: 1px solid var(--border-light, #e8eaed);
+}
+.emoji-picker-search {
+  flex: 1;
+  border: 1px solid var(--border-light, #dadce0);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  outline: none;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #202124);
+}
+.emoji-picker-search:focus { border-color: #1a73e8; }
+.emoji-picker-close {
+  background: none; border: none; cursor: pointer; padding: 4px;
+  color: var(--text-secondary, #5f6368); border-radius: 4px;
+}
+.emoji-picker-close:hover { background: var(--hover-bg, #f1f3f4); }
+.emoji-picker-categories {
+  display: flex;
+  gap: 2px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-light, #e8eaed);
+  overflow-x: auto;
+}
+.emoji-category-btn {
+  background: none; border: none; cursor: pointer;
+  padding: 4px 6px; border-radius: 4px; font-size: 12px;
+  color: var(--text-secondary, #5f6368); font-weight: 500;
+  white-space: nowrap;
+}
+.emoji-category-btn:hover { background: var(--hover-bg, #f1f3f4); }
+.emoji-category-btn.active {
+  background: #e8f0fe; color: #1a73e8;
+}
+.emoji-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 1px;
+  padding: 6px;
+  overflow-y: auto;
+  flex: 1;
+}
+.emoji-picker-item {
+  background: none; border: none; cursor: pointer;
+  font-size: 20px; padding: 4px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+}
+.emoji-picker-item:hover { background: var(--hover-bg, #f1f3f4); }
+
+/* ========== Special Characters ========== */
+.special-chars-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.special-chars-panel {
+  width: 340px;
+  max-height: 420px;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-light, #dadce0);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.special-chars-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-light, #e8eaed);
+}
+.special-chars-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #202124);
+}
+.special-chars-close {
+  background: none; border: none; cursor: pointer; padding: 4px;
+  color: var(--text-secondary, #5f6368); border-radius: 4px;
+}
+.special-chars-close:hover { background: var(--hover-bg, #f1f3f4); }
+.special-chars-search {
+  margin: 8px 12px;
+  border: 1px solid var(--border-light, #dadce0);
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 12px;
+  outline: none;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #202124);
+}
+.special-chars-search:focus { border-color: #1a73e8; }
+.special-chars-categories {
+  display: flex;
+  gap: 2px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-light, #e8eaed);
+  overflow-x: auto;
+  flex-wrap: wrap;
+}
+.special-chars-cat-btn {
+  background: none; border: none; cursor: pointer;
+  padding: 3px 8px; border-radius: 4px; font-size: 11px;
+  color: var(--text-secondary, #5f6368); font-weight: 500;
+  white-space: nowrap;
+}
+.special-chars-cat-btn:hover { background: var(--hover-bg, #f1f3f4); }
+.special-chars-cat-btn.active {
+  background: #e8f0fe; color: #1a73e8;
+}
+.special-chars-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 1px;
+  padding: 6px;
+  overflow-y: auto;
+  flex: 1;
+}
+.special-chars-item {
+  background: none; border: none; cursor: pointer;
+  font-size: 18px; padding: 4px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1; color: var(--text-primary, #202124);
+}
+.special-chars-item:hover {
+  background: #e8f0fe; color: #1a73e8;
+}

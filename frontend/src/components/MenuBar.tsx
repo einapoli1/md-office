@@ -134,6 +134,13 @@ const MenuBar: React.FC<MenuBarProps> = ({
         if (editor) editor.chain().focus().setHorizontalRule().run();
       }},
       { label: 'Equation', action: () => console.log('Insert equation') },
+      { label: 'divider' },
+      { label: 'Special characters', action: () => {
+        window.dispatchEvent(new CustomEvent('special-chars-open'));
+      }},
+      { label: 'Emoji', action: () => {
+        window.dispatchEvent(new CustomEvent('emoji-picker-open'));
+      }},
     ],
     Format: [
       { label: 'Bold', action: () => editor?.chain().focus().toggleBold().run(), shortcut: 'Ctrl+B' },
