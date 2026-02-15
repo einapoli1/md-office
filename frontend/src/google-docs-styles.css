@@ -640,16 +640,20 @@ body {
 }
 
 /* Document Editor Area */
-.document-editor {
+.main-editor {
   flex: 1;
-  background: #f0f2f4; /* Light gray background like Google Docs */
-  display: flex;
-  justify-content: center;
   overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.document-editor {
+  background: #f0f2f4; /* Light gray background like Google Docs */
   padding: 24px 40px;
   position: relative;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
+  min-height: 100%;
 }
 
 .dark .document-editor {
@@ -665,6 +669,23 @@ body {
   min-height: 1056px; /* Default: 11" at 96 DPI */
   position: relative;
   margin: 0 auto;
+  margin-bottom: 24px;
+}
+
+/* Visual page break lines every 11 inches */
+.document-page .editor-content-area {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 1055px,
+    #d0d0d0 1055px,
+    #d0d0d0 1056px,
+    transparent 1056px,
+    transparent 1080px,
+    #d0d0d0 1080px,
+    #d0d0d0 1081px
+  );
+  background-position: top;
 }
 
 .dark .document-page {
@@ -969,7 +990,6 @@ body {
 .editor-content-area {
   flex: 1;
   padding: 48px 72px 72px;
-  overflow-y: auto;
 }
 
 .docs-editor-content {
@@ -982,8 +1002,9 @@ body {
   font-size: 16px;
   line-height: 1.6;
   color: var(--text-primary);
-  min-height: 600px;
+  min-height: 900px;
   padding: 0;
+  cursor: text;
 }
 
 .ProseMirror p {
