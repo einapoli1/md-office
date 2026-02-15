@@ -1,138 +1,151 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 
 interface PageBreakWrapperProps {
   children: React.ReactNode;
-  pageHeight?: number; // Height of one page in pixels
-  gapHeight?: number;  // Height of the visual gap between pages
-}
-
-interface PageBreak {
-  id: string;
-  elementIndex: number;
-  top: number;
+  pageHeight?: number;
+  gapHeight?: number;
 }
 
 const PageBreakWrapper: React.FC<PageBreakWrapperProps> = ({
   children,
-  pageHeight = 1056,
-  gapHeight = 24,
+  pageHeight = 912, // Content height per page (1056 - 144 for top/bottom padding)
+  gapHeight = 28,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [pageBreaks, setPageBreaks] = useState<PageBreak[]>([]);
+  const [gapPositions, setGapPositions] = useState<number[]>([]);
+  const isCalculating = useRef(false);
 
-  const calculatePageBreaks = () => {
-    if (!containerRef.current) return;
+  const calculatePageBreaks = useCallback(() => {
+    if (!containerRef.current || isCalculating.current) return;
+    isCalculating.current = true;
 
-    const proseMirrorElement = containerRef.current.querySelector('.ProseMirror');
-    if (!proseMirrorElement) return;
+    const proseMirror = containerRef.current.querySelector('.ProseMirror') as HTMLElement;
+    if (!proseMirror) { isCalculating.current = false; return; }
 
-    // Clear any existing page break styling
-    const existingElements = proseMirrorElement.querySelectorAll('.page-break-after');
-    existingElements.forEach((el) => {
-      el.classList.remove('page-break-after');
+    // Step 1: Clear all previous page break margins
+    proseMirror.querySelectorAll('[data-page-break-margin]').forEach((el) => {
       (el as HTMLElement).style.marginBottom = '';
+      (el as HTMLElement).removeAttribute('data-page-break-margin');
     });
 
-    const children = Array.from(proseMirrorElement.children) as HTMLElement[];
-    let accumulatedHeight = 0;
-    let currentPage = 1;
-    const newPageBreaks: PageBreak[] = [];
+    // Step 2: Calculate where page breaks should go
+    const elements = Array.from(proseMirror.children) as HTMLElement[];
+    const proseMirrorRect = proseMirror.getBoundingClientRect();
+    
+    let currentPageBottom = pageHeight;
+    const breakElements: { element: HTMLElement; extraMargin: number; gapY: number }[] = [];
 
-    children.forEach((child, index) => {
-      const childRect = child.getBoundingClientRect();
-      const childHeight = childRect.height;
-      
-      // Check if adding this element would exceed the page height
-      if (accumulatedHeight + childHeight > pageHeight * currentPage) {
-        // We need a page break before this element
-        const breakTop = accumulatedHeight;
+    for (const el of elements) {
+      const elRect = el.getBoundingClientRect();
+      const elTop = elRect.top - proseMirrorRect.top;
+      const elBottom = elTop + elRect.height;
+
+      if (elBottom > currentPageBottom) {
+        // This element crosses the page boundary
+        // Find the previous element (last one that fits on this page)
+        const elIndex = elements.indexOf(el);
+        const prevEl = elIndex > 0 ? elements[elIndex - 1] : null;
         
-        // Add margin to the previous element to create space for the page break
-        if (index > 0) {
-          const previousElement = children[index - 1];
-          previousElement.classList.add('page-break-after');
-          previousElement.style.marginBottom = `${gapHeight}px`;
+        if (prevEl) {
+          const prevRect = prevEl.getBoundingClientRect();
+          const prevBottom = prevRect.bottom - proseMirrorRect.top;
           
-          newPageBreaks.push({
-            id: `page-break-${currentPage}`,
-            elementIndex: index - 1,
-            top: breakTop,
+          // Gap goes after previous element: fill remaining page space + visual gap
+          const remainingOnPage = currentPageBottom - prevBottom;
+          const totalMargin = remainingOnPage + gapHeight;
+          
+          breakElements.push({
+            element: prevEl,
+            extraMargin: totalMargin,
+            gapY: prevBottom + remainingOnPage, // Position at page bottom
           });
+          
+          currentPageBottom += pageHeight + totalMargin;
+        } else {
+          currentPageBottom += pageHeight;
         }
-        
-        currentPage++;
-        accumulatedHeight = breakTop + gapHeight; // Account for the gap
       }
-      
-      accumulatedHeight += childHeight;
+    }
+
+    // Step 3: Apply margins and collect gap positions
+    const newGapPositions: number[] = [];
+    
+    breakElements.forEach(({ element, extraMargin }) => {
+      element.style.marginBottom = `${extraMargin}px`;
+      element.setAttribute('data-page-break-margin', 'true');
     });
 
-    setPageBreaks(newPageBreaks);
-  };
+    // Step 4: After margins are applied, read actual gap positions from DOM
+    requestAnimationFrame(() => {
+      const pmRect = proseMirror.getBoundingClientRect();
+      breakElements.forEach(({ element, extraMargin }) => {
+        const rect = element.getBoundingClientRect();
+        const elBottom = rect.bottom - pmRect.top;
+        // The gap should be at the content bottom, which is elBottom minus the extra margin we added
+        const contentBottom = elBottom - extraMargin;
+        // Add remaining page space offset to position gap correctly
+        newGapPositions.push(contentBottom);
+      });
+      
+      setGapPositions(newGapPositions);
+      // Delay releasing the lock so observer doesn't immediately retrigger
+      setTimeout(() => { isCalculating.current = false; }, 100);
+    });
+  }, [pageHeight, gapHeight]);
 
   useEffect(() => {
-    // Initial calculation with delay to let content render
-    const initialTimer = setTimeout(calculatePageBreaks, 200);
+    const timer = setTimeout(calculatePageBreaks, 300);
 
-    // Set up mutation observer to watch for content changes
-    if (!containerRef.current) return () => clearTimeout(initialTimer);
+    if (!containerRef.current) return () => clearTimeout(timer);
+    const proseMirror = containerRef.current.querySelector('.ProseMirror');
+    if (!proseMirror) return () => clearTimeout(timer);
 
-    const proseMirrorElement = containerRef.current.querySelector('.ProseMirror');
-    if (!proseMirrorElement) return () => clearTimeout(initialTimer);
-
-    let recalcTimer: number;
-
+    let debounceTimer: number;
     const observer = new MutationObserver(() => {
-      // Debounce the recalculation
-      clearTimeout(recalcTimer);
-      recalcTimer = window.setTimeout(calculatePageBreaks, 150);
+      if (isCalculating.current) return;
+      clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(calculatePageBreaks, 300);
     });
 
-    observer.observe(proseMirrorElement, {
+    observer.observe(proseMirror, {
       childList: true,
       subtree: true,
       characterData: true,
+      attributes: true,
+      attributeFilter: ['style'],
     });
 
-    // Also listen for resize events
     const resizeObserver = new ResizeObserver(() => {
-      clearTimeout(recalcTimer);
-      recalcTimer = window.setTimeout(calculatePageBreaks, 150);
+      clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(calculatePageBreaks, 200);
     });
-
-    resizeObserver.observe(proseMirrorElement);
+    resizeObserver.observe(proseMirror);
 
     return () => {
-      clearTimeout(initialTimer);
-      clearTimeout(recalcTimer);
+      clearTimeout(timer);
+      clearTimeout(debounceTimer);
       observer.disconnect();
       resizeObserver.disconnect();
     };
-  }, [pageHeight, gapHeight]);
+  }, [calculatePageBreaks]);
 
   return (
     <div ref={containerRef} className="page-break-wrapper" style={{ position: 'relative' }}>
       {children}
-      
-      {/* Render page break visual gaps */}
-      {pageBreaks.map((pageBreak) => (
+      {gapPositions.map((top, i) => (
         <div
-          key={pageBreak.id}
+          key={`gap-${i}`}
           className="page-break-gap"
           style={{
             position: 'absolute',
-            top: `${pageBreak.top}px`,
+            top: `${top}px`,
             left: '-72px',
-            right: '-72px',
+            right: '-72px', 
             height: `${gapHeight}px`,
-            backgroundColor: '#e8eaed',
-            zIndex: 10,
+            backgroundColor: '#f0f2f4',
+            zIndex: 20,
             pointerEvents: 'none',
-            marginTop: '0px',
-            boxShadow: `
-              0 -8px 16px -8px rgba(0, 0, 0, 0.1) inset,
-              0 8px 16px -8px rgba(0, 0, 0, 0.1) inset
-            `,
+            boxShadow: 'inset 0 3px 5px -3px rgba(0,0,0,0.12), inset 0 -3px 5px -3px rgba(0,0,0,0.12)',
           }}
         />
       ))}
