@@ -127,6 +127,19 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Clear formatting', action: () => editor?.chain().focus().clearNodes().unsetAllMarks().run() },
     ],
     Tools: [
+      { label: 'Suggestion mode', action: () => {
+        if (editor) {
+          editor.chain().focus().toggleSuggestionMode().run();
+          window.dispatchEvent(new CustomEvent('suggestion-mode-toggle'));
+        }
+      }},
+      { label: 'Accept all suggestions', action: () => {
+        window.dispatchEvent(new CustomEvent('suggestions-accept-all'));
+      }},
+      { label: 'Reject all suggestions', action: () => {
+        window.dispatchEvent(new CustomEvent('suggestions-reject-all'));
+      }},
+      { label: 'divider' },
       { label: 'Word count', action: () => console.log('Word count') },
       { label: 'Preferences', action: onShowSettings, icon: Settings },
     ],

@@ -7,6 +7,7 @@ interface StatusBarProps {
   saveStatus: 'saved' | 'saving' | 'unsaved' | 'error';
   lastSaved?: Date;
   isGuestMode?: boolean;
+  suggestionMode?: boolean;
 }
 
 const StatusBar: React.FC<StatusBarProps> = ({ 
@@ -14,7 +15,8 @@ const StatusBar: React.FC<StatusBarProps> = ({
   activeFile,
   saveStatus,
   lastSaved,
-  isGuestMode = false 
+  isGuestMode = false,
+  suggestionMode = false,
 }) => {
   const stats = useMemo(() => {
     const text = content.replace(/[#*`_\[\]()]/g, '').trim(); // Remove markdown formatting
@@ -95,6 +97,11 @@ const StatusBar: React.FC<StatusBarProps> = ({
       </div>
 
       <div className="status-bar-center">
+        {suggestionMode && (
+          <span className="suggestion-mode-indicator active" style={{ marginRight: 8 }}>
+            ✏️ Suggesting
+          </span>
+        )}
         {activeFile && (
           <div className="file-info">
             <FileText size={14} />

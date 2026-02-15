@@ -41,6 +41,7 @@ function App() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [showComments, setShowComments] = useState(false);
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
+  const [suggestionMode, setSuggestionMode] = useState(false);
 
   // Auto-save functionality
   const saveTimeoutRef = useRef<number>();
@@ -377,6 +378,66 @@ function App() {
     loadFiles();
   };
 
+  // Suggestion mode toggle + bulk actions
+  useEffect(() => {
+    const handleToggle = () => setSuggestionMode(prev => !prev);
+    
+    const handleAcceptAll = () => {
+      if (!editorRef) return;
+      const { doc, tr } = editorRef.state;
+      const markType = editorRef.schema.marks.suggestion;
+      // Collect in reverse order to avoid position shifts
+      const ops: { pos: number; size: number; type: string }[] = [];
+      doc.descendants((node: any, pos: number) => {
+        node.marks?.forEach((mark: any) => {
+          if (mark.type === markType) {
+            ops.push({ pos, size: node.nodeSize, type: mark.attrs.suggestionType });
+          }
+        });
+      });
+      // Process in reverse
+      ops.reverse().forEach(op => {
+        if (op.type === 'insert') {
+          tr.removeMark(op.pos, op.pos + op.size, markType);
+        } else {
+          tr.delete(op.pos, op.pos + op.size);
+        }
+      });
+      editorRef.view.dispatch(tr);
+    };
+
+    const handleRejectAll = () => {
+      if (!editorRef) return;
+      const { doc, tr } = editorRef.state;
+      const markType = editorRef.schema.marks.suggestion;
+      const ops: { pos: number; size: number; type: string }[] = [];
+      doc.descendants((node: any, pos: number) => {
+        node.marks?.forEach((mark: any) => {
+          if (mark.type === markType) {
+            ops.push({ pos, size: node.nodeSize, type: mark.attrs.suggestionType });
+          }
+        });
+      });
+      ops.reverse().forEach(op => {
+        if (op.type === 'insert') {
+          tr.delete(op.pos, op.pos + op.size);
+        } else {
+          tr.removeMark(op.pos, op.pos + op.size, markType);
+        }
+      });
+      editorRef.view.dispatch(tr);
+    };
+
+    window.addEventListener('suggestion-mode-toggle', handleToggle);
+    window.addEventListener('suggestions-accept-all', handleAcceptAll);
+    window.addEventListener('suggestions-reject-all', handleRejectAll);
+    return () => {
+      window.removeEventListener('suggestion-mode-toggle', handleToggle);
+      window.removeEventListener('suggestions-accept-all', handleAcceptAll);
+      window.removeEventListener('suggestions-reject-all', handleRejectAll);
+    };
+  }, [editorRef]);
+
   // Comment handlers
   useEffect(() => {
     const handleCommentAdd = (e: Event) => {
@@ -565,6 +626,7 @@ function App() {
         saveStatus={saveStatus}
         lastSaved={lastSaved}
         isGuestMode={isGuestMode}
+        suggestionMode={suggestionMode}
       />
 
       {/* Template Selector Modal */}

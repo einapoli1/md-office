@@ -1,3 +1,137 @@
+/* =============================================
+   Suggestions (Track Changes)
+   ============================================= */
+
+/* Suggested insertion — green underline */
+.suggestion-insert {
+  background-color: rgba(52, 168, 83, 0.15);
+  border-bottom: 2px solid #34a853;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.suggestion-insert:hover {
+  background-color: rgba(52, 168, 83, 0.3);
+}
+
+/* Suggested deletion — red strikethrough */
+.suggestion-delete {
+  background-color: rgba(234, 67, 53, 0.15);
+  text-decoration: line-through;
+  text-decoration-color: #ea4335;
+  color: #ea4335;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.suggestion-delete:hover {
+  background-color: rgba(234, 67, 53, 0.3);
+}
+
+/* Suggestion mode indicator */
+.suggestion-mode-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.suggestion-mode-indicator.active {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.suggestion-mode-indicator.inactive {
+  background: #f1f3f4;
+  color: #80868b;
+}
+
+/* Suggestion card in sidebar */
+.suggestion-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.suggestion-card:hover {
+  border-color: #d0d0d0;
+}
+
+.suggestion-card.active {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 1px #1a73e8;
+}
+
+.suggestion-card .suggestion-preview {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 8px 0;
+}
+
+.suggestion-card .suggestion-preview .added {
+  background-color: rgba(52, 168, 83, 0.2);
+  color: #137333;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.suggestion-card .suggestion-preview .removed {
+  background-color: rgba(234, 67, 53, 0.2);
+  color: #c5221f;
+  text-decoration: line-through;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.suggestion-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.suggestion-actions button {
+  flex: 1;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: background 0.15s;
+}
+
+.suggestion-actions .accept-btn {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.suggestion-actions .accept-btn:hover {
+  background: #ceead6;
+}
+
+.suggestion-actions .reject-btn {
+  background: #fce8e6;
+  color: #c5221f;
+}
+
+.suggestion-actions .reject-btn:hover {
+  background: #f5c6c2;
+}
+
 /* Comment highlight in editor */
 .comment-highlight {
   background-color: rgba(255, 212, 0, 0.3);

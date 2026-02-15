@@ -34,6 +34,7 @@ import { LinkCard } from '../extensions/LinkCard';
 import { MermaidDiagram } from '../extensions/Mermaid';
 import { PageBreaks } from '../extensions/PageBreaks';
 import { CommentExtension } from '../extensions/CommentExtension';
+import { SuggestionExtension } from '../extensions/SuggestionExtension';
 
 interface EditorProps {
   content: string;
@@ -399,6 +400,11 @@ const Editor: React.FC<EditorProps> = ({
       YouTubeEmbed,
       LinkCard,
       MermaidDiagram,
+      SuggestionExtension.configure({
+        onSuggestionClick: (suggestionId: string) => {
+          window.dispatchEvent(new CustomEvent('suggestion-click', { detail: { suggestionId } }));
+        },
+      }),
       CommentExtension.configure({
         onCommentClick: (commentId: string) => {
           // Dispatch custom event so App can handle it

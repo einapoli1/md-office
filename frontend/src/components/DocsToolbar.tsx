@@ -5,7 +5,7 @@ import {
   List, ListOrdered, Link as LinkIcon, Image as ImageIcon,
   Type, Palette, Highlighter, Undo, Redo, CheckSquare,
   ChevronDown, MoreHorizontal, Minus, Quote, Code2,
-  RotateCcw, Printer, MessageSquare
+  RotateCcw, Printer, MessageSquare, PenTool
 } from 'lucide-react';
 
 interface DocsToolbarProps {
@@ -511,6 +511,18 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
           title="Insert image"
         >
           <ImageIcon size={16} />
+        </button>
+
+        {/* Suggestion Mode Toggle */}
+        <button
+          className={`toolbar-btn ${editor.isActive('suggestion') ? 'active' : ''}`}
+          onClick={() => {
+            editor.chain().focus().toggleSuggestionMode().run();
+            window.dispatchEvent(new CustomEvent('suggestion-mode-toggle'));
+          }}
+          title="Suggesting mode (track changes)"
+        >
+          <PenTool size={16} />
         </button>
 
         {/* Comment */}
