@@ -16,6 +16,7 @@ import SuggestionsSidebar from './components/SuggestionsSidebar';
 import FindReplace from './components/FindReplace';
 import WordCountDialog from './components/WordCountDialog';
 import ExportDialog from './components/ExportDialog';
+import KeyboardShortcutsDialog from './components/KeyboardShortcutsDialog';
 import './comments-styles.css';
 
 function App() {
@@ -52,6 +53,7 @@ function App() {
   const [findReplaceMode, setFindReplaceMode] = useState(false); // true = show replace
   const [showWordCount, setShowWordCount] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [collabStatus, setCollabStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [collabUsers, setCollabUsers] = useState(0);
 
@@ -534,6 +536,10 @@ function App() {
         setShowFindReplace(true);
         setFindReplaceMode(true);
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+        e.preventDefault();
+        setShowShortcuts(prev => !prev);
+      }
     };
     const handleEvent = (e: Event) => {
       const { replace } = (e as CustomEvent).detail || {};
@@ -700,6 +706,11 @@ function App() {
           fileName={activeFile?.path || 'untitled.md'}
           onClose={() => setShowExport(false)}
         />
+      )}
+
+      {/* Keyboard Shortcuts */}
+      {showShortcuts && (
+        <KeyboardShortcutsDialog onClose={() => setShowShortcuts(false)} />
       )}
 
       {/* Template Selector Modal */}
