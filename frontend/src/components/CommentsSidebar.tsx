@@ -25,6 +25,7 @@ interface CommentsSidebarProps {
   onAddReply: (commentId: string, text: string) => void;
   onResolve: (commentId: string) => void;
   onDelete: (commentId: string) => void;
+  onUpdateComment: (commentId: string, text: string) => void;
   onSelectComment: (commentId: string) => void;
   onClose: () => void;
 }
@@ -45,12 +46,16 @@ const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
   onAddReply,
   onResolve,
   onDelete,
+  onUpdateComment,
   onSelectComment,
   onClose,
 }) => {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
   const replyInputRef = useRef<HTMLTextAreaElement>(null);
+  const editInputRef = useRef<HTMLTextAreaElement>(null);
   const activeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,6 +69,37 @@ const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
       replyInputRef.current.focus();
     }
   }, [replyingTo]);
+
+  // Focus the edit input when a new comment needs text
+  useEffect(() => {
+    if (editingCommentId && editInputRef.current) {
+      editInputRef.current.focus();
+    }
+  }, [editingCommentId]);
+
+  // Listen for focus-input events (new comment inline editing)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { commentId } = (e as CustomEvent).detail;
+      setEditingCommentId(commentId);
+      setEditingText('');
+    };
+    window.addEventListener('comment-focus-input', handler);
+    return () => window.removeEventListener('comment-focus-input', handler);
+  }, []);
+
+  const handleSaveComment = (commentId: string) => {
+    if (!editingText.trim()) {
+      // If empty, delete the comment and remove mark
+      onDelete(commentId);
+      setEditingCommentId(null);
+      setEditingText('');
+      return;
+    }
+    onUpdateComment(commentId, editingText.trim());
+    setEditingCommentId(null);
+    setEditingText('');
+  };
 
   const handleReply = (commentId: string) => {
     if (!replyText.trim()) return;
@@ -110,7 +146,40 @@ const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
               <span className="comment-author">{comment.author}</span>
               <span className="comment-time">{formatTime(comment.createdAt)}</span>
             </div>
-            <div className="comment-body">{comment.text}</div>
+            {editingCommentId === comment.id ? (
+              <div className="comment-edit-input">
+                <textarea
+                  ref={editInputRef}
+                  value={editingText}
+                  onChange={e => setEditingText(e.target.value)}
+                  placeholder="Add your comment..."
+                  rows={2}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSaveComment(comment.id);
+                    }
+                    if (e.key === 'Escape') {
+                      if (!comment.text) onDelete(comment.id);
+                      setEditingCommentId(null);
+                      setEditingText('');
+                    }
+                  }}
+                />
+                <div className="comment-reply-actions">
+                  <button onClick={() => {
+                    if (!comment.text) onDelete(comment.id);
+                    setEditingCommentId(null);
+                    setEditingText('');
+                  }}>Cancel</button>
+                  <button className="primary" onClick={() => handleSaveComment(comment.id)}>
+                    <Send size={12} /> Save
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="comment-body">{comment.text}</div>
+            )}
 
             {/* Replies */}
             {comment.replies.map(reply => (

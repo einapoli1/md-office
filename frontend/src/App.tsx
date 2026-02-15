@@ -472,17 +472,15 @@ function App() {
         replies: [],
         quotedText,
       };
-      // Prompt for comment text
-      const text = prompt('Add a comment:');
-      if (!text) {
-        // Remove the mark if user cancels
-        if (editorRef) editorRef.chain().focus().unsetComment().run();
-        return;
-      }
-      newComment.text = text;
+      // Open sidebar with empty comment — user types inline
+      newComment.text = '';
       setComments(prev => [...prev, newComment]);
       setActiveCommentId(commentId);
       setShowComments(true);
+      // Mark as pending input so sidebar focuses the input
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('comment-focus-input', { detail: { commentId } }));
+      }, 100);
     };
 
     const handleCommentClick = (e: Event) => {
@@ -518,6 +516,10 @@ function App() {
     setComments(prev => prev.map(c =>
       c.id === commentId ? { ...c, resolved: true } : c
     ));
+  };
+
+  const handleUpdateComment = (commentId: string, text: string) => {
+    setComments(prev => prev.map(c => c.id === commentId ? { ...c, text } : c));
   };
 
   const handleDeleteComment = (commentId: string) => {
@@ -638,6 +640,7 @@ function App() {
             onAddReply={handleAddReply}
             onResolve={handleResolveComment}
             onDelete={handleDeleteComment}
+            onUpdateComment={handleUpdateComment}
             onSelectComment={setActiveCommentId}
             onClose={() => setShowComments(false)}
           />

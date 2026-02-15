@@ -628,3 +628,25 @@
   padding-top: 8px;
   border-top: 1px solid #f1f3f4;
 }
+
+/* Comment inline edit input */
+.comment-edit-input {
+  margin-top: 4px;
+}
+
+.comment-edit-input textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #1a73e8;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 40px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.comment-edit-input textarea:focus {
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+}
