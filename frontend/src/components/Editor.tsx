@@ -423,8 +423,9 @@ const Editor: React.FC<EditorProps> = ({
         Collaboration.configure({
           document: ydoc,
         }),
-        // TODO: CollaborationCursor crashes on init if provider not fully connected
-        // Re-enable once we add connection state tracking
+        // NOTE: CollaborationCursor disabled — crashes on init (createDecorations
+        // reads undefined doc). Needs investigation into @tiptap/extension-collaboration-cursor
+        // compatibility with dynamic extension loading. Content sync works without it.
       ] : []),
     ],
     // Only set initial content if not using collaboration
@@ -445,7 +446,7 @@ const Editor: React.FC<EditorProps> = ({
         spellcheck: spellCheck.toString(),
       },
     },
-  }, [enableCollaboration, ydoc, provider, userName]);
+  }, [enableCollaboration, ydoc, provider, userName, collaborationStatus]);
 
   useEffect(() => {
     if (editor && !enableCollaboration) {

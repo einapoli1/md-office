@@ -154,11 +154,12 @@ const server = new Server({
   // Handle authentication (for future use)
   async onAuthenticate(data) {
     // For now, allow all connections
-    // In the future, add proper authentication here
+    const id = data.connection?.remoteAddress || `anon-${Date.now()}`;
+    const token = data.token || null;
     return {
       user: {
-        id: data.connection.remoteAddress,
-        name: `User ${Math.random().toString(36).substring(7)}`
+        id,
+        name: token || `Guest ${Math.random().toString(36).substring(2, 6)}`,
       }
     };
   }
