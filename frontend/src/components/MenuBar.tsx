@@ -18,6 +18,7 @@ interface MenuBarProps {
   activeFile?: FileContent | null;
   onTitleChange?: (newPath: string) => void;
   editor?: any;
+  onShareClick?: () => void;
 }
 
 const MenuBar: React.FC<MenuBarProps> = ({
@@ -36,6 +37,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
   activeFile,
   onTitleChange,
   editor,
+  onShareClick,
 }) => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -382,18 +384,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
           <Plus size={16} />
         </button>
         
-        <button className="share-btn" onClick={() => {
-          const url = new URL(window.location.href);
-          url.searchParams.set('collab', '1');
-          navigator.clipboard.writeText(url.toString()).then(() => {
-            alert('Collaboration link copied!\n\n' + url.toString());
-          }).catch(() => {
-            prompt('Share this link:', url.toString());
-          });
-          if (!window.location.search.includes('collab')) {
-            window.location.href = url.toString();
-          }
-        }}>
+        <button className="share-btn" onClick={() => onShareClick?.()}>
           <Share2 size={16} />
           <span>Share</span>
         </button>

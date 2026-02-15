@@ -674,6 +674,7 @@ function App() {
 
   // Main app interface
   return (
+    <ToastProvider>
     <div className="app">
       <MenuBar
         onNewFile={handleNewFile}
@@ -690,6 +691,7 @@ function App() {
         activeFile={activeFile}
         onTitleChange={handleTitleChange}
         editor={editorRef}
+        onShareClick={() => setShowShareDialog(true)}
       />
 
       {/* Formatting Toolbar - Google Docs style */}
@@ -866,7 +868,15 @@ function App() {
           />
         </Suspense>
       )}
+
+      {/* Share Dialog */}
+      <ShareDialog
+        isOpen={showShareDialog}
+        onClose={() => setShowShareDialog(false)}
+        documentName={activeFile?.path?.split('/').pop()?.replace(/\.\w+$/, '') || 'Untitled Document'}
+      />
     </div>
+    </ToastProvider>
   );
 }
 

@@ -124,6 +124,12 @@ const FindReplace: React.FC<FindReplaceProps> = ({ editor, onClose, showReplace 
     }
     editor.view.dispatch(tr);
 
+    // Toast notification
+    const count = sorted.length;
+    import('./Toast').then(({ toast }) => {
+      toast(`${count} replacement${count !== 1 ? 's' : ''} made`, 'info');
+    });
+
     setMatches([]);
     setCurrentMatch(-1);
   }, [editor, matches, replaceText]);

@@ -19,6 +19,7 @@ const ExportDialog: React.FC<ExportDialogProps> = ({ content, htmlContent, fileN
     a.download = `${baseName}.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
+    import('./Toast').then(({ toast }) => toast(`Exported as ${baseName}.${ext}`, 'success'));
     onClose();
   }, [baseName, onClose]);
 

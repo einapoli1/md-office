@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Link2, Copy, Check, Globe, Lock, ChevronDown } from 'lucide-react';
+import { X, Link2, Check, Globe, Lock, ChevronDown } from 'lucide-react';
 import { toast } from './Toast';
 
 interface ShareDialogProps {
