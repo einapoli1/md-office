@@ -12,6 +12,12 @@ import { TextAlign } from '@tiptap/extension-text-align';
 import { Highlight } from '@tiptap/extension-highlight';
 import { Color } from '@tiptap/extension-color';
 import { TextStyle } from '@tiptap/extension-text-style';
+import { FontFamily } from '@tiptap/extension-font-family';
+import { Superscript } from '@tiptap/extension-superscript';
+import { Subscript } from '@tiptap/extension-subscript';
+import { Blockquote } from '@tiptap/extension-blockquote';
+import { CodeBlock } from '@tiptap/extension-code-block';
+import { HorizontalRule } from '@tiptap/extension-horizontal-rule';
 import { Mathematics } from '@tiptap/extension-mathematics';
 import TurndownService from 'turndown';
 // @ts-ignore - turndown-plugin-gfm types
@@ -270,6 +276,8 @@ const Editor: React.FC<EditorProps> = ({ content, onChange }) => {
     extensions: [
       StarterKit.configure({
         codeBlock: false,
+        blockquote: false,
+        horizontalRule: false,
       }),
       Placeholder.configure({
         placeholder: 'Start writing your document...',
@@ -295,6 +303,12 @@ const Editor: React.FC<EditorProps> = ({ content, onChange }) => {
       Highlight.configure({ multicolor: false }),
       TextStyle,
       Color,
+      FontFamily,
+      Superscript,
+      Subscript,
+      Blockquote,
+      CodeBlock,
+      HorizontalRule,
       Mathematics.configure({
         katexOptions: { throwOnError: false },
       }),

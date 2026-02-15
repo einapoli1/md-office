@@ -3,8 +3,9 @@ import {
   Bold, Italic, Underline, Strikethrough, 
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered, Link as LinkIcon, Image as ImageIcon,
-  Type, Palette, Highlighter, Undo, Redo,
-  ChevronDown, MoreHorizontal
+  Type, Palette, Highlighter, Undo, Redo, CheckSquare,
+  ChevronDown, MoreHorizontal, Minus, Quote, Code2,
+  RotateCcw, Printer
 } from 'lucide-react';
 
 interface DocsToolbarProps {
@@ -13,6 +14,7 @@ interface DocsToolbarProps {
 
 const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
   const [showFontSize, setShowFontSize] = useState(false);
+  const [showFontFamily, setShowFontFamily] = useState(false);
   const [showHeading, setShowHeading] = useState(false);
   const [showTextColor, setShowTextColor] = useState(false);
   const [showHighlightColor, setShowHighlightColor] = useState(false);
@@ -20,6 +22,16 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
   if (!editor) return null;
 
   const fontSizes = ['8', '9', '10', '11', '12', '14', '16', '18', '20', '24', '30', '36'];
+  const fontFamilies = [
+    { name: 'Arial', value: 'Arial, sans-serif' },
+    { name: 'Times New Roman', value: 'Times New Roman, serif' },
+    { name: 'Georgia', value: 'Georgia, serif' },
+    { name: 'Helvetica', value: 'Helvetica, sans-serif' },
+    { name: 'Courier New', value: 'Courier New, monospace' },
+    { name: 'Comic Sans MS', value: 'Comic Sans MS, cursive' },
+    { name: 'Impact', value: 'Impact, sans-serif' },
+    { name: 'Verdana', value: 'Verdana, sans-serif' }
+  ];
   const textColors = ['#000000', '#434343', '#666666', '#999999', '#b7b7b7', '#cccccc', '#d9d9d9', '#efefef', '#f3f3f3', '#ffffff', '#980000', '#ff0000', '#ff9900', '#ffff00', '#00ff00', '#00ffff', '#4a86e8', '#0000ff', '#9900ff', '#ff00ff'];
   const highlightColors = ['transparent', '#ffff00', '#00ff00', '#00ffff', '#ff9900', '#ff00ff', '#0000ff', '#ff0000', '#808080'];
 
@@ -31,6 +43,16 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
     return 'Normal text';
   };
 
+  const getCurrentFontFamily = () => {
+    // Try to get the current font family from the editor
+    const attrs = editor.getAttributes('textStyle');
+    if (attrs.fontFamily) {
+      const found = fontFamilies.find(f => f.value === attrs.fontFamily);
+      return found ? found.name : 'Arial';
+    }
+    return 'Arial';
+  };
+
   const setHeading = (level: number | null) => {
     if (level === null) {
       editor.chain().focus().clearNodes().run();
@@ -40,10 +62,31 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
     setShowHeading(false);
   };
 
+  const setFontFamily = (fontFamily: string) => {
+    if (fontFamily === 'default') {
+      editor.chain().focus().unsetFontFamily().run();
+    } else {
+      editor.chain().focus().setFontFamily(fontFamily).run();
+    }
+    setShowFontFamily(false);
+  };
+
   const setFontSize = (_size: string) => {
     editor.chain().focus().run();
     // Note: TipTap doesn't have built-in font size, we'd need a custom extension
     setShowFontSize(false);
+  };
+
+  const clearFormatting = () => {
+    editor.chain().focus().clearNodes().unsetAllMarks().run();
+  };
+
+  const insertHorizontalRule = () => {
+    editor.chain().focus().setHorizontalRule().run();
+  };
+
+  const printDocument = () => {
+    window.print();
   };
 
   const setLink = () => {
@@ -101,11 +144,46 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
         >
           <Redo size={16} />
         </button>
+        
+        {/* Print */}
+        <button 
+          className="toolbar-btn"
+          onClick={printDocument}
+          title="Print (Ctrl+P)"
+        >
+          <Printer size={16} />
+        </button>
       </div>
 
       <div className="toolbar-divider" />
 
       <div className="toolbar-section">
+        {/* Font Family */}
+        <div className="dropdown-container">
+          <button 
+            className="toolbar-dropdown-btn"
+            onClick={() => setShowFontFamily(!showFontFamily)}
+            style={{ minWidth: '100px' }}
+          >
+            <span>{getCurrentFontFamily()}</span>
+            <ChevronDown size={12} />
+          </button>
+          {showFontFamily && (
+            <div className="toolbar-dropdown">
+              {fontFamilies.map(font => (
+                <button
+                  key={font.name}
+                  className="dropdown-item"
+                  onClick={() => setFontFamily(font.value)}
+                  style={{ fontFamily: font.value }}
+                >
+                  {font.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Font Size */}
         <div className="dropdown-container">
           <button 
@@ -280,6 +358,31 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
             </div>
           )}
         </div>
+
+        {/* Superscript / Subscript */}
+        <button 
+          className={`toolbar-btn ${editor.isActive('superscript') ? 'active' : ''}`}
+          onClick={() => editor.chain().focus().toggleSuperscript().run()}
+          title="Superscript"
+        >
+          <span style={{ fontSize: '12px', fontWeight: 'bold' }}>x²</span>
+        </button>
+        <button 
+          className={`toolbar-btn ${editor.isActive('subscript') ? 'active' : ''}`}
+          onClick={() => editor.chain().focus().toggleSubscript().run()}
+          title="Subscript"
+        >
+          <span style={{ fontSize: '12px', fontWeight: 'bold' }}>x₂</span>
+        </button>
+
+        {/* Clear Formatting */}
+        <button 
+          className="toolbar-btn"
+          onClick={clearFormatting}
+          title="Clear formatting"
+        >
+          <RotateCcw size={16} />
+        </button>
       </div>
 
       <div className="toolbar-divider" />
@@ -335,6 +438,15 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
           <ListOrdered size={16} />
         </button>
 
+        {/* Task List / Checklist */}
+        <button 
+          className={`toolbar-btn ${editor.isActive('taskList') ? 'active' : ''}`}
+          onClick={() => editor.chain().focus().toggleTaskList().run()}
+          title="Checklist"
+        >
+          <CheckSquare size={16} />
+        </button>
+
         {/* Indent/Outdent */}
         <button 
           className="toolbar-btn"
@@ -349,6 +461,36 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
           title="Increase indent (Ctrl+])"
         >
           <span style={{ fontSize: '14px', fontWeight: 'bold' }}>⇥</span>
+        </button>
+      </div>
+
+      <div className="toolbar-divider" />
+
+      <div className="toolbar-section">
+        {/* Block Elements */}
+        <button 
+          className={`toolbar-btn ${editor.isActive('blockquote') ? 'active' : ''}`}
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          title="Quote"
+        >
+          <Quote size={16} />
+        </button>
+        
+        <button 
+          className={`toolbar-btn ${editor.isActive('codeBlock') ? 'active' : ''}`}
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          title="Code block"
+        >
+          <Code2 size={16} />
+        </button>
+
+        {/* Horizontal Rule */}
+        <button 
+          className="toolbar-btn"
+          onClick={insertHorizontalRule}
+          title="Insert horizontal rule"
+        >
+          <Minus size={16} />
         </button>
       </div>
 
