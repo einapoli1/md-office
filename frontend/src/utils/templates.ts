@@ -13,10 +13,74 @@ export const templates: Template[] = [
     content: '',
   },
   {
+    id: 'styled-document',
+    name: 'Styled Document',
+    description: 'Document with custom styling and metadata',
+    content: `---
+title: "Styled Document Example"
+author: "Your Name"
+font: "Georgia"
+fontSize: 18
+lineHeight: 1.8
+pageMargins: "wide"
+pageWidth: "wide"
+tags: ["example", "styled"]
+---
+
+# Welcome to Your Styled Document
+
+This document demonstrates how you can use YAML frontmatter to control the appearance and metadata of your markdown documents.
+
+## Styling Features
+
+The frontmatter at the top of this document controls:
+
+- **Font:** Georgia (serif font)
+- **Font size:** 18px (larger than default)
+- **Line height:** 1.8 (extra spacious)
+- **Page margins:** Wide margins for better readability
+- **Page width:** Wide page layout
+- **Title:** Custom document title
+- **Author:** Document author
+- **Tags:** For organization and search
+
+## How It Works
+
+The document remains a standard .md file that can be opened in any markdown editor, but MD Office reads the YAML frontmatter to apply visual styling when editing.
+
+### Example Frontmatter
+
+    ---
+    title: "My Document"
+    font: "Lora"
+    fontSize: 16
+    pageMargins: "normal"
+    author: "Your Name"
+    ---
+
+## Benefits
+
+- ✅ **Portable:** Still standard markdown
+- ✅ **Visual:** Beautiful presentation in MD Office
+- ✅ **Flexible:** Each document can have its own style
+- ✅ **Compatible:** Works with any markdown tool
+
+Try editing this document and changing the frontmatter values to see the styling update in real-time!`,
+  },
+  {
     id: 'meeting-notes',
     name: 'Meeting Notes',
     description: 'Template for meeting minutes and notes',
-    content: `# Meeting Notes
+    content: `---
+title: "Meeting Notes"
+font: "Inter"
+fontSize: 15
+pageMargins: "normal"
+author: ""
+tags: ["meeting", "notes"]
+---
+
+# Meeting Notes
 
 **Date:** ${new Date().toLocaleDateString()}
 **Attendees:** 
@@ -50,7 +114,18 @@ export const templates: Template[] = [
     id: 'project-brief',
     name: 'Project Brief',
     description: 'Template for project planning and briefing',
-    content: `# Project Brief
+    content: `---
+title: "Project Brief"
+font: "Lora"
+fontSize: 16
+lineHeight: 1.6
+pageMargins: "normal"
+pageWidth: "normal"
+author: ""
+tags: ["project", "planning"]
+---
+
+# Project Brief
 
 ## Project Overview
 
@@ -114,6 +189,59 @@ export const templates: Template[] = [
 - **Team Meetings:** 
 
 `,
+  },
+  {
+    id: 'formal-letter',
+    name: 'Formal Letter',
+    description: 'Professional letter template with elegant styling',
+    content: `---
+title: "Formal Letter"
+font: "Times"
+fontSize: 14
+lineHeight: 1.4
+pageMargins: "wide"
+pageWidth: "narrow"
+textAlign: "left"
+author: ""
+tags: ["letter", "formal"]
+---
+
+**[Your Name]**  
+[Your Address]  
+[City, State ZIP Code]  
+[Your Email]  
+[Your Phone]
+
+[Date]
+
+**[Recipient's Name]**  
+[Recipient's Title]  
+[Organization]  
+[Address]  
+[City, State ZIP Code]
+
+**Re: [Subject Line]**
+
+Dear [Recipient's Name],
+
+[Opening paragraph - introduce yourself and state the purpose of your letter]
+
+[Body paragraphs - provide details, explanations, or requests. Use clear, concise language and organize your thoughts logically]
+
+[Closing paragraph - summarize your main points and indicate what action you would like the recipient to take]
+
+Thank you for your time and consideration. I look forward to your response.
+
+Sincerely,
+
+[Your Signature]  
+**[Your Printed Name]**  
+[Your Title]
+
+---
+
+**Enclosures:** [List any documents you're including]  
+**cc:** [List anyone receiving copies]`,
   },
   {
     id: 'weekly-report',
