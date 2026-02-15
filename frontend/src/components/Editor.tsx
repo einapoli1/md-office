@@ -32,6 +32,7 @@ import { Footnote } from '../extensions/Footnote';
 import { YouTubeEmbed } from '../extensions/YouTubeEmbed';
 import { LinkCard } from '../extensions/LinkCard';
 import { MermaidDiagram } from '../extensions/Mermaid';
+import { PageBreaks } from '../extensions/PageBreaks';
 
 interface EditorProps {
   content: string;
@@ -397,6 +398,11 @@ const Editor: React.FC<EditorProps> = ({
       YouTubeEmbed,
       LinkCard,
       MermaidDiagram,
+      PageBreaks.configure({
+        pageHeight: 1056,
+        gapHeight: 24,
+        enabled: true,
+      }),
       // Conditional collaboration extensions
       ...(enableCollaboration && ydocRef.current ? [
         Collaboration.configure({

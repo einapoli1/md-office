@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Settings, X } from 'lucide-react';
 import { FileContent } from '../types';
 import Editor from './Editor';
-import PageBreakWrapper from './PageBreakWrapper';
+// PageBreaks handled by TipTap extension now
 import { 
   parseFrontmatter, 
   serializeFrontmatter, 
@@ -104,13 +104,13 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
           }}
         >
           <div className="editor-content-area" style={{ padding: pageStyles.padding }}>
-            <PageBreakWrapper pageHeight={1056} gapHeight={24}>
+            <div className="page-break-wrapper" style={{ position: 'relative' }}>
               <Editor
                 content={parsedDocument.content}
                 onChange={handleEditorChange}
                 onEditorReady={onEditorReady}
               />
-            </PageBreakWrapper>
+            </div>
           </div>
         </div>
       </div>
