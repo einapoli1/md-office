@@ -36,6 +36,7 @@ import { PageBreaks } from '../extensions/PageBreaks';
 import { CommentExtension } from '../extensions/CommentExtension';
 import { LineHeight } from '../extensions/LineHeight';
 import { SuggestionExtension } from '../extensions/SuggestionExtension';
+import { ImageDrop } from '../extensions/ImageDrop';
 
 interface EditorProps {
   content: string;
@@ -425,6 +426,7 @@ const Editor: React.FC<EditorProps> = ({
           window.dispatchEvent(new CustomEvent('comment-click', { detail: { commentId } }));
         },
       }),
+      ImageDrop,
       PageBreaks.configure({
         pageHeight: 1056,
         gapHeight: 24,
