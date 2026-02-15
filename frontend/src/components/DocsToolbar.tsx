@@ -90,20 +90,11 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
   };
 
   const setLink = () => {
-    const url = window.prompt('Enter URL:', 'https://');
-    if (url === null) return;
-    if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run();
-    } else {
-      editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-    }
+    window.dispatchEvent(new CustomEvent('insert-link'));
   };
 
   const addImage = () => {
-    const url = window.prompt('Enter image URL:');
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
-    }
+    window.dispatchEvent(new CustomEvent('insert-image'));
   };
 
   const setTextColor = (color: string) => {

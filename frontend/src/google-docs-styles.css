@@ -1922,3 +1922,53 @@ input:focus-visible {
 .toc-level-4 { padding-left: 52px; color: #5f6368; font-size: 12px; }
 .toc-level-5 { padding-left: 64px; color: #80868b; font-size: 12px; }
 .toc-level-6 { padding-left: 76px; color: #80868b; font-size: 11px; }
+
+/* Input Dialog */
+.input-dialog {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  min-width: 380px;
+  max-width: 440px;
+}
+
+.input-dialog-body {
+  padding: 16px 20px;
+}
+
+.input-dialog-field {
+  margin-bottom: 12px;
+}
+
+.input-dialog-field:last-child { margin-bottom: 0; }
+
+.input-dialog-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #5f6368;
+  margin-bottom: 4px;
+}
+
+.input-dialog-field input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+.input-dialog-field input:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }
+
+.dialog-cancel-btn {
+  padding: 6px 16px;
+  background: #fff;
+  color: #5f6368;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-right: 8px;
+}
+.dialog-cancel-btn:hover { background: #f1f3f4; }

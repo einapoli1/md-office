@@ -18,6 +18,7 @@ import WordCountDialog from './components/WordCountDialog';
 import ExportDialog from './components/ExportDialog';
 import KeyboardShortcutsDialog from './components/KeyboardShortcutsDialog';
 import TableOfContents from './components/TableOfContents';
+import InputDialog from './components/InputDialog';
 import './comments-styles.css';
 
 function App() {
@@ -56,6 +57,11 @@ function App() {
   const [showExport, setShowExport] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showOutline, setShowOutline] = useState(false);
+  const [inputDialog, setInputDialog] = useState<{
+    title: string;
+    fields: { key: string; label: string; placeholder?: string; defaultValue?: string }[];
+    onSubmit: (values: Record<string, string>) => void;
+  } | null>(null);
   const [collabStatus, setCollabStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [collabUsers, setCollabUsers] = useState(0);
 
@@ -552,6 +558,42 @@ function App() {
     const handleWordCount = () => setShowWordCount(true);
     const handleExport = () => setShowExport(true);
     const handleOutline = () => setShowOutline(prev => !prev);
+    const handleInsertLink = () => {
+      setInputDialog({
+        title: 'Insert link',
+        fields: [
+          { key: 'url', label: 'URL', placeholder: 'https://example.com', defaultValue: 'https://' },
+          { key: 'text', label: 'Text (optional)', placeholder: 'Link text' },
+        ],
+        onSubmit: (vals) => {
+          if (editorRef && vals.url) {
+            if (vals.text) {
+              editorRef.chain().focus().insertContent(`<a href="${vals.url}">${vals.text}</a>`).run();
+            } else {
+              editorRef.chain().focus().setLink({ href: vals.url }).run();
+            }
+          }
+          setInputDialog(null);
+        },
+      });
+    };
+    const handleInsertImage = () => {
+      setInputDialog({
+        title: 'Insert image',
+        fields: [
+          { key: 'url', label: 'Image URL', placeholder: 'https://example.com/image.png' },
+          { key: 'alt', label: 'Alt text (optional)', placeholder: 'Description' },
+        ],
+        onSubmit: (vals) => {
+          if (editorRef && vals.url) {
+            editorRef.chain().focus().setImage({ src: vals.url, alt: vals.alt || '' }).run();
+          }
+          setInputDialog(null);
+        },
+      });
+    };
+    window.addEventListener('insert-link', handleInsertLink);
+    window.addEventListener('insert-image', handleInsertImage);
     window.addEventListener('find-replace-open', handleEvent);
     window.addEventListener('word-count-open', handleWordCount);
     window.addEventListener('export-open', handleExport);
@@ -562,6 +604,8 @@ function App() {
       window.removeEventListener('word-count-open', handleWordCount);
       window.removeEventListener('export-open', handleExport);
       window.removeEventListener('outline-toggle', handleOutline);
+      window.removeEventListener('insert-link', handleInsertLink);
+      window.removeEventListener('insert-image', handleInsertImage);
     };
   }, []);
 
@@ -714,6 +758,16 @@ function App() {
           htmlContent={editorRef?.getHTML() || ''}
           fileName={activeFile?.path || 'untitled.md'}
           onClose={() => setShowExport(false)}
+        />
+      )}
+
+      {/* Input Dialog (for link/image insert) */}
+      {inputDialog && (
+        <InputDialog
+          title={inputDialog.title}
+          fields={inputDialog.fields}
+          onSubmit={inputDialog.onSubmit}
+          onClose={() => setInputDialog(null)}
         />
       )}
 

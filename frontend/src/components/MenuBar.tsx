@@ -118,13 +118,11 @@ const MenuBar: React.FC<MenuBarProps> = ({
     ],
     Insert: [
       { label: 'Image', action: () => {
-        const url = prompt('Image URL:');
-        if (url && editor) editor.chain().focus().setImage({ src: url }).run();
+        window.dispatchEvent(new CustomEvent('insert-image'));
       }},
       { label: 'Link', action: () => {
-        const url = prompt('Link URL:');
-        if (url && editor) editor.chain().focus().setLink({ href: url }).run();
-      }, shortcut: 'Ctrl+K' },
+        window.dispatchEvent(new CustomEvent('insert-link'));
+      }, shortcut: '⌘K' },
       { label: 'Table', action: () => {
         if (editor) editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
       }},
