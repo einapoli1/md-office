@@ -43,6 +43,17 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   // Handle metadata updates
   const handleMetadataUpdate = (updates: Partial<DocumentMetadata>) => {
     const updatedMetadata = updateMetadata(parsedDocument.metadata, updates);
+    
+    // For guest mode, also store page preferences in localStorage
+    if (!activeFile?.path.includes('/')) { // Simple check for guest mode
+      if (updates.pageSize) {
+        localStorage.setItem('preferredPageSize', updates.pageSize);
+      }
+      if (updates.pageMargins) {
+        localStorage.setItem('preferredPageMargins', updates.pageMargins);
+      }
+    }
+    
     const newContent = serializeFrontmatter(updatedMetadata, parsedDocument.content);
     onChange(newContent);
   };
@@ -69,6 +80,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
         className="document-page" 
         style={{ 
           maxWidth: pageStyles.maxWidth,
+          minHeight: pageStyles.minHeight,
           ...documentStyles 
         }}
       >
@@ -86,6 +98,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
           className="document-content" 
           style={{ 
             padding: pageStyles.padding,
+            minHeight: `calc(${pageStyles.minHeight} - 64px)`, // Account for header
             ...documentStyles 
           }}
         >
@@ -140,6 +153,19 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
               </div>
 
               <div className="settings-group">
+                <label>Page Size</label>
+                <select
+                  value={parsedDocument.metadata.pageSize || 'letter'}
+                  onChange={(e) => handleMetadataUpdate({ pageSize: e.target.value as any })}
+                >
+                  <option value="letter">US Letter (8.5" × 11")</option>
+                  <option value="a4">A4 (8.27" × 11.69")</option>
+                  <option value="legal">Legal (8.5" × 14")</option>
+                  <option value="tabloid">Tabloid (11" × 17")</option>
+                </select>
+              </div>
+
+              <div className="settings-group">
                 <label>Page Width</label>
                 <select
                   value={parsedDocument.metadata.pageWidth || 'normal'}
@@ -157,9 +183,9 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
                   value={parsedDocument.metadata.pageMargins || 'normal'}
                   onChange={(e) => handleMetadataUpdate({ pageMargins: e.target.value as any })}
                 >
-                  <option value="narrow">Narrow</option>
-                  <option value="normal">Normal</option>
-                  <option value="wide">Wide</option>
+                  <option value="narrow">Narrow (0.5")</option>
+                  <option value="normal">Normal (1")</option>
+                  <option value="wide">Wide (1.33")</option>
                 </select>
               </div>
 

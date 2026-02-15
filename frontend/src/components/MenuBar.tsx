@@ -198,6 +198,34 @@ const MenuBar: React.FC<MenuBarProps> = ({
           )}
         </div>
         
+        {/* Document title moved to left side */}
+        {activeFile && (
+          <div className="document-title-header-left">
+            {isEditingTitle ? (
+              <input
+                ref={titleInputRef}
+                type="text"
+                value={documentTitle}
+                onChange={(e) => setDocumentTitle(e.target.value)}
+                onBlur={handleTitleSubmit}
+                onKeyDown={handleTitleKeyDown}
+                className="document-title-input-header-left"
+              />
+            ) : (
+              <span
+                className="document-title-header-text-left"
+                onClick={handleTitleClick}
+                title="Click to rename document"
+              >
+                {documentTitle || 'Untitled Document'}
+              </span>
+            )}
+            <div className="save-status-indicator-small">
+              <span className="save-icon">{getSaveStatusIcon()}</span>
+            </div>
+          </div>
+        )}
+        
         <div className="menu-items">
           {Object.entries(menus).map(([menuName, items]) => (
             <div key={menuName} className="menu-item">
@@ -240,33 +268,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
       </div>
 
       <div className="menu-bar-center">
-        {activeFile ? (
-          <div className="document-title-header">
-            <FileText size={16} className="document-icon" />
-            {isEditingTitle ? (
-              <input
-                ref={titleInputRef}
-                type="text"
-                value={documentTitle}
-                onChange={(e) => setDocumentTitle(e.target.value)}
-                onBlur={handleTitleSubmit}
-                onKeyDown={handleTitleKeyDown}
-                className="document-title-input-header"
-              />
-            ) : (
-              <span
-                className="document-title-header-text"
-                onClick={handleTitleClick}
-                title="Click to rename document"
-              >
-                {documentTitle || 'Untitled Document'}
-              </span>
-            )}
-            <div className="save-status-indicator-small">
-              <span className="save-icon">{getSaveStatusIcon()}</span>
-            </div>
-          </div>
-        ) : (
+        {!activeFile && (
           <div className="save-status-indicator">
             <span className="save-icon">{getSaveStatusIcon()}</span>
             <span className="save-text">{getSaveStatusText()}</span>

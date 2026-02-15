@@ -9,6 +9,7 @@ export interface DocumentMetadata {
   theme?: 'light' | 'dark';
   textAlign?: 'left' | 'center' | 'right' | 'justify';
   pageWidth?: 'narrow' | 'normal' | 'wide';
+  pageSize?: 'letter' | 'a4' | 'legal' | 'tabloid';
   author?: string;
   date?: string;
   tags?: string[];
@@ -189,11 +190,25 @@ export function getDocumentStyles(metadata: DocumentMetadata): React.CSSProperti
  */
 export function getPageStyles(metadata: DocumentMetadata): {
   maxWidth: string;
+  minHeight: string;
   padding: string;
 } {
-  let maxWidth = '816px'; // Default: 8.5" at 96 DPI
-  let padding = '48px 72px'; // Default margins
+  // Page size dimensions (width x height in pixels at 96 DPI)
+  const pageSizes = {
+    letter: { width: '816px', height: '1056px' }, // 8.5" x 11"
+    a4: { width: '794px', height: '1123px' },     // 8.27" x 11.69"
+    legal: { width: '816px', height: '1344px' },  // 8.5" x 14"
+    tabloid: { width: '1056px', height: '1632px' } // 11" x 17"
+  };
+
+  const pageSize = metadata.pageSize || 'letter';
+  const selectedSize = pageSizes[pageSize] || pageSizes.letter;
   
+  let maxWidth = selectedSize.width;
+  let minHeight = selectedSize.height;
+  let padding = '72px'; // Default 1 inch margins
+  
+  // Override with legacy pageWidth for backward compatibility
   if (metadata.pageWidth) {
     const widthMap = {
       'narrow': '672px', // 7" 
@@ -205,14 +220,14 @@ export function getPageStyles(metadata: DocumentMetadata): {
 
   if (metadata.pageMargins) {
     const marginMap = {
-      'narrow': '24px 48px',
-      'normal': '48px 72px', 
-      'wide': '72px 96px'
+      'narrow': '48px',  // 0.5 inch
+      'normal': '72px',  // 1 inch (default)
+      'wide': '96px'     // 1.33 inch
     };
     padding = marginMap[metadata.pageMargins] || padding;
   }
 
-  return { maxWidth, padding };
+  return { maxWidth, minHeight, padding };
 }
 
 /**
@@ -242,15 +257,31 @@ export function extractTitle(metadata: DocumentMetadata, content: string): strin
 /**
  * Default metadata for new documents
  */
-export function getDefaultMetadata(): DocumentMetadata {
-  return {
+export function getDefaultMetadata(useLocalStoragePrefs: boolean = false): DocumentMetadata {
+  const defaults: DocumentMetadata = {
     font: 'Lora',
     fontSize: 16,
     lineHeight: 1.6,
     pageMargins: 'normal',
+    pageSize: 'letter',
     theme: 'light',
     textAlign: 'left'
   };
+
+  // In guest mode, use localStorage preferences if available
+  if (useLocalStoragePrefs) {
+    const preferredPageSize = localStorage.getItem('preferredPageSize');
+    const preferredPageMargins = localStorage.getItem('preferredPageMargins');
+    
+    if (preferredPageSize && ['letter', 'a4', 'legal', 'tabloid'].includes(preferredPageSize)) {
+      defaults.pageSize = preferredPageSize as DocumentMetadata['pageSize'];
+    }
+    if (preferredPageMargins && ['narrow', 'normal', 'wide'].includes(preferredPageMargins)) {
+      defaults.pageMargins = preferredPageMargins as DocumentMetadata['pageMargins'];
+    }
+  }
+
+  return defaults;
 }
 
 /**

@@ -117,6 +117,7 @@ body {
   display: flex;
   align-items: center;
   gap: 24px;
+  flex: 1;
 }
 
 .app-title {
@@ -246,6 +247,43 @@ body {
   border-radius: 4px;
   min-width: 120px;
   text-align: center;
+}
+
+/* Document title in left position */
+.document-title-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  color: var(--text-primary);
+  border-left: 1px solid var(--border-light);
+  padding-left: 16px;
+  margin-left: 8px;
+}
+
+.document-title-header-text-left {
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  min-width: 120px;
+}
+
+.document-title-header-text-left:hover {
+  background: var(--tertiary-bg);
+}
+
+.document-title-input-header-left {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+  border: 2px solid var(--accent-primary);
+  outline: none;
+  background: var(--primary-bg);
+  padding: 4px 8px;
+  border-radius: 4px;
+  min-width: 120px;
 }
 
 .save-status-indicator {
@@ -595,22 +633,31 @@ body {
 /* Document Editor Area */
 .document-editor {
   flex: 1;
-  background: var(--page-bg);
+  background: #f0f2f4; /* Light gray background like Google Docs */
   display: flex;
   justify-content: center;
   overflow-y: auto;
-  padding: 24px;
+  padding: 32px 24px;
   position: relative;
+}
+
+.dark .document-editor {
+  background: #1f1f1f; /* Dark gray for dark mode */
 }
 
 .document-page {
   width: 100%;
-  max-width: 816px; /* 8.5" at 96 DPI */
+  max-width: 816px; /* Default: 8.5" at 96 DPI */
   background: var(--primary-bg);
-  border-radius: 8px;
-  box-shadow: var(--shadow-2);
-  min-height: 1056px; /* 11" at 96 DPI */
+  border-radius: 0; /* Remove border radius for page-like appearance */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle Google Docs-like shadow */
+  min-height: 1056px; /* Default: 11" at 96 DPI */
   position: relative;
+  margin: 0 auto;
+}
+
+.dark .document-page {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .document-header {
@@ -754,8 +801,8 @@ body {
   gap: 2px;
   flex-wrap: wrap;
   position: sticky;
-  top: 0;
-  z-index: 10;
+  top: 64px; /* Account for menu bar height */
+  z-index: 50;
   box-shadow: 0 1px 3px rgba(60, 64, 67, 0.15);
 }
 
