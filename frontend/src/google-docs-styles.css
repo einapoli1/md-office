@@ -663,33 +663,85 @@ body {
 .document-page {
   width: 816px; /* Default: 8.5" at 96 DPI */
   max-width: 816px;
-  background: var(--primary-bg);
-  border-radius: 0; /* Remove border radius for page-like appearance */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle Google Docs-like shadow */
+  background: transparent;
+  border-radius: 0;
   min-height: 1056px; /* Default: 11" at 96 DPI */
   position: relative;
   margin: 0 auto;
-  margin-bottom: 24px;
 }
 
-/* Visual page break lines every 11 inches */
+/* Google Docs-style page breaks using CSS */
 .document-page .editor-content-area {
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent,
-    transparent 1055px,
-    #d0d0d0 1055px,
-    #d0d0d0 1056px,
-    transparent 1056px,
-    transparent 1080px,
-    #d0d0d0 1080px,
-    #d0d0d0 1081px
-  );
-  background-position: top;
+  position: relative;
+  min-height: 1056px;
+  
+  /* Create page segments using a more sophisticated background approach */
+  background: 
+    /* Create white page rectangles with gaps */
+    repeating-linear-gradient(
+      to bottom,
+      var(--primary-bg) 0px,
+      var(--primary-bg) 1056px,
+      transparent 1056px,
+      transparent calc(1056px + 24px)
+    );
+  
+  /* Use pseudo-element for shadows */
 }
 
-.dark .document-page {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+/* Add page shadows using pseudo-element */
+.document-page .editor-content-area::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -2px;
+  right: -2px;
+  bottom: 0;
+  z-index: -1;
+  
+  /* Create shadow pattern for each page */
+  background: 
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.15) 2px,
+      rgba(0, 0, 0, 0.08) 6px,
+      transparent 10px,
+      transparent 1050px,
+      rgba(0, 0, 0, 0.08) 1054px,
+      rgba(0, 0, 0, 0.15) 1058px,
+      transparent 1058px,
+      transparent calc(1058px + 24px)
+    );
+}
+
+.dark .document-page .editor-content-area::before {
+  /* Stronger shadows for dark mode */
+  background: 
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.3) 2px,
+      rgba(0, 0, 0, 0.15) 6px,
+      transparent 10px,
+      transparent 1050px,
+      rgba(0, 0, 0, 0.15) 1054px,
+      rgba(0, 0, 0, 0.3) 1058px,
+      transparent 1058px,
+      transparent calc(1058px + 24px)
+    );
+}
+
+/* Ensure ProseMirror editor follows the page pattern */
+.document-page .editor-content-area .ProseMirror {
+  /* Add subtle top margin for each page */
+  background: 
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 1056px,
+      transparent 1056px,
+      transparent calc(1056px + 24px)
+    );
+  min-height: 1056px;
 }
 
 .document-header {

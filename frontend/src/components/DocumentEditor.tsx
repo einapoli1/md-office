@@ -97,16 +97,18 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
         <div 
           className="document-content" 
           style={{ 
-            padding: pageStyles.padding,
+            padding: 0, // Remove outer padding, let inner editor handle it
             minHeight: `calc(${pageStyles.minHeight} - 64px)`, // Account for header
             ...documentStyles 
           }}
         >
-          <Editor
-            content={parsedDocument.content}
-            onChange={handleEditorChange}
-            onEditorReady={onEditorReady}
-          />
+          <div className="editor-content-area" style={{ padding: pageStyles.padding }}>
+            <Editor
+              content={parsedDocument.content}
+              onChange={handleEditorChange}
+              onEditorReady={onEditorReady}
+            />
+          </div>
         </div>
       </div>
 
