@@ -83,7 +83,19 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Export as PDF', action: onExportPDF, shortcut: 'Ctrl+P' },
       { label: 'Print', action: onPrint, shortcut: 'Ctrl+P' },
       { label: 'divider' },
-      { label: 'Share', action: () => console.log('Share'), icon: Share2 },
+      { label: 'Share', action: () => {
+        const url = new URL(window.location.href);
+        url.searchParams.set('collab', '1');
+        navigator.clipboard.writeText(url.toString()).then(() => {
+          alert('Collaboration link copied to clipboard! Share it with others to edit together.\n\n' + url.toString());
+        }).catch(() => {
+          prompt('Share this link for collaboration:', url.toString());
+        });
+        // Enable collab mode if not already
+        if (!url.searchParams.has('collab')) {
+          window.location.href = url.toString();
+        }
+      }, icon: Share2 },
     ],
     Edit: [
       { label: 'Undo', action: () => console.log('Undo'), shortcut: 'Ctrl+Z' },
@@ -311,7 +323,18 @@ const MenuBar: React.FC<MenuBarProps> = ({
           <Plus size={16} />
         </button>
         
-        <button className="share-btn">
+        <button className="share-btn" onClick={() => {
+          const url = new URL(window.location.href);
+          url.searchParams.set('collab', '1');
+          navigator.clipboard.writeText(url.toString()).then(() => {
+            alert('Collaboration link copied!\n\n' + url.toString());
+          }).catch(() => {
+            prompt('Share this link:', url.toString());
+          });
+          if (!window.location.search.includes('collab')) {
+            window.location.href = url.toString();
+          }
+        }}>
           <Share2 size={16} />
           <span>Share</span>
         </button>

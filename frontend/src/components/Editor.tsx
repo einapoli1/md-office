@@ -20,7 +20,7 @@ import { CodeBlock } from '@tiptap/extension-code-block';
 import { HorizontalRule } from '@tiptap/extension-horizontal-rule';
 import { Mathematics } from '@tiptap/extension-mathematics';
 import { Collaboration } from '@tiptap/extension-collaboration';
-import { CollaborationCursor } from '@tiptap/extension-collaboration-cursor';
+// import { CollaborationCursor } from '@tiptap/extension-collaboration-cursor'; // Disabled — see note below
 import { HocuspocusProvider } from '@hocuspocus/provider';
 import * as Y from 'yjs';
 import TurndownService from 'turndown';
