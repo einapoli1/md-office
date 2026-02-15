@@ -670,78 +670,49 @@ body {
   margin: 0 auto;
 }
 
-/* Google Docs-style page breaks using CSS */
+/* Page break visual styling */
+.page-break-gap {
+  position: absolute;
+  left: -72px; /* Extend beyond page margins */
+  right: -72px;
+  height: 24px;
+  background-color: #e8eaed;
+  z-index: 10;
+  pointer-events: none; /* Prevent interaction */
+  
+  /* Add shadows to simulate page separation */
+  box-shadow: 
+    0 -8px 16px -8px rgba(0, 0, 0, 0.1) inset, /* Top page shadow */
+    0 8px 16px -8px rgba(0, 0, 0, 0.1) inset;   /* Bottom page shadow */
+}
+
+.dark .page-break-gap {
+  background-color: #3c4043;
+  box-shadow: 
+    0 -8px 16px -8px rgba(0, 0, 0, 0.3) inset,
+    0 8px 16px -8px rgba(0, 0, 0, 0.3) inset;
+}
+
+/* Style for elements that have a page break after them */
+.ProseMirror .page-break-after {
+  position: relative;
+}
+
+/* Ensure ProseMirror has proper page structure */
 .document-page .editor-content-area {
   position: relative;
   min-height: 1056px;
-  
-  /* Create page segments using a more sophisticated background approach */
-  background: 
-    /* Create white page rectangles with gaps */
-    repeating-linear-gradient(
-      to bottom,
-      var(--primary-bg) 0px,
-      var(--primary-bg) 1056px,
-      transparent 1056px,
-      transparent calc(1056px + 24px)
-    );
-  
-  /* Use pseudo-element for shadows */
 }
 
-/* Add page shadows using pseudo-element */
-.document-page .editor-content-area::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -2px;
-  right: -2px;
-  bottom: 0;
-  z-index: -1;
-  
-  /* Create shadow pattern for each page */
-  background: 
-    repeating-linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.15) 2px,
-      rgba(0, 0, 0, 0.08) 6px,
-      transparent 10px,
-      transparent 1050px,
-      rgba(0, 0, 0, 0.08) 1054px,
-      rgba(0, 0, 0, 0.15) 1058px,
-      transparent 1058px,
-      transparent calc(1058px + 24px)
-    );
-}
-
-.dark .document-page .editor-content-area::before {
-  /* Stronger shadows for dark mode */
-  background: 
-    repeating-linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.3) 2px,
-      rgba(0, 0, 0, 0.15) 6px,
-      transparent 10px,
-      transparent 1050px,
-      rgba(0, 0, 0, 0.15) 1054px,
-      rgba(0, 0, 0, 0.3) 1058px,
-      transparent 1058px,
-      transparent calc(1058px + 24px)
-    );
-}
-
-/* Ensure ProseMirror editor follows the page pattern */
 .document-page .editor-content-area .ProseMirror {
-  /* Add subtle top margin for each page */
-  background: 
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0px,
-      transparent 1056px,
-      transparent 1056px,
-      transparent calc(1056px + 24px)
-    );
   min-height: 1056px;
+  position: relative;
+}
+
+/* Page break wrapper positioning */
+.page-break-wrapper {
+  position: relative;
+  width: 100%;
 }
 
 .document-header {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Settings, X } from 'lucide-react';
 import { FileContent } from '../types';
 import Editor from './Editor';
+import PageBreakWrapper from './PageBreakWrapper';
 import { 
   parseFrontmatter, 
   serializeFrontmatter, 
@@ -103,11 +104,13 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
           }}
         >
           <div className="editor-content-area" style={{ padding: pageStyles.padding }}>
-            <Editor
-              content={parsedDocument.content}
-              onChange={handleEditorChange}
-              onEditorReady={onEditorReady}
-            />
+            <PageBreakWrapper pageHeight={1056} gapHeight={24}>
+              <Editor
+                content={parsedDocument.content}
+                onChange={handleEditorChange}
+                onEditorReady={onEditorReady}
+              />
+            </PageBreakWrapper>
           </div>
         </div>
       </div>
