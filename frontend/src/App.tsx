@@ -11,6 +11,7 @@ import { fileAPI } from './utils/api';
 import { localFileAPI, initializeLocalStorage } from './utils/localApi';
 import { Template } from './utils/templates';
 import CommentsSidebar, { Comment } from './components/CommentsSidebar';
+import SuggestionPopup from './components/SuggestionPopup';
 import './comments-styles.css';
 
 function App() {
@@ -620,6 +621,9 @@ function App() {
             />
           )}
         </div>
+
+        {/* Suggestion accept/reject popup */}
+        {editorRef && <SuggestionPopup editor={editorRef} />}
 
         {showComments && (
           <CommentsSidebar

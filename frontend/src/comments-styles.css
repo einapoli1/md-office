@@ -390,3 +390,104 @@
   border-top: 1px solid #e0e0e0;
   margin-top: 8px;
 }
+
+/* Suggestion Popup */
+.suggestion-popup {
+  position: absolute;
+  z-index: 1000;
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  padding: 10px 12px;
+  min-width: 180px;
+  max-width: 300px;
+  font-size: 13px;
+}
+
+.suggestion-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.suggestion-popup-author {
+  font-weight: 600;
+  color: #202124;
+  font-size: 12px;
+}
+
+.suggestion-popup-type {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.suggestion-popup-type.insert {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.suggestion-popup-type.delete {
+  background: #fce8e6;
+  color: #c5221f;
+}
+
+.suggestion-popup-text {
+  margin-bottom: 8px;
+  padding: 4px 6px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  font-size: 12px;
+  max-height: 60px;
+  overflow-y: auto;
+  word-break: break-word;
+}
+
+.suggestion-preview-insert {
+  color: #137333;
+  text-decoration: underline;
+}
+
+.suggestion-preview-delete {
+  color: #c5221f;
+  text-decoration: line-through;
+}
+
+.suggestion-popup-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.suggestion-accept-btn,
+.suggestion-reject-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid #dadce0;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+
+.suggestion-accept-btn {
+  color: #137333;
+}
+
+.suggestion-accept-btn:hover {
+  background: #e6f4ea;
+}
+
+.suggestion-reject-btn {
+  color: #c5221f;
+}
+
+.suggestion-reject-btn:hover {
+  background: #fce8e6;
+}
