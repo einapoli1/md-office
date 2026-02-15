@@ -5,7 +5,7 @@ import {
   List, ListOrdered, Link as LinkIcon, Image as ImageIcon,
   Type, Palette, Highlighter, Undo, Redo, CheckSquare,
   ChevronDown, MoreHorizontal, Minus, Quote, Code2,
-  RotateCcw, Printer
+  RotateCcw, Printer, MessageSquare
 } from 'lucide-react';
 
 interface DocsToolbarProps {
@@ -511,6 +511,22 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
           title="Insert image"
         >
           <ImageIcon size={16} />
+        </button>
+
+        {/* Comment */}
+        <button
+          className="toolbar-btn"
+          onClick={() => {
+            const { from, to } = editor.state.selection;
+            if (from === to) return; // Need selected text
+            const commentId = `c-${Date.now()}`;
+            editor.chain().focus().setComment(commentId).run();
+            const selectedText = editor.state.doc.textBetween(from, to, ' ');
+            window.dispatchEvent(new CustomEvent('comment-add', { detail: { commentId, quotedText: selectedText } }));
+          }}
+          title="Add comment (select text first)"
+        >
+          <MessageSquare size={16} />
         </button>
 
         {/* Table */}

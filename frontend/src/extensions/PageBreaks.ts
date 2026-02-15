@@ -1,6 +1,6 @@
 import { Extension } from '@tiptap/core';
-import { Plugin, PluginKey, Transaction } from '@tiptap/pm/state';
-import { Decoration, DecorationSet, EditorView } from '@tiptap/pm/view';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
 
 export interface PageBreaksOptions {
   pageHeight: number;

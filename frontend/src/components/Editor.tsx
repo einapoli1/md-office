@@ -33,6 +33,7 @@ import { YouTubeEmbed } from '../extensions/YouTubeEmbed';
 import { LinkCard } from '../extensions/LinkCard';
 import { MermaidDiagram } from '../extensions/Mermaid';
 import { PageBreaks } from '../extensions/PageBreaks';
+import { CommentExtension } from '../extensions/CommentExtension';
 
 interface EditorProps {
   content: string;
@@ -398,6 +399,12 @@ const Editor: React.FC<EditorProps> = ({
       YouTubeEmbed,
       LinkCard,
       MermaidDiagram,
+      CommentExtension.configure({
+        onCommentClick: (commentId: string) => {
+          // Dispatch custom event so App can handle it
+          window.dispatchEvent(new CustomEvent('comment-click', { detail: { commentId } }));
+        },
+      }),
       PageBreaks.configure({
         pageHeight: 1056,
         gapHeight: 24,

@@ -1,4 +1,5 @@
 import { Mark, mergeAttributes } from '@tiptap/core';
+import { Plugin } from '@tiptap/pm/state';
 
 export interface CommentOptions {
   HTMLAttributes: Record<string, any>;
@@ -75,8 +76,21 @@ export const CommentExtension = Mark.create<CommentOptions>({
   },
 
   addProseMirrorPlugins() {
+    const onCommentClick = this.options.onCommentClick;
     return [
-      // Add click handler plugin here if needed
+      new Plugin({
+        props: {
+          handleClick(view, pos) {
+            const marks = view.state.doc.resolve(pos).marks();
+            const commentMark = marks.find((m: any) => m.type.name === 'comment');
+            if (commentMark) {
+              onCommentClick(commentMark.attrs.commentId);
+              return true;
+            }
+            return false;
+          },
+        },
+      }),
     ];
   },
 });

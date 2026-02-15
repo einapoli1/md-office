@@ -10,6 +10,8 @@ import { FileSystemItem, FileContent } from './types';
 import { fileAPI } from './utils/api';
 import { localFileAPI, initializeLocalStorage } from './utils/localApi';
 import { Template } from './utils/templates';
+import CommentsSidebar, { Comment } from './components/CommentsSidebar';
+import './comments-styles.css';
 
 function App() {
   // Authentication state
@@ -34,6 +36,11 @@ function App() {
   });
   const [lastSaved, setLastSaved] = useState<Date | undefined>();
   const [editorRef, setEditorRef] = useState<any>(null);
+
+  // Comments state
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [showComments, setShowComments] = useState(false);
+  const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
 
   // Auto-save functionality
   const saveTimeoutRef = useRef<number>();
@@ -370,6 +377,85 @@ function App() {
     loadFiles();
   };
 
+  // Comment handlers
+  useEffect(() => {
+    const handleCommentAdd = (e: Event) => {
+      const { commentId, quotedText } = (e as CustomEvent).detail;
+      const newComment: Comment = {
+        id: commentId,
+        text: '',
+        author: isGuestMode ? 'Guest' : 'You',
+        createdAt: new Date().toISOString(),
+        resolved: false,
+        replies: [],
+        quotedText,
+      };
+      // Prompt for comment text
+      const text = prompt('Add a comment:');
+      if (!text) {
+        // Remove the mark if user cancels
+        if (editorRef) editorRef.chain().focus().unsetComment().run();
+        return;
+      }
+      newComment.text = text;
+      setComments(prev => [...prev, newComment]);
+      setActiveCommentId(commentId);
+      setShowComments(true);
+    };
+
+    const handleCommentClick = (e: Event) => {
+      const { commentId } = (e as CustomEvent).detail;
+      setActiveCommentId(commentId);
+      setShowComments(true);
+    };
+
+    window.addEventListener('comment-add', handleCommentAdd);
+    window.addEventListener('comment-click', handleCommentClick);
+    return () => {
+      window.removeEventListener('comment-add', handleCommentAdd);
+      window.removeEventListener('comment-click', handleCommentClick);
+    };
+  }, [editorRef, isGuestMode]);
+
+  const handleAddReply = (commentId: string, text: string) => {
+    setComments(prev => prev.map(c => {
+      if (c.id !== commentId) return c;
+      return {
+        ...c,
+        replies: [...c.replies, {
+          id: `r-${Date.now()}`,
+          text,
+          author: isGuestMode ? 'Guest' : 'You',
+          createdAt: new Date().toISOString(),
+        }],
+      };
+    }));
+  };
+
+  const handleResolveComment = (commentId: string) => {
+    setComments(prev => prev.map(c =>
+      c.id === commentId ? { ...c, resolved: true } : c
+    ));
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    setComments(prev => prev.filter(c => c.id !== commentId));
+    // Remove the highlight mark from the editor
+    if (editorRef) {
+      // Find and remove the comment mark with this ID
+      const { doc } = editorRef.state;
+      const tr = editorRef.state.tr;
+      doc.descendants((node: any, pos: number) => {
+        node.marks?.forEach((mark: any) => {
+          if (mark.type.name === 'comment' && mark.attrs.commentId === commentId) {
+            tr.removeMark(pos, pos + node.nodeSize, mark.type);
+          }
+        });
+      });
+      editorRef.view.dispatch(tr);
+    }
+  };
+
   // Show loading while checking authentication
   if (authLoading) {
     return (
@@ -459,6 +545,18 @@ function App() {
             />
           )}
         </div>
+
+        {showComments && (
+          <CommentsSidebar
+            comments={comments}
+            activeCommentId={activeCommentId}
+            onAddReply={handleAddReply}
+            onResolve={handleResolveComment}
+            onDelete={handleDeleteComment}
+            onSelectComment={setActiveCommentId}
+            onClose={() => setShowComments(false)}
+          />
+        )}
       </div>
 
       <StatusBar
