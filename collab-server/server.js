@@ -164,7 +164,14 @@ const server = new Server({
   }
 });
 
-console.log(`🚀 Hocuspocus collaboration server running on port ${PORT}`);
+server.listen().then(() => {
+  console.log(`🚀 Hocuspocus collaboration server running on port ${PORT}`);
+}).catch(err => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
+});
+
+console.log(`Starting Hocuspocus collaboration server on port ${PORT}...`);
 console.log(`📡 WebSocket endpoint: ws://localhost:${PORT}`);
 console.log(`🔗 Backend URL: ${BACKEND_URL}`);
 console.log(`📁 Workspace: ${WORKSPACE_DIR}`);

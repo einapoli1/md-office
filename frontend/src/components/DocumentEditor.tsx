@@ -109,6 +109,8 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
                 content={parsedDocument.content}
                 onChange={handleEditorChange}
                 onEditorReady={onEditorReady}
+                enableCollaboration={new URLSearchParams(window.location.search).has('collab')}
+                documentName={activeFile?.path || 'untitled'}
               />
             </div>
           </div>

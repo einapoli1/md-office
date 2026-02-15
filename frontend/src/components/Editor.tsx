@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -292,8 +292,8 @@ const Editor: React.FC<EditorProps> = ({
   const [connectedUsers, setConnectedUsers] = useState<number>(0);
   
   // Refs for collaboration
-  const ydocRef = useRef<Y.Doc | null>(null);
-  const providerRef = useRef<HocuspocusProvider | null>(null);
+  const [ydoc, setYdoc] = useState<Y.Doc | null>(null);
+  const [provider, setProvider] = useState<HocuspocusProvider | null>(null);
   
   // Generate consistent user color based on userName
   const getUserColor = useCallback((name: string) => {
@@ -312,18 +312,18 @@ const Editor: React.FC<EditorProps> = ({
   useEffect(() => {
     if (enableCollaboration && documentName) {
       // Create Y.Doc and provider
-      const ydoc = new Y.Doc();
-      const provider = new HocuspocusProvider({
+      const newYdoc = new Y.Doc();
+      const newProvider = new HocuspocusProvider({
         url: collaborationServerUrl,
         name: documentName,
-        document: ydoc,
+        document: newYdoc,
       });
 
-      ydocRef.current = ydoc;
-      providerRef.current = provider;
+      setYdoc(newYdoc);
+      setProvider(newProvider);
 
       // Connection status handlers
-      provider.on('status', ({ status }: { status: string }) => {
+      newProvider.on('status', ({ status }: { status: string }) => {
         if (status === 'connecting') {
           setCollaborationStatus('connecting');
         } else if (status === 'connected') {
@@ -334,22 +334,24 @@ const Editor: React.FC<EditorProps> = ({
       });
 
       // Track connected users
-      if (provider.awareness) {
-        provider.awareness.on('change', () => {
-          const states = provider.awareness!.getStates();
+      if (newProvider.awareness) {
+        newProvider.awareness.on('change', () => {
+          const states = newProvider.awareness!.getStates();
           setConnectedUsers(states.size);
         });
 
         // Set current user info
-        provider.awareness.setLocalStateField('user', {
+        newProvider.awareness.setLocalStateField('user', {
           name: userName,
           color: getUserColor(userName),
         });
       }
 
       return () => {
-        provider.destroy();
-        ydoc.destroy();
+        newProvider.destroy();
+        newYdoc.destroy();
+        setYdoc(null);
+        setProvider(null);
       };
     }
   }, [enableCollaboration, documentName, collaborationServerUrl, userName, getUserColor]);
@@ -360,8 +362,8 @@ const Editor: React.FC<EditorProps> = ({
         codeBlock: false,
         blockquote: false,
         horizontalRule: false,
-        // Disable history when using collaboration (Y.js handles this)
-        ...(enableCollaboration ? { history: false } : {}),
+        // Disable history when collaboration is active (Y.js handles undo/redo)
+        ...(enableCollaboration && ydoc ? { history: false } : {}),
       }),
       Placeholder.configure({
         placeholder: 'Start writing your document...',
@@ -416,22 +418,18 @@ const Editor: React.FC<EditorProps> = ({
         gapHeight: 24,
         enabled: true,
       }),
-      // Conditional collaboration extensions
-      ...(enableCollaboration && ydocRef.current ? [
+      // Collaboration extension (only when ydoc is ready)
+      ...(enableCollaboration && ydoc && provider ? [
         Collaboration.configure({
-          document: ydocRef.current,
+          document: ydoc,
         }),
-        CollaborationCursor.configure({
-          provider: providerRef.current!,
-          user: {
-            name: userName,
-            color: getUserColor(userName),
-          },
-        }),
+        // TODO: CollaborationCursor crashes on init if provider not fully connected
+        // Re-enable once we add connection state tracking
       ] : []),
     ],
     // Only set initial content if not using collaboration
-    content: enableCollaboration ? undefined : markdownToHtml(content),
+    // When collab is active with ydoc, content comes from Yjs; otherwise from props
+    content: (enableCollaboration && ydoc) ? undefined : markdownToHtml(content),
     onUpdate: ({ editor }) => {
       // Only call onChange in non-collaborative mode
       // In collaborative mode, the Hocuspocus server handles saving
@@ -447,7 +445,7 @@ const Editor: React.FC<EditorProps> = ({
         spellcheck: spellCheck.toString(),
       },
     },
-  }, [enableCollaboration, ydocRef.current, providerRef.current, userName]);
+  }, [enableCollaboration, ydoc, provider, userName]);
 
   useEffect(() => {
     if (editor && !enableCollaboration) {
