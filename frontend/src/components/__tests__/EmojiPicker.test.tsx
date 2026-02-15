@@ -37,7 +37,6 @@ describe('EmojiPicker', () => {
     const onClose = vi.fn();
     render(<EmojiPicker onSelect={vi.fn()} onClose={onClose} />);
     // The X close button
-    const closeBtn = screen.getByRole('button', { name: '' }); // X icon has no text
     // Find the close button by class
     const closeBtns = document.querySelectorAll('.emoji-picker-close');
     fireEvent.click(closeBtns[0]);

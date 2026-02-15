@@ -137,7 +137,7 @@ function App() {
     }
 
     // Set up debounced save (1 second after last keystroke)
-    saveTimeoutRef.current = setTimeout(async () => {
+    saveTimeoutRef.current = window.setTimeout(async () => {
       if (newContent === originalContentRef.current) {
         setSaveStatus('saved');
         return;
