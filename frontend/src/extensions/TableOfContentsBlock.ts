@@ -1,5 +1,5 @@
 import { Node } from '@tiptap/core';
-import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 
 export interface TableOfContentsBlockOptions {
@@ -149,7 +149,7 @@ function buildTocDecorations(state: any, nodeName: string): DecorationSet {
             // Focus the editor and scroll to heading
             view.focus();
             const tr = view.state.tr.setSelection(
-              view.state.selection.constructor.near(view.state.doc.resolve(h.pos + 1))
+              TextSelection.near(view.state.doc.resolve(h.pos + 1))
             );
             view.dispatch(tr.scrollIntoView());
           });

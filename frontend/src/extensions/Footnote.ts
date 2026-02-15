@@ -147,20 +147,6 @@ function buildDecorations(state: any): DecorationSet {
         content: node.attrs.content,
       });
 
-      // Inline decoration: replace the bullet with the number
-      decorations.push(
-        Decoration.node(pos, pos + node.nodeSize, {}, {
-          // We use a widget instead
-        })
-      );
-
-      // Widget to show the number
-      const num = counter;
-      const widget = Decoration.widget(pos + node.nodeSize, () => {
-        // This runs after the node, but we actually want to replace
-        // the node content. We'll use node decorations with class instead.
-        return document.createTextNode('');
-      });
     }
   });
 

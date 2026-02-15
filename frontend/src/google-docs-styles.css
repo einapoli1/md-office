@@ -859,6 +859,7 @@ body {
   top: 64px; /* Account for menu bar height */
   z-index: 50;
   box-shadow: 0 1px 3px rgba(60, 64, 67, 0.15);
+  contain: layout style;
 }
 
 .toolbar-section {

@@ -789,17 +789,21 @@ function App() {
 
       {/* Word Count Dialog */}
       {showWordCount && (
-        <WordCountDialog content={content} onClose={() => setShowWordCount(false)} />
+        <Suspense fallback={null}>
+          <WordCountDialog content={content} onClose={() => setShowWordCount(false)} />
+        </Suspense>
       )}
 
       {/* Export Dialog */}
       {showExport && (
-        <ExportDialog
-          content={content}
-          htmlContent={editorRef?.getHTML() || ''}
-          fileName={activeFile?.path || 'untitled.md'}
-          onClose={() => setShowExport(false)}
-        />
+        <Suspense fallback={null}>
+          <ExportDialog
+            content={content}
+            htmlContent={editorRef?.getHTML() || ''}
+            fileName={activeFile?.path || 'untitled.md'}
+            onClose={() => setShowExport(false)}
+          />
+        </Suspense>
       )}
 
       {/* Input Dialog (for link/image insert) */}
@@ -814,21 +818,25 @@ function App() {
 
       {/* Special Characters */}
       {showSpecialChars && (
-        <div className="special-chars-overlay">
-          <SpecialChars
-            onSelect={(char) => {
-              if (editorRef) {
-                editorRef.chain().focus().insertContent(char).run();
-              }
-            }}
-            onClose={() => setShowSpecialChars(false)}
-          />
-        </div>
+        <Suspense fallback={null}>
+          <div className="special-chars-overlay">
+            <SpecialChars
+              onSelect={(char) => {
+                if (editorRef) {
+                  editorRef.chain().focus().insertContent(char).run();
+                }
+              }}
+              onClose={() => setShowSpecialChars(false)}
+            />
+          </div>
+        </Suspense>
       )}
 
       {/* Keyboard Shortcuts */}
       {showShortcuts && (
-        <KeyboardShortcutsDialog onClose={() => setShowShortcuts(false)} />
+        <Suspense fallback={null}>
+          <KeyboardShortcutsDialog onClose={() => setShowShortcuts(false)} />
+        </Suspense>
       )}
 
       {/* Header/Footer Editor */}
@@ -843,11 +851,15 @@ function App() {
       )}
 
       {/* Template Selector Modal */}
-      <TemplateSelector
-        isVisible={showTemplateSelector}
-        onClose={() => setShowTemplateSelector(false)}
-        onSelect={handleTemplateSelect}
-      />
+      {showTemplateSelector && (
+        <Suspense fallback={null}>
+          <TemplateSelector
+            isVisible={showTemplateSelector}
+            onClose={() => setShowTemplateSelector(false)}
+            onSelect={handleTemplateSelect}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
