@@ -38,6 +38,8 @@ import { CommentExtension } from '../extensions/CommentExtension';
 import { LineHeight } from '../extensions/LineHeight';
 import { SuggestionExtension } from '../extensions/SuggestionExtension';
 import { ImageDrop } from '../extensions/ImageDrop';
+import { Columns } from '../extensions/Columns';
+import { TabStop } from '../extensions/TabStop';
 import TableToolbar from './TableToolbar';
 
 interface EditorProps {
@@ -435,6 +437,8 @@ const Editor: React.FC<EditorProps> = ({
         },
       }),
       ImageDrop,
+      Columns,
+      TabStop,
       PageBreaks.configure({
         pageHeight: 1056,
         gapHeight: 24,

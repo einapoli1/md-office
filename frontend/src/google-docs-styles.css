@@ -2826,3 +2826,16 @@ input:focus-visible {
     display: none !important;
   }
 }
+
+/* Multi-column layout */
+.ProseMirror.columns-2,
+.ProseMirror.columns-3 {
+  column-rule: 1px solid var(--border-light);
+}
+
+/* Tab stop */
+.ProseMirror .tab-stop {
+  display: inline-block;
+  width: 48px;
+  min-width: 48px;
+}

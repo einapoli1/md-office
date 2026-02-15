@@ -176,6 +176,10 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Line spacing: 1.15', action: () => (editor?.chain().focus() as any).setLineHeight('1.15').run() },
       { label: 'Line spacing: 1.5', action: () => (editor?.chain().focus() as any).setLineHeight('1.5').run() },
       { label: 'Line spacing: 2.0', action: () => (editor?.chain().focus() as any).setLineHeight('2').run() },
+      { label: 'divider' },
+      { label: 'Columns: 1', action: () => editor?.commands.setColumns(1) },
+      { label: 'Columns: 2', action: () => editor?.commands.setColumns(2) },
+      { label: 'Columns: 3', action: () => editor?.commands.setColumns(3) },
     ],
     Tools: [
       { label: 'Spelling & Grammar', action: () => {
