@@ -22,6 +22,7 @@ interface DocumentSidebarProps {
   onNewFile: () => void;
   onNewFromTemplate: () => void;
   recentFiles?: string[];
+  isGuestMode?: boolean;
 }
 
 const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
@@ -31,7 +32,8 @@ const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
   onDelete,
   onNewFile,
   onNewFromTemplate,
-  recentFiles = []
+  recentFiles = [],
+  isGuestMode: _isGuestMode = false
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());

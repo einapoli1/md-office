@@ -4,11 +4,20 @@ import DocumentEditor from './components/DocumentEditor';
 import MenuBar from './components/MenuBar';
 import StatusBar from './components/StatusBar';
 import TemplateSelector from './components/TemplateSelector';
+import Login from './components/Login';
 import { FileSystemItem, FileContent } from './types';
 import { fileAPI } from './utils/api';
+import { localFileAPI, initializeLocalStorage } from './utils/localApi';
 import { Template } from './utils/templates';
 
 function App() {
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isGuestMode, setIsGuestMode] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  
+  // App state
   const [files, setFiles] = useState<FileSystemItem[]>([]);
   const [activeFile, setActiveFile] = useState<FileContent | null>(null);
   const [content, setContent] = useState('');
@@ -28,11 +37,34 @@ function App() {
   const saveTimeoutRef = useRef<number>();
   const originalContentRef = useRef<string>('');
 
+  // Check authentication on mount
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+      
+      if (token && user) {
+        setIsAuthenticated(true);
+        setIsGuestMode(false);
+      } else {
+        // Start in guest mode
+        setIsAuthenticated(false);
+        setIsGuestMode(true);
+        initializeLocalStorage();
+      }
+      setAuthLoading(false);
+    };
+    
+    checkAuth();
+  }, []);
+
   // Load file tree on mount
   useEffect(() => {
-    loadFiles();
-    loadRecentFiles();
-  }, []);
+    if (!authLoading) {
+      loadFiles();
+      loadRecentFiles();
+    }
+  }, [authLoading, isAuthenticated, isGuestMode]);
 
   // Apply dark mode class to body
   useEffect(() => {
@@ -70,7 +102,8 @@ function App() {
 
       try {
         setSaveStatus('saving');
-        await fileAPI.saveFile(activeFile.path, newContent);
+        const currentAPI = isGuestMode ? localFileAPI : fileAPI;
+        await currentAPI.saveFile(activeFile.path, newContent);
         originalContentRef.current = newContent;
         setSaveStatus('saved');
         setLastSaved(new Date());
@@ -100,10 +133,18 @@ function App() {
 
   const loadFiles = async () => {
     try {
-      const fileData = await fileAPI.getFiles();
+      const currentAPI = isGuestMode ? localFileAPI : fileAPI;
+      const fileData = await currentAPI.getFiles();
       setFiles(fileData);
     } catch (error) {
       console.error('Failed to load files:', error);
+      // If authenticated API fails, fallback to guest mode
+      if (isAuthenticated && !isGuestMode) {
+        console.log('Falling back to guest mode...');
+        setIsAuthenticated(false);
+        setIsGuestMode(true);
+        initializeLocalStorage();
+      }
     }
   };
 
@@ -128,7 +169,8 @@ function App() {
     
     try {
       setLoading(true);
-      const fileContent = await fileAPI.getFile(file.path);
+      const currentAPI = isGuestMode ? localFileAPI : fileAPI;
+      const fileContent = await currentAPI.getFile(file.path);
       setActiveFile(fileContent);
       setContent(fileContent.content);
       setSaveStatus('saved');
@@ -162,10 +204,11 @@ function App() {
 
   const handleCreateFile = async (name: string, isDirectory: boolean) => {
     try {
+      const currentAPI = isGuestMode ? localFileAPI : fileAPI;
       if (isDirectory) {
-        await fileAPI.createDirectory(name);
+        await currentAPI.createDirectory(name);
       } else {
-        await fileAPI.createFile(name);
+        await currentAPI.createFile(name);
         // Auto-open new files
         const newFile: FileContent = { 
           path: name, 
@@ -185,9 +228,10 @@ function App() {
 
   const handleCreateFromTemplate = async (name: string, template: Template) => {
     try {
-      await fileAPI.createFile(name);
-      if (template.content) {
-        await fileAPI.saveFile(name, template.content);
+      const currentAPI = isGuestMode ? localFileAPI : fileAPI;
+      await currentAPI.createFile(name, template.content);
+      if (template.content && !isGuestMode) {
+        await currentAPI.saveFile(name, template.content);
       }
       await loadFiles();
       
@@ -209,7 +253,8 @@ function App() {
 
   const handleDelete = async (path: string) => {
     try {
-      await fileAPI.deleteItem(path);
+      const currentAPI = isGuestMode ? localFileAPI : fileAPI;
+      await currentAPI.deleteItem(path);
       if (activeFile?.path === path) {
         setActiveFile(null);
         setContent('');
@@ -259,10 +304,21 @@ function App() {
   };
 
   const handleNewFile = () => {
-    const fileName = window.prompt('Enter file name (include .md extension):');
-    if (fileName) {
-      handleCreateFile(fileName, false);
+    // Generate a unique filename automatically
+    const now = new Date();
+    const timestamp = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const baseFileName = `Untitled Document ${timestamp}`;
+    
+    // Find a unique name
+    let counter = 1;
+    let fileName = `${baseFileName}.md`;
+    
+    while (files.some(f => f.path === fileName)) {
+      fileName = `${baseFileName} ${counter}.md`;
+      counter++;
     }
+    
+    handleCreateFile(fileName, false);
   };
 
   const handleNewFromTemplate = () => {
@@ -280,6 +336,79 @@ function App() {
     setIsDarkMode(!isDarkMode);
   };
 
+  // Authentication handlers
+  const handleAuthSuccess = (_token: string) => {
+    setIsAuthenticated(true);
+    setIsGuestMode(false);
+    setShowLogin(false);
+    // Reload files from server
+    loadFiles();
+  };
+
+  const handleSwitchToGuest = () => {
+    setIsAuthenticated(false);
+    setIsGuestMode(true);
+    setShowLogin(false);
+    initializeLocalStorage();
+    loadFiles();
+  };
+
+  const handleShowLogin = () => {
+    setShowLogin(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsAuthenticated(false);
+    setIsGuestMode(true);
+    setActiveFile(null);
+    setContent('');
+    initializeLocalStorage();
+    loadFiles();
+  };
+
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="app-loading">
+        <div className="loading-spinner">
+          <div className="spinner"></div>
+          <p>Loading MD Office...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login modal if requested
+  if (showLogin) {
+    return (
+      <div className="app">
+        <div className="login-overlay">
+          <div className="login-modal">
+            <button 
+              className="close-login-btn"
+              onClick={() => setShowLogin(false)}
+              style={{
+                position: 'absolute',
+                top: '10px',
+                right: '10px',
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer'
+              }}
+            >
+              ×
+            </button>
+            <Login onAuthSuccess={handleAuthSuccess} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main app interface
   return (
     <div className="app">
       <MenuBar
@@ -290,6 +419,11 @@ function App() {
         isDarkMode={isDarkMode}
         onToggleDarkMode={toggleDarkMode}
         saveStatus={saveStatus}
+        isGuestMode={isGuestMode}
+        isAuthenticated={isAuthenticated}
+        onLogin={handleShowLogin}
+        onLogout={handleLogout}
+        onSwitchToGuest={handleSwitchToGuest}
       />
 
       <div className="app-content">
@@ -301,6 +435,7 @@ function App() {
           onNewFile={handleNewFile}
           onNewFromTemplate={handleNewFromTemplate}
           recentFiles={recentFiles}
+          isGuestMode={isGuestMode}
         />
 
         <div className="main-editor">
@@ -322,6 +457,7 @@ function App() {
         activeFile={activeFile?.path}
         saveStatus={saveStatus}
         lastSaved={lastSaved}
+        isGuestMode={isGuestMode}
       />
 
       {/* Template Selector Modal */}

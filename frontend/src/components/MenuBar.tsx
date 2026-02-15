@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Share2, Settings, Moon, Sun, FileText, Plus } from 'lucide-react';
+import { Share2, Settings, Moon, Sun, FileText, Plus, LogIn, LogOut, User } from 'lucide-react';
 
 interface MenuBarProps {
   onNewFile: () => void;
@@ -10,6 +10,11 @@ interface MenuBarProps {
   isDarkMode?: boolean;
   onToggleDarkMode?: () => void;
   saveStatus: 'saved' | 'saving' | 'unsaved' | 'error';
+  isGuestMode?: boolean;
+  isAuthenticated?: boolean;
+  onLogin?: () => void;
+  onLogout?: () => void;
+  onSwitchToGuest?: () => void;
 }
 
 const MenuBar: React.FC<MenuBarProps> = ({
@@ -20,7 +25,12 @@ const MenuBar: React.FC<MenuBarProps> = ({
   onShowSettings,
   isDarkMode = false,
   onToggleDarkMode,
-  saveStatus
+  saveStatus,
+  isGuestMode = false,
+  isAuthenticated = false,
+  onLogin,
+  onLogout,
+  onSwitchToGuest
 }) => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
@@ -29,6 +39,20 @@ const MenuBar: React.FC<MenuBarProps> = ({
     action?: () => void;
     shortcut?: string;
     icon?: any; // Using any to avoid LucideIcon type issues
+  }
+
+  // Build account menu based on authentication state
+  const accountItems: MenuItem[] = [];
+  if (isGuestMode && !isAuthenticated) {
+    accountItems.push(
+      { label: 'Sign in', action: onLogin, icon: LogIn },
+      { label: 'Create account', action: onLogin, icon: User }
+    );
+  } else if (isAuthenticated) {
+    accountItems.push(
+      { label: 'Sign out', action: onLogout, icon: LogOut },
+      { label: 'Switch to guest mode', action: onSwitchToGuest, icon: User }
+    );
   }
 
   const menus: Record<string, MenuItem[]> = {
@@ -71,6 +95,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Word count', action: () => console.log('Word count') },
       { label: 'Preferences', action: onShowSettings, icon: Settings },
     ],
+    ...(accountItems.length > 0 && { Account: accountItems })
   };
 
   const handleMenuClick = (menuName: string) => {
@@ -114,6 +139,11 @@ const MenuBar: React.FC<MenuBarProps> = ({
         <div className="app-title">
           <FileText size={20} />
           <span>MD Office</span>
+          {isGuestMode && (
+            <span className="mode-indicator" title="Guest mode - documents stored locally">
+              Guest
+            </span>
+          )}
         </div>
         
         <div className="menu-items">

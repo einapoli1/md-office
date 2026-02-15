@@ -6,13 +6,15 @@ interface StatusBarProps {
   activeFile?: string | null;
   saveStatus: 'saved' | 'saving' | 'unsaved' | 'error';
   lastSaved?: Date;
+  isGuestMode?: boolean;
 }
 
 const StatusBar: React.FC<StatusBarProps> = ({ 
   content, 
   activeFile,
   saveStatus,
-  lastSaved 
+  lastSaved,
+  isGuestMode = false 
 }) => {
   const stats = useMemo(() => {
     const text = content.replace(/[#*`_\[\]()]/g, '').trim(); // Remove markdown formatting
@@ -83,6 +85,11 @@ const StatusBar: React.FC<StatusBarProps> = ({
               style={{ backgroundColor: getSaveStatusColor() }}
             />
             <span>{getSaveStatusText()}</span>
+            {isGuestMode && (
+              <span className="guest-mode-indicator" title="Guest mode - documents stored locally">
+                (Local)
+              </span>
+            )}
           </div>
         </div>
       </div>
