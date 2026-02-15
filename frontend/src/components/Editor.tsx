@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -29,6 +29,7 @@ import { gfm } from 'turndown-plugin-gfm';
 
 // Import custom extensions
 import { Footnote } from '../extensions/Footnote';
+import { TableOfContentsBlock } from '../extensions/TableOfContentsBlock';
 import { YouTubeEmbed } from '../extensions/YouTubeEmbed';
 import { LinkCard } from '../extensions/LinkCard';
 import { MermaidDiagram } from '../extensions/Mermaid';
@@ -294,6 +295,11 @@ const Editor: React.FC<EditorProps> = ({
   const [collaborationStatus, setCollaborationStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [connectedUsers, setConnectedUsers] = useState<number>(0);
   
+  // Throttle onUpdate markdown conversion (expensive on large docs)
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
   // Refs for collaboration
   const [ydoc, setYdoc] = useState<Y.Doc | null>(null);
   const [provider, setProvider] = useState<HocuspocusProvider | null>(null);
@@ -413,6 +419,7 @@ const Editor: React.FC<EditorProps> = ({
         katexOptions: { throwOnError: false },
       }),
       Footnote,
+      TableOfContentsBlock,
       YouTubeEmbed,
       LinkCard,
       MermaidDiagram,
@@ -450,9 +457,13 @@ const Editor: React.FC<EditorProps> = ({
       // Only call onChange in non-collaborative mode
       // In collaborative mode, the Hocuspocus server handles saving
       if (!enableCollaboration) {
-        const html = editor.getHTML();
-        const md = htmlToMarkdown(html);
-        onChange(md);
+        // Throttle markdown conversion to 300ms — turndown is expensive on large docs
+        if (throttleTimerRef.current) clearTimeout(throttleTimerRef.current);
+        throttleTimerRef.current = setTimeout(() => {
+          const html = editor.getHTML();
+          const md = htmlToMarkdown(html);
+          onChangeRef.current(md);
+        }, 300);
       }
     },
     editorProps: {

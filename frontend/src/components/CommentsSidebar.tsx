@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo } from 'react';
 import { X, MessageSquare, Send, Trash2, Check, Reply } from 'lucide-react';
 
 export interface Comment {
@@ -261,4 +261,4 @@ const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
   );
 };
 
-export default CommentsSidebar;
+export default memo(CommentsSidebar);

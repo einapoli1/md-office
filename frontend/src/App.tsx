@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import DocumentSidebar from './components/DocumentSidebar';
 import DocumentEditor from './components/DocumentEditor';
 import MenuBar from './components/MenuBar';
 import StatusBar from './components/StatusBar';
-import TemplateSelector from './components/TemplateSelector';
 import Login from './components/Login';
 import DocsToolbar from './components/DocsToolbar';
 import Ruler from './components/Ruler';
@@ -16,12 +15,16 @@ import CommentsSidebar, { Comment } from './components/CommentsSidebar';
 import SuggestionPopup from './components/SuggestionPopup';
 import SuggestionsSidebar from './components/SuggestionsSidebar';
 import FindReplace from './components/FindReplace';
-import WordCountDialog from './components/WordCountDialog';
-import ExportDialog from './components/ExportDialog';
-import KeyboardShortcutsDialog from './components/KeyboardShortcutsDialog';
-import TableOfContents from './components/TableOfContents';
 import InputDialog from './components/InputDialog';
-import SpecialChars from './components/SpecialChars';
+
+// Lazy load dialogs — only rendered when opened
+const TemplateSelector = lazy(() => import('./components/TemplateSelector'));
+const WordCountDialog = lazy(() => import('./components/WordCountDialog'));
+const ExportDialog = lazy(() => import('./components/ExportDialog'));
+const KeyboardShortcutsDialog = lazy(() => import('./components/KeyboardShortcutsDialog'));
+const SpecialChars = lazy(() => import('./components/SpecialChars'));
+import TableOfContents from './components/TableOfContents';
+import { HeaderFooterEditor, HeaderFooterContent, defaultContent as defaultHFContent } from './components/HeaderFooter';
 import './comments-styles.css';
 
 function App() {
@@ -61,6 +64,8 @@ function App() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showOutline, setShowOutline] = useState(false);
   const [showSpecialChars, setShowSpecialChars] = useState(false);
+  const [hfEditType, setHfEditType] = useState<'header' | 'footer' | null>(null);
+  const [hfContent, setHfContent] = useState<HeaderFooterContent>(defaultHFContent);
   const [showRuler, setShowRuler] = useState(true);
   const [rulerMargins, setRulerMargins] = useState<{ left: number; right: number } | null>(null);
   const [inputDialog, setInputDialog] = useState<{
@@ -600,9 +605,14 @@ function App() {
       });
     };
     const handleSpecialChars = () => setShowSpecialChars(true);
+    const handleHfEdit = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setHfEditType(detail?.type || 'footer');
+    };
     window.addEventListener('insert-link', handleInsertLink);
     window.addEventListener('insert-image', handleInsertImage);
     window.addEventListener('special-chars-open', handleSpecialChars);
+    window.addEventListener('edit-header-footer', handleHfEdit);
     window.addEventListener('find-replace-open', handleEvent);
     window.addEventListener('word-count-open', handleWordCount);
     window.addEventListener('export-open', handleExport);
@@ -619,6 +629,7 @@ function App() {
       window.removeEventListener('insert-link', handleInsertLink);
       window.removeEventListener('insert-image', handleInsertImage);
       window.removeEventListener('special-chars-open', handleSpecialChars);
+      window.removeEventListener('edit-header-footer', handleHfEdit);
     };
   }, []);
 
@@ -818,6 +829,17 @@ function App() {
       {/* Keyboard Shortcuts */}
       {showShortcuts && (
         <KeyboardShortcutsDialog onClose={() => setShowShortcuts(false)} />
+      )}
+
+      {/* Header/Footer Editor */}
+      {hfEditType && (
+        <HeaderFooterEditor
+          type={hfEditType}
+          content={hfContent}
+          onChange={setHfContent}
+          onClose={() => setHfEditType(null)}
+          documentTitle={activeFile?.path?.split('/').pop()?.replace(/\.\w+$/, '') || 'Untitled'}
+        />
       )}
 
       {/* Template Selector Modal */}

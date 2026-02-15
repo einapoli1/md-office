@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { Check, X, ChevronDown, ChevronUp, CheckCheck, XCircle } from 'lucide-react';
 
 interface SuggestionItem {
@@ -234,4 +234,4 @@ const SuggestionsSidebar: React.FC<SuggestionsSidebarProps> = ({ editor, onClose
   );
 };
 
-export default SuggestionsSidebar;
+export default memo(SuggestionsSidebar);

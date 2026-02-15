@@ -141,6 +141,28 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Emoji', action: () => {
         window.dispatchEvent(new CustomEvent('emoji-picker-open'));
       }},
+      { label: 'divider' },
+      { label: 'Page numbers', action: () => {
+        window.dispatchEvent(new CustomEvent('edit-header-footer', { detail: { type: 'footer' } }));
+      }},
+      { label: 'Header', action: () => {
+        window.dispatchEvent(new CustomEvent('edit-header-footer', { detail: { type: 'header' } }));
+      }},
+      { label: 'Footer', action: () => {
+        window.dispatchEvent(new CustomEvent('edit-header-footer', { detail: { type: 'footer' } }));
+      }},
+      { label: 'divider' },
+      { label: 'Footnote', action: () => {
+        const content = prompt('Footnote text:');
+        if (content && editor) {
+          editor.commands.setFootnote(content);
+        }
+      }, shortcut: '⌘⇧F' },
+      { label: 'Table of contents', action: () => {
+        if (editor) {
+          editor.commands.insertTableOfContents();
+        }
+      }},
     ],
     Format: [
       { label: 'Bold', action: () => editor?.chain().focus().toggleBold().run(), shortcut: 'Ctrl+B' },

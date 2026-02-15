@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { X, List } from 'lucide-react';
 
 interface TocItem {
@@ -84,4 +84,4 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, onClose }) =>
   );
 };
 
-export default TableOfContents;
+export default memo(TableOfContents);

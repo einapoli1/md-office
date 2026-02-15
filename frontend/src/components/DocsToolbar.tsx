@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import {
   Bold, Italic, Underline, Strikethrough, 
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
@@ -14,6 +14,34 @@ interface DocsToolbarProps {
 }
 
 const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
+  // Only re-render toolbar when active formatting state actually changes
+  const lastActiveRef = useRef('');
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!editor) return;
+    const handler = () => {
+      // Build a fingerprint of current active marks/nodes
+      const marks = ['bold', 'italic', 'underline', 'strike', 'code', 'highlight', 'superscript', 'subscript'];
+      const nodes = ['bulletList', 'orderedList', 'taskList', 'blockquote', 'codeBlock'];
+      const alignments = ['left', 'center', 'right', 'justify'];
+      let fp = '';
+      for (const m of marks) fp += editor.isActive(m) ? '1' : '0';
+      for (const n of nodes) fp += editor.isActive(n) ? '1' : '0';
+      for (const a of alignments) fp += editor.isActive({ textAlign: a }) ? '1' : '0';
+      for (let i = 1; i <= 4; i++) fp += editor.isActive('heading', { level: i }) ? '1' : '0';
+      if (fp !== lastActiveRef.current) {
+        lastActiveRef.current = fp;
+        setTick(t => t + 1);
+      }
+    };
+    editor.on('selectionUpdate', handler);
+    editor.on('transaction', handler);
+    return () => {
+      editor.off('selectionUpdate', handler);
+      editor.off('transaction', handler);
+    };
+  }, [editor]);
+
   const [showFontSize, setShowFontSize] = useState(false);
   const [showFontFamily, setShowFontFamily] = useState(false);
   const [showHeading, setShowHeading] = useState(false);
@@ -622,4 +650,9 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
   );
 };
 
-export default DocsToolbar;
+export default memo(DocsToolbar, (prev, next) => {
+  // Only re-render when the editor instance itself changes
+  // The toolbar reads active state from editor on render, but we don't need
+  // to re-render on every transaction — only when editor ref changes
+  return prev.editor === next.editor;
+});

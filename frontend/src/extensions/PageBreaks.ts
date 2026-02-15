@@ -120,22 +120,46 @@ export const PageBreaks = Extension.create<PageBreaksOptions>({
                   })
                 );
 
+                // Track page number: breaks array index + 1 = page that just ended
+                const pageNum = breaks.indexOf(brk) + 1;
+
                 decorations.push(
                   Decoration.widget(nodeStart, () => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'page-break-gap-wrapper';
+                    Object.assign(wrapper.style, {
+                      position: 'relative',
+                      marginLeft: '-72px',
+                      marginRight: '-72px',
+                      width: 'calc(100% + 144px)',
+                      pointerEvents: 'none',
+                      zIndex: '20',
+                    });
+
+                    // Page number for the page that just ended
+                    const pageNumEl = document.createElement('div');
+                    pageNumEl.className = 'page-number';
+                    pageNumEl.textContent = String(pageNum);
+
+                    // Gap between pages
                     const gap = document.createElement('div');
                     gap.className = 'page-break-gap';
                     Object.assign(gap.style, {
                       height: `${gapHeight}px`,
-                      marginLeft: '-72px',
-                      marginRight: '-72px',
-                      width: 'calc(100% + 144px)',
+                      width: '100%',
                       backgroundColor: '#f0f2f4',
-                      pointerEvents: 'none',
                       boxShadow: 'inset 0 3px 5px -3px rgba(0,0,0,0.15), inset 0 -3px 5px -3px rgba(0,0,0,0.15)',
-                      position: 'relative',
-                      zIndex: '20',
                     });
-                    return gap;
+
+                    // Header area for next page (shows page number for last page via CSS)
+                    const headerArea = document.createElement('div');
+                    headerArea.className = 'page-header-area';
+                    headerArea.setAttribute('data-page', String(pageNum + 1));
+
+                    wrapper.appendChild(pageNumEl);
+                    wrapper.appendChild(gap);
+                    wrapper.appendChild(headerArea);
+                    return wrapper;
                   }, { side: -1, key: `pb-${brk.domIndex}` })
                 );
               } catch {
