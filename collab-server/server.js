@@ -88,16 +88,11 @@ const server = new Server({
         return document;
       }
       
-      // If no Yjs state, load from Go backend
-      const response = await fetchFromBackend(`/api/files/${encodeURIComponent(documentName)}`);
-      const fileContent = await response.text();
-      
-      // Initialize document with content from backend
-      const ytext = document.getText('content');
-      if (ytext.length === 0 && fileContent) {
-        ytext.insert(0, fileContent);
-        console.log(`Loaded content from backend for ${documentName}`);
-      }
+      // If no Yjs state, the document starts empty.
+      // TipTap's Collaboration extension uses getXmlFragment('default') internally,
+      // so we can't pre-populate with plain text here — the editor will handle
+      // initial content from its own content prop on first connect.
+      console.log(`No prior Yjs state for ${documentName}, starting with empty Yjs doc`);
       
     } catch (error) {
       console.error(`Error loading document ${documentName}:`, error);

@@ -360,14 +360,20 @@ const Editor: React.FC<EditorProps> = ({
     }
   }, [enableCollaboration, documentName, collaborationServerUrl, userName, getUserColor]);
 
+  // Determine if collab is ready (ydoc + provider both exist)
+  const collabReady = enableCollaboration && ydoc != null && provider != null;
+  
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         codeBlock: false,
         blockquote: false,
         horizontalRule: false,
+        // Disable built-in Link/Underline since we configure them separately
+        link: false,
+        underline: false,
         // Disable history when collaboration is active (Y.js handles undo/redo)
-        ...(enableCollaboration && ydoc ? { history: false } : {}),
+        history: collabReady ? false : undefined,
       }),
       Placeholder.configure({
         placeholder: 'Start writing your document...',
@@ -423,7 +429,7 @@ const Editor: React.FC<EditorProps> = ({
         enabled: true,
       }),
       // Collaboration extension (only when ydoc is ready)
-      ...(enableCollaboration && ydoc && provider ? [
+      ...(collabReady ? [
         Collaboration.configure({
           document: ydoc,
         }),
@@ -432,9 +438,9 @@ const Editor: React.FC<EditorProps> = ({
         // compatibility with dynamic extension loading. Content sync works without it.
       ] : []),
     ],
-    // Only set initial content if not using collaboration
-    // When collab is active with ydoc, content comes from Yjs; otherwise from props
-    content: (enableCollaboration && ydoc) ? undefined : markdownToHtml(content),
+    // When collab is active, TipTap will use Yjs state if available,
+    // or fall back to this content for initial population of empty Yjs docs
+    content: markdownToHtml(content),
     onUpdate: ({ editor }) => {
       // Only call onChange in non-collaborative mode
       // In collaborative mode, the Hocuspocus server handles saving
@@ -450,7 +456,28 @@ const Editor: React.FC<EditorProps> = ({
         spellcheck: spellCheck.toString(),
       },
     },
-  }, [enableCollaboration, ydoc, provider, userName, collaborationStatus]);
+  }, [collabReady]);
+
+  // Seed collaborative editor with initial content when Yjs doc is empty
+  useEffect(() => {
+    if (editor && collabReady && provider) {
+      const handleSynced = () => {
+        const fragment = ydoc!.getXmlFragment('default');
+        if (fragment.length === 0 && content) {
+          // Yjs doc is empty after sync — seed it with the local content
+          editor.commands.setContent(markdownToHtml(content));
+        }
+      };
+      // If already synced, check immediately
+      if (provider.isSynced) {
+        handleSynced();
+      }
+      provider.on('synced', handleSynced);
+      return () => {
+        provider.off('synced', handleSynced);
+      };
+    }
+  }, [editor, collabReady, provider, ydoc]);
 
   useEffect(() => {
     if (editor && !enableCollaboration) {
