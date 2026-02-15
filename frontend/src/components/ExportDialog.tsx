@@ -58,32 +58,9 @@ ${htmlContent}
   };
 
   const exportPDF = () => {
-    // Open a print-optimized view
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    printWindow.document.write(`<!DOCTYPE html>
-<html>
-<head>
-  <title>${baseName}</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 816px; margin: 0 auto; padding: 40px; line-height: 1.6; color: #202124; }
-    h1 { font-size: 26px; font-weight: 400; }
-    h2 { font-size: 20px; font-weight: 400; }
-    p { margin: 8px 0; }
-    ul, ol { padding-left: 24px; }
-    code { background: #f1f3f4; padding: 2px 6px; border-radius: 3px; }
-    pre { background: #f8f9fa; padding: 16px; border-radius: 8px; }
-    blockquote { border-left: 3px solid #dadce0; padding: 8px 16px; color: #5f6368; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #dadce0; padding: 8px; }
-    @media print { body { padding: 0; } }
-  </style>
-</head>
-<body>${htmlContent}</body>
-<script>window.onload = function() { window.print(); window.close(); }<\/script>
-</html>`);
-    printWindow.document.close();
+    // Use the app's own print stylesheet for a clean result
     onClose();
+    requestAnimationFrame(() => window.print());
   };
 
   const exportPlainText = () => {
