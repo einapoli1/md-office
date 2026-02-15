@@ -139,6 +139,11 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Strikethrough', action: () => editor?.chain().focus().toggleStrike().run() },
       { label: 'divider' },
       { label: 'Clear formatting', action: () => editor?.chain().focus().clearNodes().unsetAllMarks().run() },
+      { label: 'divider' },
+      { label: 'Line spacing: 1.0', action: () => (editor?.chain().focus() as any).setLineHeight('1').run() },
+      { label: 'Line spacing: 1.15', action: () => (editor?.chain().focus() as any).setLineHeight('1.15').run() },
+      { label: 'Line spacing: 1.5', action: () => (editor?.chain().focus() as any).setLineHeight('1.5').run() },
+      { label: 'Line spacing: 2.0', action: () => (editor?.chain().focus() as any).setLineHeight('2').run() },
     ],
     Tools: [
       { label: 'Suggestion mode', action: () => {

@@ -34,6 +34,7 @@ import { LinkCard } from '../extensions/LinkCard';
 import { MermaidDiagram } from '../extensions/Mermaid';
 import { PageBreaks } from '../extensions/PageBreaks';
 import { CommentExtension } from '../extensions/CommentExtension';
+import { LineHeight } from '../extensions/LineHeight';
 import { SuggestionExtension } from '../extensions/SuggestionExtension';
 
 interface EditorProps {
@@ -404,6 +405,7 @@ const Editor: React.FC<EditorProps> = ({
       Subscript,
       Blockquote,
       CodeBlock,
+      LineHeight,
       HorizontalRule,
       Mathematics.configure({
         katexOptions: { throwOnError: false },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Bold, Italic, Underline, Strikethrough, 
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
@@ -18,6 +18,19 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
   const [showHeading, setShowHeading] = useState(false);
   const [showTextColor, setShowTextColor] = useState(false);
   const [showHighlightColor, setShowHighlightColor] = useState(false);
+  const [showLineSpacing, setShowLineSpacing] = useState(false);
+  const lineSpacingRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showLineSpacing) return;
+    const handler = (e: MouseEvent) => {
+      if (lineSpacingRef.current && !lineSpacingRef.current.contains(e.target as Node)) {
+        setShowLineSpacing(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showLineSpacing]);
 
   if (!editor) return null;
 
@@ -453,6 +466,39 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
         >
           <span style={{ fontSize: '14px', fontWeight: 'bold' }}>⇥</span>
         </button>
+
+        {/* Line Spacing */}
+        <div ref={lineSpacingRef} style={{ position: 'relative' }}>
+          <button
+            className="toolbar-btn"
+            onClick={() => setShowLineSpacing(!showLineSpacing)}
+            title="Line spacing"
+          >
+            <AlignJustify size={16} />
+            <ChevronDown size={10} />
+          </button>
+          {showLineSpacing && (
+            <div className="line-spacing-dropdown" onMouseDown={(e) => e.preventDefault()}>
+              {['1', '1.15', '1.5', '2', '2.5', '3'].map((val) => {
+                const current = editor.getAttributes('paragraph').lineHeight;
+                const isActive = current === val || (!current && val === '1.15');
+                return (
+                  <button
+                    key={val}
+                    className={`line-spacing-option${isActive ? ' active' : ''}`}
+                    onClick={() => {
+                      (editor.chain().focus() as any).setLineHeight(val).run();
+                      setShowLineSpacing(false);
+                    }}
+                  >
+                    {isActive && <span style={{ marginRight: 8 }}>✓</span>}
+                    {val}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="toolbar-divider" />

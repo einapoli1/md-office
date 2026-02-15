@@ -1972,3 +1972,36 @@ input:focus-visible {
   margin-right: 8px;
 }
 .dialog-cancel-btn:hover { background: #f1f3f4; }
+
+/* Line Spacing Dropdown */
+.line-spacing-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  background: var(--primary-bg, #fff);
+  border: 1px solid var(--border-medium, #dadce0);
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  padding: 4px 0;
+  min-width: 120px;
+}
+.line-spacing-option {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 6px 16px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: var(--text-primary, #202124);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.line-spacing-option:hover {
+  background: var(--tertiary-bg, #f1f3f4);
+}
+.line-spacing-option.active {
+  font-weight: 600;
+  color: var(--accent-primary, #1a73e8);
+}
