@@ -493,6 +493,12 @@ const Editor: React.FC<EditorProps> = ({
     }
   }, [content, editor, enableCollaboration]);
 
+  const toggleSpellCheck = useCallback(() => {
+    const newValue = !spellCheck;
+    setSpellCheck(newValue);
+    localStorage.setItem('spellcheck', newValue.toString());
+  }, [spellCheck]);
+
   // Listen for spellcheck toggle from MenuBar
   useEffect(() => {
     const handleSpellCheckToggle = () => {
@@ -505,18 +511,11 @@ const Editor: React.FC<EditorProps> = ({
   useEffect(() => {
     if (editor) {
       editor.view.dom.setAttribute('spellcheck', spellCheck.toString());
-      // Pass the editor reference to parent
       if (onEditorReady) {
         onEditorReady(editor);
       }
     }
   }, [spellCheck, editor, onEditorReady]);
-
-  const toggleSpellCheck = useCallback(() => {
-    const newValue = !spellCheck;
-    setSpellCheck(newValue);
-    localStorage.setItem('spellcheck', newValue.toString());
-  }, [spellCheck]);
 
   if (!editor) {
     return <div className="editor-loading">Loading editor...</div>;

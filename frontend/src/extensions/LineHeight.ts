@@ -3,7 +3,8 @@ import { Extension } from '@tiptap/core';
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     lineHeight: {
-      setLineHeight: (value: string) => ReturnType;
+      setLineHeight: (lineHeight: string) => ReturnType;
+      unsetLineHeight: () => ReturnType;
     };
   }
 }

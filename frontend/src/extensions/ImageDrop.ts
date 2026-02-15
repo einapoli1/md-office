@@ -65,7 +65,7 @@ export const ImageDrop = Extension.create({
               return true;
             },
           },
-          handlePaste(view, event) {
+          handlePaste(_view, event) {
             const files = event.clipboardData?.files;
             if (!files || files.length === 0) return false;
 
