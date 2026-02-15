@@ -8,6 +8,8 @@ interface StatusBarProps {
   lastSaved?: Date;
   isGuestMode?: boolean;
   suggestionMode?: boolean;
+  collaborationStatus?: 'disconnected' | 'connecting' | 'connected';
+  connectedUsers?: number;
 }
 
 const StatusBar: React.FC<StatusBarProps> = ({ 
@@ -17,6 +19,8 @@ const StatusBar: React.FC<StatusBarProps> = ({
   lastSaved,
   isGuestMode = false,
   suggestionMode = false,
+  collaborationStatus,
+  connectedUsers = 0,
 }) => {
   const stats = useMemo(() => {
     const text = content.replace(/[#*`_\[\]()]/g, '').trim(); // Remove markdown formatting
@@ -97,6 +101,24 @@ const StatusBar: React.FC<StatusBarProps> = ({
       </div>
 
       <div className="status-bar-center">
+        {collaborationStatus === 'connected' && (
+          <span style={{ 
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            fontSize: 11, color: '#137333', background: '#e6f4ea',
+            padding: '2px 8px', borderRadius: 4, marginRight: 8 
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34a853', display: 'inline-block' }} />
+            {connectedUsers > 1 ? `${connectedUsers} editing` : 'Connected'}
+          </span>
+        )}
+        {collaborationStatus === 'connecting' && (
+          <span style={{ 
+            fontSize: 11, color: '#e37400', background: '#fef7e0',
+            padding: '2px 8px', borderRadius: 4, marginRight: 8 
+          }}>
+            Connecting...
+          </span>
+        )}
         {suggestionMode && (
           <span className="suggestion-mode-indicator active" style={{ marginRight: 8 }}>
             ✏️ Suggesting

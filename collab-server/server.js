@@ -58,8 +58,14 @@ async function saveYjsState(docName, state) {
   }
 }
 
-// Serialize Yjs document to markdown
-function serializeYjsToMarkdown(ydoc) {
+// Serialize Yjs document to plain text (TipTap uses XmlFragment 'default')
+function serializeYjsToText(ydoc) {
+  // TipTap stores content in an XmlFragment named 'default'
+  const fragment = ydoc.getXmlFragment('default');
+  if (fragment && fragment.length > 0) {
+    return fragment.toJSON();
+  }
+  // Fallback to getText for simple text docs
   const ytext = ydoc.getText('content');
   return ytext.toString();
 }
@@ -119,12 +125,12 @@ const server = new Server({
         const state = Y.encodeStateAsUpdate(document);
         await saveYjsState(documentName, state);
         
-        // Serialize to markdown and send to Go backend
-        const markdown = serializeYjsToMarkdown(document);
+        // Serialize and send to Go backend
+        const content = serializeYjsToText(document);
         
         await fetchFromBackend(`/api/files/${encodeURIComponent(documentName)}`, {
           method: 'PUT',
-          body: JSON.stringify({ content: markdown }),
+          body: JSON.stringify({ content }),
           headers: {
             'Content-Type': 'application/json'
           }

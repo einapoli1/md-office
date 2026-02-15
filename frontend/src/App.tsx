@@ -42,6 +42,8 @@ function App() {
   const [showComments, setShowComments] = useState(false);
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [suggestionMode, setSuggestionMode] = useState(false);
+  const [collabStatus, setCollabStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
+  const [collabUsers, setCollabUsers] = useState(0);
 
   // Auto-save functionality
   const saveTimeoutRef = useRef<number>();
@@ -378,6 +380,18 @@ function App() {
     loadFiles();
   };
 
+  // Collab status listener
+  useEffect(() => {
+    const onStatus = (e: Event) => setCollabStatus((e as CustomEvent).detail.status);
+    const onUsers = (e: Event) => setCollabUsers((e as CustomEvent).detail.count);
+    window.addEventListener('collab-status', onStatus);
+    window.addEventListener('collab-users', onUsers);
+    return () => {
+      window.removeEventListener('collab-status', onStatus);
+      window.removeEventListener('collab-users', onUsers);
+    };
+  }, []);
+
   // Suggestion mode toggle + bulk actions
   useEffect(() => {
     const handleToggle = () => setSuggestionMode(prev => !prev);
@@ -627,6 +641,8 @@ function App() {
         lastSaved={lastSaved}
         isGuestMode={isGuestMode}
         suggestionMode={suggestionMode}
+        collaborationStatus={collabStatus}
+        connectedUsers={collabUsers}
       />
 
       {/* Template Selector Modal */}

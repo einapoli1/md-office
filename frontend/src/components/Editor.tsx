@@ -326,10 +326,13 @@ const Editor: React.FC<EditorProps> = ({
       newProvider.on('status', ({ status }: { status: string }) => {
         if (status === 'connecting') {
           setCollaborationStatus('connecting');
+          window.dispatchEvent(new CustomEvent('collab-status', { detail: { status: 'connecting' } }));
         } else if (status === 'connected') {
           setCollaborationStatus('connected');
+          window.dispatchEvent(new CustomEvent('collab-status', { detail: { status: 'connected' } }));
         } else {
           setCollaborationStatus('disconnected');
+          window.dispatchEvent(new CustomEvent('collab-status', { detail: { status: 'disconnected' } }));
         }
       });
 
@@ -338,6 +341,7 @@ const Editor: React.FC<EditorProps> = ({
         newProvider.awareness.on('change', () => {
           const states = newProvider.awareness!.getStates();
           setConnectedUsers(states.size);
+            window.dispatchEvent(new CustomEvent('collab-users', { detail: { count: states.size } }));
         });
 
         // Set current user info
