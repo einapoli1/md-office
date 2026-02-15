@@ -14,6 +14,8 @@ import CommentsSidebar, { Comment } from './components/CommentsSidebar';
 import SuggestionPopup from './components/SuggestionPopup';
 import SuggestionsSidebar from './components/SuggestionsSidebar';
 import FindReplace from './components/FindReplace';
+import WordCountDialog from './components/WordCountDialog';
+import ExportDialog from './components/ExportDialog';
 import './comments-styles.css';
 
 function App() {
@@ -48,6 +50,8 @@ function App() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [findReplaceMode, setFindReplaceMode] = useState(false); // true = show replace
+  const [showWordCount, setShowWordCount] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const [collabStatus, setCollabStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [collabUsers, setCollabUsers] = useState(0);
 
@@ -288,32 +292,6 @@ function App() {
       });
     } catch (error) {
       console.error('Failed to delete item:', error);
-    }
-  };
-
-  const handleExportPDF = async () => {
-    if (!activeFile) return;
-    
-    try {
-      const response = await fetch(`/api/export/pdf/${encodeURIComponent(activeFile.path)}`, {
-        method: 'GET',
-      });
-      
-      if (!response.ok) {
-        throw new Error('Export failed');
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `${activeFile.path.replace('.md', '')}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Failed to export PDF:', error);
     }
   };
 
@@ -563,10 +541,16 @@ function App() {
       setFindReplaceMode(!!replace);
     };
     window.addEventListener('keydown', handleKeyDown);
+    const handleWordCount = () => setShowWordCount(true);
+    const handleExport = () => setShowExport(true);
     window.addEventListener('find-replace-open', handleEvent);
+    window.addEventListener('word-count-open', handleWordCount);
+    window.addEventListener('export-open', handleExport);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('find-replace-open', handleEvent);
+      window.removeEventListener('word-count-open', handleWordCount);
+      window.removeEventListener('export-open', handleExport);
     };
   }, []);
 
@@ -616,7 +600,6 @@ function App() {
       <MenuBar
         onNewFile={handleNewFile}
         onTemplateSelect={handleNewFromTemplate}
-        onExportPDF={handleExportPDF}
         onPrint={handlePrint}
         isDarkMode={isDarkMode}
         onToggleDarkMode={toggleDarkMode}
@@ -703,6 +686,21 @@ function App() {
         collaborationStatus={collabStatus}
         connectedUsers={collabUsers}
       />
+
+      {/* Word Count Dialog */}
+      {showWordCount && (
+        <WordCountDialog content={content} onClose={() => setShowWordCount(false)} />
+      )}
+
+      {/* Export Dialog */}
+      {showExport && (
+        <ExportDialog
+          content={content}
+          htmlContent={editorRef?.getHTML() || ''}
+          fileName={activeFile?.path || 'untitled.md'}
+          onClose={() => setShowExport(false)}
+        />
+      )}
 
       {/* Template Selector Modal */}
       <TemplateSelector

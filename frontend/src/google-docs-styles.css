@@ -1654,3 +1654,136 @@ input:focus-visible {
   width: 45px;
 }
 .zoom-select:hover { background: #e8eaed; border-radius: 3px; }
+
+/* Dialog Overlay */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+/* Word Count Dialog */
+.word-count-dialog {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  min-width: 320px;
+  max-width: 400px;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.dialog-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #202124;
+}
+
+.dialog-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #5f6368;
+  border-radius: 50%;
+}
+.dialog-close-btn:hover { background: #f1f3f4; }
+
+.word-count-grid {
+  padding: 16px 20px;
+}
+
+.wc-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.wc-label { color: #5f6368; }
+.wc-value { color: #202124; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+.wc-divider {
+  height: 1px;
+  background: #e0e0e0;
+  margin: 8px 0;
+}
+
+.dialog-footer {
+  padding: 12px 20px 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dialog-ok-btn {
+  padding: 6px 20px;
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+.dialog-ok-btn:hover { background: #1765cc; }
+
+/* Export Dialog */
+.export-dialog {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  min-width: 360px;
+  max-width: 440px;
+}
+
+.export-options {
+  padding: 8px;
+}
+
+.export-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 8px;
+  text-align: left;
+  color: #202124;
+  transition: background 0.15s;
+}
+.export-option:hover { background: #f1f3f4; }
+
+.export-option svg { color: #5f6368; flex-shrink: 0; }
+
+.export-option-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.export-option-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.export-option-desc {
+  font-size: 12px;
+  color: #5f6368;
+  margin-top: 2px;
+}

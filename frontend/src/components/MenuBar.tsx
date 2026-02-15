@@ -5,7 +5,6 @@ import { FileContent } from '../types';
 interface MenuBarProps {
   onNewFile: () => void;
   onTemplateSelect: () => void;
-  onExportPDF: () => void;
   onPrint: () => void;
   onShowSettings?: () => void;
   isDarkMode?: boolean;
@@ -24,7 +23,6 @@ interface MenuBarProps {
 const MenuBar: React.FC<MenuBarProps> = ({
   onNewFile,
   onTemplateSelect,
-  onExportPDF,
   onPrint,
   onShowSettings,
   isDarkMode = false,
@@ -80,8 +78,10 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'New', action: onNewFile, shortcut: 'Ctrl+N' },
       { label: 'From template', action: onTemplateSelect },
       { label: 'divider' },
-      { label: 'Export as PDF', action: onExportPDF, shortcut: 'Ctrl+P' },
-      { label: 'Print', action: onPrint, shortcut: 'Ctrl+P' },
+      { label: 'Download', action: () => {
+        window.dispatchEvent(new CustomEvent('export-open'));
+      }},
+      { label: 'Print', action: onPrint, shortcut: '⌘P' },
       { label: 'divider' },
       { label: 'Share', action: () => {
         const url = new URL(window.location.href);
@@ -154,7 +154,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
         window.dispatchEvent(new CustomEvent('suggestions-panel-toggle'));
       }},
       { label: 'divider' },
-      { label: 'Word count', action: () => console.log('Word count') },
+      { label: 'Word count', action: () => {
+        window.dispatchEvent(new CustomEvent('word-count-open'));
+      }},
       { label: 'Preferences', action: onShowSettings, icon: Settings },
     ],
     ...(accountItems.length > 0 && { Account: accountItems })
