@@ -106,8 +106,13 @@ const MenuBar: React.FC<MenuBarProps> = ({
       }, shortcut: '⌘F' },
     ],
     View: [
-      { label: 'Show preview', action: () => console.log('Preview') },
-      { label: 'Full screen', action: () => console.log('Full screen'), shortcut: 'F11' },
+      { label: 'Document outline', action: () => {
+        window.dispatchEvent(new CustomEvent('outline-toggle'));
+      }},
+      { label: 'Full screen', action: () => {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.documentElement.requestFullscreen();
+      }, shortcut: 'F11' },
       { label: 'divider' },
       { label: isDarkMode ? 'Light mode' : 'Dark mode', action: onToggleDarkMode, icon: isDarkMode ? Sun : Moon },
     ],

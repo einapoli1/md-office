@@ -17,6 +17,7 @@ import FindReplace from './components/FindReplace';
 import WordCountDialog from './components/WordCountDialog';
 import ExportDialog from './components/ExportDialog';
 import KeyboardShortcutsDialog from './components/KeyboardShortcutsDialog';
+import TableOfContents from './components/TableOfContents';
 import './comments-styles.css';
 
 function App() {
@@ -54,6 +55,7 @@ function App() {
   const [showWordCount, setShowWordCount] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showOutline, setShowOutline] = useState(false);
   const [collabStatus, setCollabStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [collabUsers, setCollabUsers] = useState(0);
 
@@ -549,14 +551,17 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
     const handleWordCount = () => setShowWordCount(true);
     const handleExport = () => setShowExport(true);
+    const handleOutline = () => setShowOutline(prev => !prev);
     window.addEventListener('find-replace-open', handleEvent);
     window.addEventListener('word-count-open', handleWordCount);
     window.addEventListener('export-open', handleExport);
+    window.addEventListener('outline-toggle', handleOutline);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('find-replace-open', handleEvent);
       window.removeEventListener('word-count-open', handleWordCount);
       window.removeEventListener('export-open', handleExport);
+      window.removeEventListener('outline-toggle', handleOutline);
     };
   }, []);
 
@@ -634,6 +639,10 @@ function App() {
           recentFiles={recentFiles}
           isGuestMode={isGuestMode}
         />
+
+        {showOutline && editorRef && (
+          <TableOfContents editor={editorRef} onClose={() => setShowOutline(false)} />
+        )}
 
         <div className="main-editor">
           {loading ? (
