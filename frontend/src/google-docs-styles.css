@@ -209,11 +209,57 @@ body {
   align-items: center;
 }
 
+.document-title-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.document-icon {
+  color: var(--text-secondary);
+}
+
+.document-title-header-text {
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  min-width: 120px;
+  text-align: center;
+}
+
+.document-title-header-text:hover {
+  background: var(--tertiary-bg);
+}
+
+.document-title-input-header {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+  border: 2px solid var(--accent-primary);
+  outline: none;
+  background: var(--primary-bg);
+  padding: 4px 8px;
+  border-radius: 4px;
+  min-width: 120px;
+  text-align: center;
+}
+
 .save-status-indicator {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.save-status-indicator-small {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
@@ -571,45 +617,6 @@ body {
   position: relative;
 }
 
-.document-title-area {
-  padding: 48px 72px 24px;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.document-title {
-  font-family: var(--font-body);
-  font-size: 28px;
-  font-weight: 400;
-  color: var(--text-primary);
-  border: none;
-  outline: none;
-  background: transparent;
-  cursor: text;
-  line-height: 1.2;
-  margin: 0;
-  padding: 8px 0;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-.document-title:hover {
-  background: var(--secondary-bg);
-}
-
-.document-title-input {
-  font-family: var(--font-body);
-  font-size: 28px;
-  font-weight: 400;
-  color: var(--text-primary);
-  border: 2px solid var(--accent-primary);
-  outline: none;
-  background: var(--primary-bg);
-  width: 100%;
-  padding: 8px;
-  border-radius: 4px;
-  line-height: 1.2;
-}
-
 .document-content {
   padding: 0;
 }
@@ -621,8 +628,8 @@ body {
   background: var(--primary-bg);
   border: 1px solid var(--border-light);
   border-radius: 50%;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -903,7 +910,7 @@ body {
 
 .editor-content-area {
   flex: 1;
-  padding: 24px 72px 72px;
+  padding: 48px 72px 72px;
   overflow-y: auto;
 }
 

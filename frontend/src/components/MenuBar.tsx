@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Share2, Settings, Moon, Sun, FileText, Plus, LogIn, LogOut, User } from 'lucide-react';
+import { FileContent } from '../types';
 
 interface MenuBarProps {
   onNewFile: () => void;
@@ -15,6 +16,8 @@ interface MenuBarProps {
   onLogin?: () => void;
   onLogout?: () => void;
   onSwitchToGuest?: () => void;
+  activeFile?: FileContent | null;
+  onTitleChange?: (newPath: string) => void;
 }
 
 const MenuBar: React.FC<MenuBarProps> = ({
@@ -30,9 +33,24 @@ const MenuBar: React.FC<MenuBarProps> = ({
   isAuthenticated = false,
   onLogin,
   onLogout,
-  onSwitchToGuest
+  onSwitchToGuest,
+  activeFile,
+  onTitleChange
 }) => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [documentTitle, setDocumentTitle] = useState('');
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  // Update document title when active file changes
+  useEffect(() => {
+    if (activeFile) {
+      const title = activeFile.path.replace(/\.md$/, '').replace(/.*\//, '');
+      setDocumentTitle(title);
+    } else {
+      setDocumentTitle('');
+    }
+  }, [activeFile]);
 
   interface MenuItem {
     label: string;
@@ -120,6 +138,40 @@ const MenuBar: React.FC<MenuBarProps> = ({
     }
   };
 
+  const handleTitleClick = () => {
+    if (activeFile) {
+      setIsEditingTitle(true);
+    }
+  };
+
+  const handleTitleSubmit = () => {
+    setIsEditingTitle(false);
+    if (documentTitle.trim() && activeFile && onTitleChange) {
+      const newPath = activeFile.path.replace(/[^\/]*\.md$/, `${documentTitle.trim()}.md`);
+      onTitleChange(newPath);
+    }
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleTitleSubmit();
+    } else if (e.key === 'Escape') {
+      setIsEditingTitle(false);
+      // Reset title to original
+      if (activeFile) {
+        const originalTitle = activeFile.path.replace(/\.md$/, '').replace(/.*\//, '');
+        setDocumentTitle(originalTitle);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [isEditingTitle]);
+
   const getSaveStatusIcon = () => {
     switch (saveStatus) {
       case 'saving':
@@ -188,10 +240,38 @@ const MenuBar: React.FC<MenuBarProps> = ({
       </div>
 
       <div className="menu-bar-center">
-        <div className="save-status-indicator">
-          <span className="save-icon">{getSaveStatusIcon()}</span>
-          <span className="save-text">{getSaveStatusText()}</span>
-        </div>
+        {activeFile ? (
+          <div className="document-title-header">
+            <FileText size={16} className="document-icon" />
+            {isEditingTitle ? (
+              <input
+                ref={titleInputRef}
+                type="text"
+                value={documentTitle}
+                onChange={(e) => setDocumentTitle(e.target.value)}
+                onBlur={handleTitleSubmit}
+                onKeyDown={handleTitleKeyDown}
+                className="document-title-input-header"
+              />
+            ) : (
+              <span
+                className="document-title-header-text"
+                onClick={handleTitleClick}
+                title="Click to rename document"
+              >
+                {documentTitle || 'Untitled Document'}
+              </span>
+            )}
+            <div className="save-status-indicator-small">
+              <span className="save-icon">{getSaveStatusIcon()}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="save-status-indicator">
+            <span className="save-icon">{getSaveStatusIcon()}</span>
+            <span className="save-text">{getSaveStatusText()}</span>
+          </div>
+        )}
       </div>
 
       <div className="menu-bar-right">

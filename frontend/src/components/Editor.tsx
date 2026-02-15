@@ -29,12 +29,10 @@ import { YouTubeEmbed } from '../extensions/YouTubeEmbed';
 import { LinkCard } from '../extensions/LinkCard';
 import { MermaidDiagram } from '../extensions/Mermaid';
 
-// Import the new toolbar
-import DocsToolbar from './DocsToolbar';
-
 interface EditorProps {
   content: string;
   onChange: (content: string) => void;
+  onEditorReady?: (editor: any) => void;
 }
 
 // Enhanced turndown for all new features
@@ -266,7 +264,7 @@ const markdownToHtml = (markdown: string): string => {
   return html;
 };
 
-const Editor: React.FC<EditorProps> = ({ content, onChange }) => {
+const Editor: React.FC<EditorProps> = ({ content, onChange, onEditorReady }) => {
   const [spellCheck, setSpellCheck] = useState(() => {
     return localStorage.getItem('spellcheck') !== 'false';
   });
@@ -343,8 +341,12 @@ const Editor: React.FC<EditorProps> = ({ content, onChange }) => {
   useEffect(() => {
     if (editor) {
       editor.view.dom.setAttribute('spellcheck', spellCheck.toString());
+      // Pass the editor reference to parent
+      if (onEditorReady) {
+        onEditorReady(editor);
+      }
     }
-  }, [spellCheck, editor]);
+  }, [spellCheck, editor, onEditorReady]);
 
   const toggleSpellCheck = useCallback(() => {
     const newValue = !spellCheck;
@@ -358,8 +360,6 @@ const Editor: React.FC<EditorProps> = ({ content, onChange }) => {
 
   return (
     <div className="google-docs-editor">
-      <DocsToolbar editor={editor} />
-      
       <div className="editor-content-area">
         <EditorContent 
           editor={editor} 

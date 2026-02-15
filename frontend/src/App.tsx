@@ -5,6 +5,7 @@ import MenuBar from './components/MenuBar';
 import StatusBar from './components/StatusBar';
 import TemplateSelector from './components/TemplateSelector';
 import Login from './components/Login';
+import DocsToolbar from './components/DocsToolbar';
 import { FileSystemItem, FileContent } from './types';
 import { fileAPI } from './utils/api';
 import { localFileAPI, initializeLocalStorage } from './utils/localApi';
@@ -32,6 +33,7 @@ function App() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
   const [lastSaved, setLastSaved] = useState<Date | undefined>();
+  const [editorRef, setEditorRef] = useState<any>(null);
 
   // Auto-save functionality
   const saveTimeoutRef = useRef<number>();
@@ -424,7 +426,12 @@ function App() {
         onLogin={handleShowLogin}
         onLogout={handleLogout}
         onSwitchToGuest={handleSwitchToGuest}
+        activeFile={activeFile}
+        onTitleChange={handleTitleChange}
       />
+
+      {/* Formatting Toolbar - Google Docs style */}
+      <DocsToolbar editor={editorRef} />
 
       <div className="app-content">
         <DocumentSidebar
@@ -447,6 +454,7 @@ function App() {
               content={content}
               onChange={handleContentChange}
               onTitleChange={handleTitleChange}
+              onEditorReady={setEditorRef}
             />
           )}
         </div>

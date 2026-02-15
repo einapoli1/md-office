@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, X } from 'lucide-react';
 import { FileContent } from '../types';
 import Editor from './Editor';
@@ -7,7 +7,6 @@ import {
   serializeFrontmatter, 
   getDocumentStyles, 
   getPageStyles,
-  extractTitle,
   updateMetadata,
   DocumentMetadata 
 } from '../utils/frontmatter';
@@ -17,75 +16,23 @@ interface DocumentEditorProps {
   content: string;
   onChange: (content: string) => void;
   onTitleChange: (newTitle: string) => void;
+  onEditorReady?: (editor: any) => void;
 }
 
 const DocumentEditor: React.FC<DocumentEditorProps> = ({ 
   activeFile, 
   content, 
   onChange, 
-  onTitleChange
+  onEditorReady
 }) => {
-  const [documentTitle, setDocumentTitle] = useState('');
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [parsedDocument, setParsedDocument] = useState(() => parseFrontmatter(content));
-  const titleInputRef = useRef<HTMLInputElement>(null);
 
   // Parse content when it changes
   useEffect(() => {
     const parsed = parseFrontmatter(content);
     setParsedDocument(parsed);
-    
-    // Extract title from metadata or content
-    const title = extractTitle(parsed.metadata, parsed.content);
-    setDocumentTitle(title);
   }, [content]);
-
-  // Update title when active file changes
-  useEffect(() => {
-    if (activeFile) {
-      const parsed = parseFrontmatter(content);
-      const title = extractTitle(parsed.metadata, parsed.content);
-      setDocumentTitle(title);
-    }
-  }, [activeFile, content]);
-
-  const handleTitleClick = () => {
-    setIsEditingTitle(true);
-  };
-
-  const handleTitleSubmit = () => {
-    setIsEditingTitle(false);
-    if (documentTitle.trim()) {
-      // Update metadata with new title
-      const updatedMetadata = updateMetadata(parsedDocument.metadata, { 
-        title: documentTitle.trim() 
-      });
-      
-      // Serialize and update content
-      const newContent = serializeFrontmatter(updatedMetadata, parsedDocument.content);
-      onChange(newContent);
-      
-      // Also update file name if needed
-      if (activeFile) {
-        const newPath = activeFile.path.replace(/[^\/]*\.md$/, `${documentTitle.trim()}.md`);
-        onTitleChange(newPath);
-      }
-    }
-  };
-
-  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleTitleSubmit();
-    } else if (e.key === 'Escape') {
-      setIsEditingTitle(false);
-      // Reset title to original
-      if (activeFile) {
-        const originalTitle = activeFile.path.replace(/\.md$/, '').replace(/.*\//, '');
-        setDocumentTitle(originalTitle);
-      }
-    }
-  };
 
   // Handle editor content changes (markdown only, not metadata)
   const handleEditorChange = (newMarkdownContent: string) => {
@@ -99,13 +46,6 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     const newContent = serializeFrontmatter(updatedMetadata, parsedDocument.content);
     onChange(newContent);
   };
-
-  useEffect(() => {
-    if (isEditingTitle && titleInputRef.current) {
-      titleInputRef.current.focus();
-      titleInputRef.current.select();
-    }
-  }, [isEditingTitle]);
 
   // Get styles from metadata
   const documentStyles = getDocumentStyles(parsedDocument.metadata);
@@ -133,28 +73,6 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
         }}
       >
         <div className="document-header">
-          <div className="document-title-area" style={{ padding: pageStyles.padding }}>
-            {isEditingTitle ? (
-              <input
-                ref={titleInputRef}
-                type="text"
-                value={documentTitle}
-                onChange={(e) => setDocumentTitle(e.target.value)}
-                onBlur={handleTitleSubmit}
-                onKeyDown={handleTitleKeyDown}
-                className="document-title-input"
-              />
-            ) : (
-              <h1 
-                className="document-title" 
-                onClick={handleTitleClick}
-                title="Click to rename document"
-              >
-                {documentTitle || 'Untitled Document'}
-              </h1>
-            )}
-          </div>
-
           <button 
             className="document-settings-btn"
             onClick={() => setShowSettings(!showSettings)}
@@ -174,6 +92,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
           <Editor
             content={parsedDocument.content}
             onChange={handleEditorChange}
+            onEditorReady={onEditorReady}
           />
         </div>
       </div>
