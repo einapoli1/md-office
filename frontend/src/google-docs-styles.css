@@ -1621,3 +1621,36 @@ input:focus-visible {
 }
 .find-action-btn:hover { background: #f1f3f4; }
 .find-action-btn:disabled { opacity: 0.3; cursor: default; }
+
+/* Zoom Control */
+.zoom-control {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.zoom-btn {
+  padding: 2px 4px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #5f6368;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+}
+.zoom-btn:hover { background: #e8eaed; }
+
+.zoom-select {
+  border: none;
+  background: none;
+  font-size: 11px;
+  color: #5f6368;
+  cursor: pointer;
+  padding: 1px 2px;
+  outline: none;
+  -webkit-appearance: none;
+  text-align: center;
+  width: 45px;
+}
+.zoom-select:hover { background: #e8eaed; border-radius: 3px; }

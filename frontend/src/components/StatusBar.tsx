@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { FileText, Type, Clock } from 'lucide-react';
+import React, { useMemo, useState, useCallback } from 'react';
+import { FileText, Type, Clock, Minus, Plus } from 'lucide-react';
 
 interface StatusBarProps {
   content: string;
@@ -10,6 +10,7 @@ interface StatusBarProps {
   suggestionMode?: boolean;
   collaborationStatus?: 'disconnected' | 'connecting' | 'connected';
   connectedUsers?: number;
+  onZoomChange?: (zoom: number) => void;
 }
 
 const StatusBar: React.FC<StatusBarProps> = ({ 
@@ -21,7 +22,32 @@ const StatusBar: React.FC<StatusBarProps> = ({
   suggestionMode = false,
   collaborationStatus,
   connectedUsers = 0,
+  onZoomChange,
 }) => {
+  const [zoom, setZoom] = useState(100);
+  const zoomLevels = [50, 75, 90, 100, 110, 125, 150, 175, 200];
+
+  const handleZoomChange = useCallback((newZoom: number) => {
+    const clamped = Math.max(50, Math.min(200, newZoom));
+    setZoom(clamped);
+    onZoomChange?.(clamped);
+    // Apply zoom to the editor content area
+    const editor = document.querySelector('.docs-editor-content') as HTMLElement;
+    if (editor) {
+      editor.style.transform = `scale(${clamped / 100})`;
+      editor.style.transformOrigin = 'top center';
+    }
+  }, [onZoomChange]);
+
+  const zoomIn = () => {
+    const nextLevel = zoomLevels.find(z => z > zoom) || 200;
+    handleZoomChange(nextLevel);
+  };
+
+  const zoomOut = () => {
+    const prevLevel = [...zoomLevels].reverse().find(z => z < zoom) || 50;
+    handleZoomChange(prevLevel);
+  };
   const stats = useMemo(() => {
     const text = content.replace(/[#*`_\[\]()]/g, '').trim(); // Remove markdown formatting
     const words = text ? text.split(/\s+/).length : 0;
@@ -158,6 +184,27 @@ const StatusBar: React.FC<StatusBarProps> = ({
           
           <div className="stat-item" title="Pages (≈250 words/page)">
             <span>{Math.max(1, Math.ceil(stats.words / 250))} pages</span>
+          </div>
+          
+          <div className="stat-divider" />
+          
+          <div className="zoom-control">
+            <button className="zoom-btn" onClick={zoomOut} title="Zoom out">
+              <Minus size={12} />
+            </button>
+            <select
+              className="zoom-select"
+              value={zoom}
+              onChange={e => handleZoomChange(Number(e.target.value))}
+              title="Zoom level"
+            >
+              {zoomLevels.map(z => (
+                <option key={z} value={z}>{z}%</option>
+              ))}
+            </select>
+            <button className="zoom-btn" onClick={zoomIn} title="Zoom in">
+              <Plus size={12} />
+            </button>
           </div>
         </div>
       </div>
