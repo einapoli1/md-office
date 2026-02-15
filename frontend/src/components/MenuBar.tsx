@@ -149,6 +149,10 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Line spacing: 2.0', action: () => (editor?.chain().focus() as any).setLineHeight('2').run() },
     ],
     Tools: [
+      { label: 'Spelling & Grammar', action: () => {
+        window.dispatchEvent(new CustomEvent('spellcheck-toggle'));
+      }},
+      { label: 'divider' },
       { label: 'Suggestion mode', action: () => {
         if (editor) {
           editor.chain().focus().toggleSuggestionMode().run();

@@ -492,6 +492,15 @@ const Editor: React.FC<EditorProps> = ({
     }
   }, [content, editor, enableCollaboration]);
 
+  // Listen for spellcheck toggle from MenuBar
+  useEffect(() => {
+    const handleSpellCheckToggle = () => {
+      toggleSpellCheck();
+    };
+    window.addEventListener('spellcheck-toggle', handleSpellCheckToggle);
+    return () => window.removeEventListener('spellcheck-toggle', handleSpellCheckToggle);
+  }, [toggleSpellCheck]);
+
   useEffect(() => {
     if (editor) {
       editor.view.dom.setAttribute('spellcheck', spellCheck.toString());
