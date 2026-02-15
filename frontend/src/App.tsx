@@ -17,6 +17,9 @@ import SuggestionsSidebar from './components/SuggestionsSidebar';
 import FindReplace from './components/FindReplace';
 import InputDialog from './components/InputDialog';
 import LinkDialog from './components/LinkDialog';
+import ToastProvider from './components/ToastProvider';
+import ShareDialog from './components/ShareDialog';
+import { toast } from './components/Toast';
 
 // Lazy load dialogs — only rendered when opened
 const TemplateSelector = lazy(() => import('./components/TemplateSelector'));
@@ -77,6 +80,7 @@ function App() {
   } | null>(null);
   const [collabStatus, setCollabStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [collabUsers, setCollabUsers] = useState(0);
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   // Auto-save functionality
   const saveTimeoutRef = useRef<number>();
@@ -152,12 +156,14 @@ function App() {
         originalContentRef.current = newContent;
         setSaveStatus('saved');
         setLastSaved(new Date());
+        toast('Document saved', 'success');
         
         // Update recent files
         updateRecentFiles(activeFile.path);
       } catch (error) {
         console.error('Auto-save failed:', error);
         setSaveStatus('error');
+        toast('Failed to save document', 'error');
         
         // Retry after 5 seconds
         setTimeout(() => {
@@ -391,7 +397,14 @@ function App() {
   // Collab status listener
   useEffect(() => {
     const onStatus = (e: Event) => setCollabStatus((e as CustomEvent).detail.status);
-    const onUsers = (e: Event) => setCollabUsers((e as CustomEvent).detail.count);
+    const onUsers = (e: Event) => {
+      const newCount = (e as CustomEvent).detail.count;
+      setCollabUsers(prev => {
+        if (newCount > prev && prev > 0) toast('A user joined the document', 'info');
+        else if (newCount < prev && prev > 1) toast('A user left the document', 'info');
+        return newCount;
+      });
+    };
     window.addEventListener('collab-status', onStatus);
     window.addEventListener('collab-users', onUsers);
     return () => {

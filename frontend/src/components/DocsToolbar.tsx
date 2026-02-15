@@ -28,7 +28,9 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
       for (const m of marks) fp += editor.isActive(m) ? '1' : '0';
       for (const n of nodes) fp += editor.isActive(n) ? '1' : '0';
       for (const a of alignments) fp += editor.isActive({ textAlign: a }) ? '1' : '0';
-      for (let i = 1; i <= 4; i++) fp += editor.isActive('heading', { level: i }) ? '1' : '0';
+      for (let i = 1; i <= 6; i++) fp += editor.isActive('heading', { level: i }) ? '1' : '0';
+      fp += editor.isActive('title') ? '1' : '0';
+      fp += editor.isActive('subtitle') ? '1' : '0';
       if (fp !== lastActiveRef.current) {
         lastActiveRef.current = fp;
         setTick(t => t + 1);
@@ -79,11 +81,15 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
   const textColors = ['#000000', '#434343', '#666666', '#999999', '#b7b7b7', '#cccccc', '#d9d9d9', '#efefef', '#f3f3f3', '#ffffff', '#980000', '#ff0000', '#ff9900', '#ffff00', '#00ff00', '#00ffff', '#4a86e8', '#0000ff', '#9900ff', '#ff00ff'];
   const highlightColors = ['transparent', '#ffff00', '#00ff00', '#00ffff', '#ff9900', '#ff00ff', '#0000ff', '#ff0000', '#808080'];
 
-  const getCurrentHeading = () => {
+  const getCurrentStyle = () => {
+    if (editor.isActive('title')) return 'Title';
+    if (editor.isActive('subtitle')) return 'Subtitle';
     if (editor.isActive('heading', { level: 1 })) return 'Heading 1';
     if (editor.isActive('heading', { level: 2 })) return 'Heading 2';
     if (editor.isActive('heading', { level: 3 })) return 'Heading 3';
     if (editor.isActive('heading', { level: 4 })) return 'Heading 4';
+    if (editor.isActive('heading', { level: 5 })) return 'Heading 5';
+    if (editor.isActive('heading', { level: 6 })) return 'Heading 6';
     return 'Normal text';
   };
 
@@ -97,11 +103,23 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
     return 'Arial';
   };
 
-  const setHeading = (level: number | null) => {
-    if (level === null) {
-      editor.chain().focus().clearNodes().run();
-    } else {
-      editor.chain().focus().toggleHeading({ level }).run();
+  const setParagraphStyle = (style: string) => {
+    switch (style) {
+      case 'normal':
+        editor.chain().focus().clearNodes().run();
+        break;
+      case 'title':
+        (editor.chain().focus() as any).setTitle().run();
+        break;
+      case 'subtitle':
+        (editor.chain().focus() as any).setSubtitle().run();
+        break;
+      default: {
+        const level = parseInt(style.replace('h', ''));
+        if (level >= 1 && level <= 6) {
+          editor.chain().focus().toggleHeading({ level: level as 1|2|3|4|5|6 }).run();
+        }
+      }
     }
     setShowHeading(false);
   };
@@ -244,46 +262,44 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
           )}
         </div>
 
-        {/* Heading Dropdown */}
+        {/* Paragraph Styles Dropdown */}
         <div className="dropdown-container">
           <button 
-            className="toolbar-dropdown-btn heading-btn"
+            className="toolbar-dropdown-btn paragraph-style-btn"
             onClick={() => setShowHeading(!showHeading)}
           >
-            <span>{getCurrentHeading()}</span>
+            <span>{getCurrentStyle()}</span>
             <ChevronDown size={12} />
           </button>
           {showHeading && (
-            <div className="toolbar-dropdown">
-              <button
-                className="dropdown-item"
-                onClick={() => setHeading(null)}
-              >
+            <div className="toolbar-dropdown paragraph-styles-dropdown">
+              <button className={`dropdown-item ps-normal${getCurrentStyle() === 'Normal text' ? ' ps-active' : ''}`} onClick={() => setParagraphStyle('normal')}>
                 Normal text
               </button>
-              <button
-                className="dropdown-item heading-1"
-                onClick={() => setHeading(1)}
-              >
+              <button className={`dropdown-item ps-title${getCurrentStyle() === 'Title' ? ' ps-active' : ''}`} onClick={() => setParagraphStyle('title')}>
+                Title
+              </button>
+              <button className={`dropdown-item ps-subtitle${getCurrentStyle() === 'Subtitle' ? ' ps-active' : ''}`} onClick={() => setParagraphStyle('subtitle')}>
+                Subtitle
+              </button>
+              <div className="ps-divider" />
+              <button className={`dropdown-item ps-h1${getCurrentStyle() === 'Heading 1' ? ' ps-active' : ''}`} onClick={() => setParagraphStyle('h1')}>
                 Heading 1
               </button>
-              <button
-                className="dropdown-item heading-2"
-                onClick={() => setHeading(2)}
-              >
+              <button className={`dropdown-item ps-h2${getCurrentStyle() === 'Heading 2' ? ' ps-active' : ''}`} onClick={() => setParagraphStyle('h2')}>
                 Heading 2
               </button>
-              <button
-                className="dropdown-item heading-3"
-                onClick={() => setHeading(3)}
-              >
+              <button className={`dropdown-item ps-h3${getCurrentStyle() === 'Heading 3' ? ' ps-active' : ''}`} onClick={() => setParagraphStyle('h3')}>
                 Heading 3
               </button>
-              <button
-                className="dropdown-item heading-4"
-                onClick={() => setHeading(4)}
-              >
+              <button className={`dropdown-item ps-h4${getCurrentStyle() === 'Heading 4' ? ' ps-active' : ''}`} onClick={() => setParagraphStyle('h4')}>
                 Heading 4
+              </button>
+              <button className={`dropdown-item ps-h5${getCurrentStyle() === 'Heading 5' ? ' ps-active' : ''}`} onClick={() => setParagraphStyle('h5')}>
+                Heading 5
+              </button>
+              <button className={`dropdown-item ps-h6${getCurrentStyle() === 'Heading 6' ? ' ps-active' : ''}`} onClick={() => setParagraphStyle('h6')}>
+                Heading 6
               </button>
             </div>
           )}
