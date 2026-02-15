@@ -2027,3 +2027,34 @@ input:focus-visible {
   pointer-events: none;
   z-index: 100;
 }
+
+/* ── Image Resize Handles ── */
+.image-resize-selected {
+  position: relative;
+  display: inline-block;
+}
+
+.image-resize-selected img {
+  outline: 2px solid #4285f4;
+  outline-offset: 1px;
+}
+
+.image-resize-handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #4285f4;
+  border: 1px solid #fff;
+  border-radius: 1px;
+  z-index: 10;
+  box-sizing: border-box;
+}
+
+.image-resize-handle-nw { top: -4px; left: -4px; cursor: nw-resize; }
+.image-resize-handle-n  { top: -4px; left: 50%; margin-left: -4px; cursor: n-resize; }
+.image-resize-handle-ne { top: -4px; right: -4px; cursor: ne-resize; }
+.image-resize-handle-e  { top: 50%; margin-top: -4px; right: -4px; cursor: e-resize; }
+.image-resize-handle-se { bottom: -4px; right: -4px; cursor: se-resize; }
+.image-resize-handle-s  { bottom: -4px; left: 50%; margin-left: -4px; cursor: s-resize; }
+.image-resize-handle-sw { bottom: -4px; left: -4px; cursor: sw-resize; }
+.image-resize-handle-w  { top: 50%; margin-top: -4px; left: -4px; cursor: w-resize; }

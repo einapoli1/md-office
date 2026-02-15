@@ -4,7 +4,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
 import { Link } from '@tiptap/extension-link';
-import { Image } from '@tiptap/extension-image';
+import { ImageResize } from '../extensions/ImageResize';
 import { TaskList } from '@tiptap/extension-task-list';
 import { TaskItem } from '@tiptap/extension-task-item';
 import { Underline } from '@tiptap/extension-underline';
@@ -388,7 +388,7 @@ const Editor: React.FC<EditorProps> = ({
         openOnClick: false,
         HTMLAttributes: { class: 'editor-link' },
       }),
-      Image.configure({
+      ImageResize.configure({
         inline: true,
         allowBase64: true,
       }),
