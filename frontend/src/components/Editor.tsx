@@ -37,6 +37,7 @@ import { CommentExtension } from '../extensions/CommentExtension';
 import { LineHeight } from '../extensions/LineHeight';
 import { SuggestionExtension } from '../extensions/SuggestionExtension';
 import { ImageDrop } from '../extensions/ImageDrop';
+import TableToolbar from './TableToolbar';
 
 interface EditorProps {
   content: string;
@@ -549,7 +550,8 @@ const Editor: React.FC<EditorProps> = ({
         </div>
       )}
       
-      <div className="editor-content-area">
+      <div className="editor-content-area" style={{ position: 'relative' }}>
+        <TableToolbar editor={editor} />
         <EditorContent 
           editor={editor} 
           className="docs-editor-content"
