@@ -16,6 +16,7 @@ import SuggestionPopup from './components/SuggestionPopup';
 import SuggestionsSidebar from './components/SuggestionsSidebar';
 import FindReplace from './components/FindReplace';
 import InputDialog from './components/InputDialog';
+import LinkDialog from './components/LinkDialog';
 
 // Lazy load dialogs — only rendered when opened
 const TemplateSelector = lazy(() => import('./components/TemplateSelector'));
@@ -67,6 +68,7 @@ function App() {
   const [hfEditType, setHfEditType] = useState<'header' | 'footer' | null>(null);
   const [hfContent, setHfContent] = useState<HeaderFooterContent>(defaultHFContent);
   const [showRuler, setShowRuler] = useState(true);
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [rulerMargins, setRulerMargins] = useState<{ left: number; right: number } | null>(null);
   const [inputDialog, setInputDialog] = useState<{
     title: string;
@@ -571,23 +573,7 @@ function App() {
     const handleExport = () => setShowExport(true);
     const handleOutline = () => setShowOutline(prev => !prev);
     const handleInsertLink = () => {
-      setInputDialog({
-        title: 'Insert link',
-        fields: [
-          { key: 'url', label: 'URL', placeholder: 'https://example.com', defaultValue: 'https://' },
-          { key: 'text', label: 'Text (optional)', placeholder: 'Link text' },
-        ],
-        onSubmit: (vals) => {
-          if (editorRef && vals.url) {
-            if (vals.text) {
-              editorRef.chain().focus().insertContent(`<a href="${vals.url}">${vals.text}</a>`).run();
-            } else {
-              editorRef.chain().focus().setLink({ href: vals.url }).run();
-            }
-          }
-          setInputDialog(null);
-        },
-      });
+      setShowLinkDialog(true);
     };
     const handleInsertImage = () => {
       setInputDialog({
@@ -806,7 +792,14 @@ function App() {
         </Suspense>
       )}
 
-      {/* Input Dialog (for link/image insert) */}
+      {/* Link Dialog */}
+      <LinkDialog
+        editor={editorRef}
+        isOpen={showLinkDialog}
+        onClose={() => setShowLinkDialog(false)}
+      />
+
+      {/* Input Dialog (for image insert) */}
       {inputDialog && (
         <InputDialog
           title={inputDialog.title}

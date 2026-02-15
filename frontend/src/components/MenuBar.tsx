@@ -163,6 +163,13 @@ const MenuBar: React.FC<MenuBarProps> = ({
           editor.commands.insertTableOfContents();
         }
       }},
+      { label: 'divider' },
+      { label: 'Bookmark', action: () => {
+        const name = prompt('Bookmark name:');
+        if (name && editor) {
+          editor.commands.insertBookmark(name);
+        }
+      }},
     ],
     Format: [
       { label: 'Bold', action: () => editor?.chain().focus().toggleBold().run(), shortcut: 'Ctrl+B' },

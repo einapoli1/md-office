@@ -36,6 +36,7 @@ import { MermaidDiagram } from '../extensions/Mermaid';
 import { PageBreaks } from '../extensions/PageBreaks';
 import { CommentExtension } from '../extensions/CommentExtension';
 import { LineHeight } from '../extensions/LineHeight';
+import { Bookmark } from '../extensions/Bookmark';
 import { SuggestionExtension } from '../extensions/SuggestionExtension';
 import { ImageDrop } from '../extensions/ImageDrop';
 import { Columns } from '../extensions/Columns';
@@ -436,6 +437,7 @@ const Editor: React.FC<EditorProps> = ({
           window.dispatchEvent(new CustomEvent('comment-click', { detail: { commentId } }));
         },
       }),
+      Bookmark,
       ImageDrop,
       Columns,
       TabStop,
