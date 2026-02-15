@@ -1,5 +1,4 @@
 import { Node } from '@tiptap/core';
-import { Plugin, PluginKey } from '@tiptap/pm/state';
 
 export const TabStop = Node.create({
   name: 'tabStop',
