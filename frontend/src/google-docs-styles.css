@@ -668,6 +668,7 @@ body {
   min-height: 1056px; /* Default: 11" at 96 DPI */
   position: relative;
   margin: 0 auto;
+  contain: content;
 }
 
 /* Page break visual styling */
@@ -679,6 +680,7 @@ body {
   background-color: #e8eaed;
   z-index: 10;
   pointer-events: none; /* Prevent interaction */
+  will-change: transform;
   
   /* Add shadows to simulate page separation */
   box-shadow: 
@@ -1018,6 +1020,7 @@ body {
 
 .docs-editor-content {
   outline: none;
+  will-change: transform;
 }
 
 .ProseMirror {
