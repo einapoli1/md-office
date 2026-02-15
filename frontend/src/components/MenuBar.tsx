@@ -98,13 +98,12 @@ const MenuBar: React.FC<MenuBarProps> = ({
       }, icon: Share2 },
     ],
     Edit: [
-      { label: 'Undo', action: () => console.log('Undo'), shortcut: 'Ctrl+Z' },
-      { label: 'Redo', action: () => console.log('Redo'), shortcut: 'Ctrl+Y' },
+      { label: 'Undo', action: () => editor?.chain().focus().undo().run(), shortcut: '⌘Z' },
+      { label: 'Redo', action: () => editor?.chain().focus().redo().run(), shortcut: '⌘Y' },
       { label: 'divider' },
-      { label: 'Undo', action: () => editor?.chain().focus().undo().run(), shortcut: 'Ctrl+Z' },
-      { label: 'Redo', action: () => editor?.chain().focus().redo().run(), shortcut: 'Ctrl+Y' },
-      { label: 'divider' },
-      { label: 'Find and replace', action: () => console.log('Find'), shortcut: 'Ctrl+F' },
+      { label: 'Find and replace', action: () => {
+        window.dispatchEvent(new CustomEvent('find-replace-open', { detail: { replace: false } }));
+      }, shortcut: '⌘F' },
     ],
     View: [
       { label: 'Show preview', action: () => console.log('Preview') },

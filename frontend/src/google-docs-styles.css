@@ -1540,3 +1540,84 @@ input:focus-visible {
 * {
   transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
+/* Find & Replace Bar */
+.find-replace-bar {
+  position: absolute;
+  top: 0;
+  right: 16px;
+  z-index: 100;
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 380px;
+}
+
+.find-replace-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.find-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+  min-width: 160px;
+}
+.find-input:focus { border-color: #1a73e8; }
+
+.find-count {
+  font-size: 12px;
+  color: #5f6368;
+  min-width: 60px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.find-option-btn {
+  padding: 4px 6px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5f6368;
+}
+.find-option-btn.active { background: #e8f0fe; color: #1a73e8; border-color: #1a73e8; }
+.find-option-btn:hover { background: #f1f3f4; }
+
+.find-nav-btn, .find-close-btn, .find-toggle-btn {
+  padding: 4px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #5f6368;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+.find-nav-btn:hover, .find-close-btn:hover, .find-toggle-btn:hover { background: #f1f3f4; }
+.find-nav-btn:disabled { opacity: 0.3; cursor: default; }
+.find-nav-btn:disabled:hover { background: none; }
+
+.find-action-btn {
+  padding: 4px 10px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  color: #202124;
+}
+.find-action-btn:hover { background: #f1f3f4; }
+.find-action-btn:disabled { opacity: 0.3; cursor: default; }

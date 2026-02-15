@@ -1,252 +1,202 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Editor } from '@tiptap/react';
-import { Search, X, ChevronUp, ChevronDown, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { X, ChevronUp, ChevronDown, Replace } from 'lucide-react';
 
 interface FindReplaceProps {
-  editor: Editor;
-  isVisible: boolean;
+  editor: any;
   onClose: () => void;
+  showReplace?: boolean;
 }
 
-interface SearchMatch {
+interface Match {
   from: number;
   to: number;
 }
 
-const FindReplace: React.FC<FindReplaceProps> = ({ editor, isVisible, onClose }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [replaceTerm, setReplaceTerm] = useState('');
+const FindReplace: React.FC<FindReplaceProps> = ({ editor, onClose, showReplace = false }) => {
+  const [searchText, setSearchText] = useState('');
+  const [replaceText, setReplaceText] = useState('');
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [currentMatch, setCurrentMatch] = useState(-1);
   const [caseSensitive, setCaseSensitive] = useState(false);
-  const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
-  const [matches, setMatches] = useState<SearchMatch[]>([]);
+  const [showReplaceRow, setShowReplaceRow] = useState(showReplace);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const decorationsApplied = useRef(false);
 
-  const findMatches = useCallback(() => {
-    if (!searchTerm || !editor) {
+  // Focus search input on mount
+  useEffect(() => {
+    setTimeout(() => searchInputRef.current?.focus(), 50);
+  }, []);
+
+  // Search the document
+  const doSearch = useCallback(() => {
+    if (!editor || !searchText) {
       setMatches([]);
-      setCurrentMatchIndex(-1);
+      setCurrentMatch(-1);
+      // Clear highlight decorations
+      clearHighlights();
       return;
     }
 
-    const { state } = editor;
-    const { doc } = state;
-    const matches: SearchMatch[] = [];
-    
-    const searchText = caseSensitive ? searchTerm : searchTerm.toLowerCase();
-    
-    doc.descendants((node, pos) => {
-      if (node.isText) {
-        const text = caseSensitive ? node.text : node.text?.toLowerCase();
-        if (text) {
-          let index = 0;
-          while (index < text.length) {
-            const found = text.indexOf(searchText, index);
-            if (found === -1) break;
-            
-            matches.push({
-              from: pos + found,
-              to: pos + found + searchTerm.length,
-            });
-            index = found + 1;
-          }
-        }
+    const { doc } = editor.state;
+    const found: Match[] = [];
+    const searchLower = caseSensitive ? searchText : searchText.toLowerCase();
+
+    doc.descendants((node: any, pos: number) => {
+      if (!node.isText) return;
+      const text = caseSensitive ? node.text : node.text.toLowerCase();
+      let index = 0;
+      while (true) {
+        const i = text.indexOf(searchLower, index);
+        if (i === -1) break;
+        found.push({ from: pos + i, to: pos + i + searchText.length });
+        index = i + 1;
       }
     });
 
-    setMatches(matches);
-    setCurrentMatchIndex(matches.length > 0 ? 0 : -1);
-  }, [searchTerm, caseSensitive, editor]);
-
-  const highlightMatches = useCallback(() => {
-    if (!editor) return;
-
-    // Clear previous decorations
-    editor.chain().unsetHighlight().run();
-
-    // Highlight all matches
-    matches.forEach((match, index) => {
-      editor.chain()
-        .setTextSelection({ from: match.from, to: match.to })
-        .setHighlight({ 
-          color: index === currentMatchIndex ? '#ff6b35' : '#ffe066' 
-        })
-        .run();
-    });
-
-    // Focus on current match
-    if (currentMatchIndex >= 0 && matches[currentMatchIndex]) {
-      const match = matches[currentMatchIndex];
-      editor.chain()
-        .setTextSelection({ from: match.from, to: match.to })
-        .focus()
-        .run();
-      
-      // Scroll to match
-      const view = editor.view;
-      const coords = view.coordsAtPos(match.from);
-      view.dom.closest('.editor')?.scrollTo({
-        top: coords.top - 100,
-        behavior: 'smooth'
-      });
+    setMatches(found);
+    if (found.length > 0) {
+      setCurrentMatch(0);
+      scrollToMatch(found[0]);
+    } else {
+      setCurrentMatch(-1);
     }
-  }, [editor, matches, currentMatchIndex]);
+
+    applyHighlights();
+  }, [editor, searchText, caseSensitive]);
 
   useEffect(() => {
-    findMatches();
-  }, [findMatches]);
+    const timer = setTimeout(doSearch, 200);
+    return () => clearTimeout(timer);
+  }, [doSearch]);
 
-  useEffect(() => {
-    highlightMatches();
-  }, [highlightMatches]);
+  const clearHighlights = useCallback(() => {
+    if (!editor) return;
+    decorationsApplied.current = false;
+  }, [editor]);
 
+  const applyHighlights = useCallback(() => {
+    // We use selection-based highlighting — the active match gets a text selection.
+    decorationsApplied.current = true;
+  }, []);
+
+  const scrollToMatch = useCallback((match: Match) => {
+    if (!editor) return;
+    // Select the match text
+    editor.commands.setTextSelection({ from: match.from, to: match.to });
+    // Scroll into view
+    editor.commands.scrollIntoView();
+  }, [editor]);
+
+  const goToNext = useCallback(() => {
+    if (matches.length === 0) return;
+    const next = (currentMatch + 1) % matches.length;
+    setCurrentMatch(next);
+    scrollToMatch(matches[next]);
+  }, [matches, currentMatch, scrollToMatch]);
+
+  const goToPrev = useCallback(() => {
+    if (matches.length === 0) return;
+    const prev = (currentMatch - 1 + matches.length) % matches.length;
+    setCurrentMatch(prev);
+    scrollToMatch(matches[prev]);
+  }, [matches, currentMatch, scrollToMatch]);
+
+  const handleReplace = useCallback(() => {
+    if (!editor || currentMatch < 0 || currentMatch >= matches.length) return;
+    const match = matches[currentMatch];
+
+    const { tr } = editor.state;
+    tr.insertText(replaceText, match.from, match.to);
+    editor.view.dispatch(tr);
+
+    // Re-search after replacement
+    setTimeout(doSearch, 50);
+  }, [editor, matches, currentMatch, replaceText, doSearch]);
+
+  const handleReplaceAll = useCallback(() => {
+    if (!editor || matches.length === 0) return;
+
+    // Replace in reverse order to preserve positions
+    const { tr } = editor.state;
+    const sorted = [...matches].sort((a, b) => b.from - a.from);
+    for (const match of sorted) {
+      tr.insertText(replaceText, match.from, match.to);
+    }
+    editor.view.dispatch(tr);
+
+    setMatches([]);
+    setCurrentMatch(-1);
+  }, [editor, matches, replaceText]);
+
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isVisible) return;
-      
       if (e.key === 'Escape') {
         onClose();
-      } else if (e.key === 'Enter') {
+        return;
+      }
+      if (e.key === 'Enter') {
+        if (e.shiftKey) goToPrev();
+        else goToNext();
         e.preventDefault();
-        if (e.shiftKey) {
-          findPrevious();
-        } else {
-          findNext();
-        }
+      }
+      if (e.key === 'h' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setShowReplaceRow(prev => !prev);
       }
     };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isVisible, onClose]);
-
-  const findNext = () => {
-    if (matches.length === 0) return;
-    setCurrentMatchIndex((prev) => (prev + 1) % matches.length);
-  };
-
-  const findPrevious = () => {
-    if (matches.length === 0) return;
-    setCurrentMatchIndex((prev) => (prev - 1 + matches.length) % matches.length);
-  };
-
-  const replaceOne = () => {
-    if (currentMatchIndex < 0 || !matches[currentMatchIndex] || !editor) return;
-
-    const match = matches[currentMatchIndex];
-    editor.chain()
-      .setTextSelection({ from: match.from, to: match.to })
-      .insertContent(replaceTerm)
-      .focus()
-      .run();
-
-    // Update search after replacement
-    setTimeout(() => findMatches(), 50);
-  };
-
-  const replaceAll = () => {
-    if (matches.length === 0 || !editor) return;
-
-    // Replace all matches from end to beginning to maintain positions
-    const sortedMatches = [...matches].sort((a, b) => b.from - a.from);
-    
-    editor.chain().focus();
-    sortedMatches.forEach(match => {
-      editor.chain()
-        .setTextSelection({ from: match.from, to: match.to })
-        .insertContent(replaceTerm)
-        .run();
-    });
-
-    setTimeout(() => findMatches(), 50);
-  };
-
-  if (!isVisible) return null;
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, goToNext, goToPrev]);
 
   return (
     <div className="find-replace-bar">
-      <div className="find-replace-content">
-        <div className="search-section">
-          <div className="search-input-container">
-            <Search size={14} />
-            <input
-              type="text"
-              placeholder="Find"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-              autoFocus
-            />
-            <span className="match-count">
-              {matches.length > 0 ? `${currentMatchIndex + 1} of ${matches.length}` : 'No matches'}
-            </span>
-          </div>
-          
-          <div className="search-controls">
-            <button 
-              onClick={findPrevious} 
-              disabled={matches.length === 0}
-              title="Previous match (Shift+Enter)"
-              className="icon-button"
-            >
-              <ChevronUp size={14} />
-            </button>
-            <button 
-              onClick={findNext} 
-              disabled={matches.length === 0}
-              title="Next match (Enter)"
-              className="icon-button"
-            >
-              <ChevronDown size={14} />
-            </button>
-          </div>
-        </div>
-
-        <div className="replace-section">
-          <div className="replace-input-container">
-            <RotateCcw size={14} />
-            <input
-              type="text"
-              placeholder="Replace"
-              value={replaceTerm}
-              onChange={(e) => setReplaceTerm(e.target.value)}
-              className="replace-input"
-            />
-          </div>
-          
-          <div className="replace-controls">
-            <button 
-              onClick={replaceOne}
-              disabled={currentMatchIndex < 0}
-              title="Replace current"
-              className="replace-button"
-            >
-              Replace
-            </button>
-            <button 
-              onClick={replaceAll}
-              disabled={matches.length === 0}
-              title="Replace all"
-              className="replace-all-button"
-            >
-              All
-            </button>
-          </div>
-        </div>
-
-        <div className="find-options">
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={caseSensitive}
-              onChange={(e) => setCaseSensitive(e.target.checked)}
-            />
-            Case sensitive
-          </label>
-        </div>
+      <div className="find-replace-row">
+        <input
+          ref={searchInputRef}
+          className="find-input"
+          type="text"
+          placeholder="Find"
+          value={searchText}
+          onChange={e => setSearchText(e.target.value)}
+        />
+        <span className="find-count">
+          {searchText ? `${matches.length > 0 ? currentMatch + 1 : 0} of ${matches.length}` : ''}
+        </span>
+        <button className={`find-option-btn ${caseSensitive ? 'active' : ''}`} onClick={() => setCaseSensitive(!caseSensitive)} title="Case sensitive">
+          Aa
+        </button>
+        <button className="find-nav-btn" onClick={goToPrev} disabled={matches.length === 0} title="Previous (Shift+Enter)">
+          <ChevronUp size={16} />
+        </button>
+        <button className="find-nav-btn" onClick={goToNext} disabled={matches.length === 0} title="Next (Enter)">
+          <ChevronDown size={16} />
+        </button>
+        <button className="find-toggle-btn" onClick={() => setShowReplaceRow(!showReplaceRow)} title="Toggle replace (Cmd+H)">
+          <Replace size={14} />
+        </button>
+        <button className="find-close-btn" onClick={onClose} title="Close (Esc)">
+          <X size={16} />
+        </button>
       </div>
-      
-      <button onClick={onClose} className="close-button" title="Close (Esc)">
-        <X size={14} />
-      </button>
+
+      {showReplaceRow && (
+        <div className="find-replace-row replace-row">
+          <input
+            className="find-input"
+            type="text"
+            placeholder="Replace with"
+            value={replaceText}
+            onChange={e => setReplaceText(e.target.value)}
+          />
+          <button className="find-action-btn" onClick={handleReplace} disabled={currentMatch < 0} title="Replace">
+            Replace
+          </button>
+          <button className="find-action-btn" onClick={handleReplaceAll} disabled={matches.length === 0} title="Replace all">
+            All
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -13,6 +13,7 @@ import { Template } from './utils/templates';
 import CommentsSidebar, { Comment } from './components/CommentsSidebar';
 import SuggestionPopup from './components/SuggestionPopup';
 import SuggestionsSidebar from './components/SuggestionsSidebar';
+import FindReplace from './components/FindReplace';
 import './comments-styles.css';
 
 function App() {
@@ -45,6 +46,8 @@ function App() {
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [suggestionMode, setSuggestionMode] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showFindReplace, setShowFindReplace] = useState(false);
+  const [findReplaceMode, setFindReplaceMode] = useState(false); // true = show replace
   const [collabStatus, setCollabStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [collabUsers, setCollabUsers] = useState(0);
 
@@ -540,6 +543,33 @@ function App() {
     }
   };
 
+  // Find/Replace keyboard shortcuts + event
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+        e.preventDefault();
+        setShowFindReplace(true);
+        setFindReplaceMode(false);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'h') {
+        e.preventDefault();
+        setShowFindReplace(true);
+        setFindReplaceMode(true);
+      }
+    };
+    const handleEvent = (e: Event) => {
+      const { replace } = (e as CustomEvent).detail || {};
+      setShowFindReplace(true);
+      setFindReplaceMode(!!replace);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('find-replace-open', handleEvent);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('find-replace-open', handleEvent);
+    };
+  }, []);
+
   // Show loading while checking authentication
   if (authLoading) {
     return (
@@ -629,6 +659,15 @@ function App() {
             />
           )}
         </div>
+
+        {/* Find & Replace */}
+        {showFindReplace && editorRef && (
+          <FindReplace
+            editor={editorRef}
+            onClose={() => setShowFindReplace(false)}
+            showReplace={findReplaceMode}
+          />
+        )}
 
         {/* Suggestion accept/reject popup */}
         {editorRef && <SuggestionPopup editor={editorRef} />}
