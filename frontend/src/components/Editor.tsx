@@ -372,8 +372,8 @@ const Editor: React.FC<EditorProps> = ({
         // Disable built-in Link/Underline since we configure them separately
         link: false,
         underline: false,
-        // Disable history when collaboration is active (Y.js handles undo/redo)
-        history: collabReady ? false : undefined,
+        // Disable undo/redo when collaboration is active (Y.js handles it)
+        undoRedo: collabReady ? false : undefined,
       }),
       Placeholder.configure({
         placeholder: 'Start writing your document...',

@@ -12,6 +12,7 @@ import { localFileAPI, initializeLocalStorage } from './utils/localApi';
 import { Template } from './utils/templates';
 import CommentsSidebar, { Comment } from './components/CommentsSidebar';
 import SuggestionPopup from './components/SuggestionPopup';
+import SuggestionsSidebar from './components/SuggestionsSidebar';
 import './comments-styles.css';
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
   const [showComments, setShowComments] = useState(false);
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [suggestionMode, setSuggestionMode] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [collabStatus, setCollabStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [collabUsers, setCollabUsers] = useState(0);
 
@@ -443,13 +445,17 @@ function App() {
       editorRef.view.dispatch(tr);
     };
 
+    const handlePanelToggle = () => setShowSuggestions(prev => !prev);
+
     window.addEventListener('suggestion-mode-toggle', handleToggle);
     window.addEventListener('suggestions-accept-all', handleAcceptAll);
     window.addEventListener('suggestions-reject-all', handleRejectAll);
+    window.addEventListener('suggestions-panel-toggle', handlePanelToggle);
     return () => {
       window.removeEventListener('suggestion-mode-toggle', handleToggle);
       window.removeEventListener('suggestions-accept-all', handleAcceptAll);
       window.removeEventListener('suggestions-reject-all', handleRejectAll);
+      window.removeEventListener('suggestions-panel-toggle', handlePanelToggle);
     };
   }, [editorRef]);
 
@@ -634,6 +640,13 @@ function App() {
             onDelete={handleDeleteComment}
             onSelectComment={setActiveCommentId}
             onClose={() => setShowComments(false)}
+          />
+        )}
+
+        {showSuggestions && editorRef && (
+          <SuggestionsSidebar
+            editor={editorRef}
+            onClose={() => setShowSuggestions(false)}
           />
         )}
       </div>

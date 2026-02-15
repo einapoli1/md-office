@@ -151,6 +151,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Reject all suggestions', action: () => {
         window.dispatchEvent(new CustomEvent('suggestions-reject-all'));
       }},
+      { label: 'Review suggestions', action: () => {
+        window.dispatchEvent(new CustomEvent('suggestions-panel-toggle'));
+      }},
       { label: 'divider' },
       { label: 'Word count', action: () => console.log('Word count') },
       { label: 'Preferences', action: onShowSettings, icon: Settings },

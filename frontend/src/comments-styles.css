@@ -491,3 +491,140 @@
 .suggestion-reject-btn:hover {
   background: #fce8e6;
 }
+
+/* Suggestions Sidebar */
+.suggestions-sidebar {
+  width: 300px;
+  min-width: 300px;
+  border-left: 1px solid #e0e0e0;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.suggestions-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.suggestions-sidebar-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #202124;
+}
+
+.suggestions-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.suggestion-bulk-btn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid #dadce0;
+  background: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.suggestion-bulk-btn.accept { color: #137333; }
+.suggestion-bulk-btn.accept:hover { background: #e6f4ea; }
+.suggestion-bulk-btn.reject { color: #c5221f; }
+.suggestion-bulk-btn.reject:hover { background: #fce8e6; }
+
+.suggestions-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #5f6368;
+  border-radius: 4px;
+}
+.suggestions-close-btn:hover { background: #f1f3f4; }
+
+.suggestions-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.suggestions-empty {
+  text-align: center;
+  padding: 40px 16px;
+  color: #80868b;
+}
+.suggestions-empty p { margin: 4px 0; font-size: 13px; }
+.suggestions-empty-hint { font-size: 11px; }
+
+.suggestion-card {
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.suggestion-card:hover {
+  border-color: #bdc1c6;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.suggestion-card.insert { border-left: 3px solid #34a853; }
+.suggestion-card.delete { border-left: 3px solid #ea4335; }
+
+.suggestion-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.suggestion-card-author {
+  font-weight: 600;
+  font-size: 12px;
+  color: #202124;
+}
+
+.suggestion-card-type {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+.suggestion-card-type.insert { background: #e6f4ea; color: #137333; }
+.suggestion-card-type.delete { background: #fce8e6; color: #c5221f; }
+
+.suggestion-card-expand {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  color: #5f6368;
+  border-radius: 4px;
+}
+.suggestion-card-expand:hover { background: #f1f3f4; }
+
+.suggestion-card-preview {
+  font-size: 12px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.suggestion-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f1f3f4;
+}
