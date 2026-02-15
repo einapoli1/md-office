@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -19,6 +19,10 @@ import { Blockquote } from '@tiptap/extension-blockquote';
 import { CodeBlock } from '@tiptap/extension-code-block';
 import { HorizontalRule } from '@tiptap/extension-horizontal-rule';
 import { Mathematics } from '@tiptap/extension-mathematics';
+import { Collaboration } from '@tiptap/extension-collaboration';
+import { CollaborationCursor } from '@tiptap/extension-collaboration-cursor';
+import { HocuspocusProvider } from '@hocuspocus/provider';
+import * as Y from 'yjs';
 import TurndownService from 'turndown';
 // @ts-ignore - turndown-plugin-gfm types
 import { gfm } from 'turndown-plugin-gfm';
@@ -33,6 +37,10 @@ interface EditorProps {
   content: string;
   onChange: (content: string) => void;
   onEditorReady?: (editor: any) => void;
+  documentName?: string; // For collaboration
+  enableCollaboration?: boolean; // Whether to enable real-time collaboration
+  collaborationServerUrl?: string; // Hocuspocus server URL
+  userName?: string; // Current user name for cursor display
 }
 
 // Enhanced turndown for all new features
@@ -264,11 +272,84 @@ const markdownToHtml = (markdown: string): string => {
   return html;
 };
 
-const Editor: React.FC<EditorProps> = ({ content, onChange, onEditorReady }) => {
+const Editor: React.FC<EditorProps> = ({ 
+  content, 
+  onChange, 
+  onEditorReady, 
+  documentName,
+  enableCollaboration = false,
+  collaborationServerUrl = 'ws://localhost:1234',
+  userName = 'Anonymous User'
+}) => {
   const [spellCheck, setSpellCheck] = useState(() => {
     return localStorage.getItem('spellcheck') !== 'false';
   });
   const [showSettings, setShowSettings] = useState(false);
+  const [collaborationStatus, setCollaborationStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
+  const [connectedUsers, setConnectedUsers] = useState<number>(0);
+  
+  // Refs for collaboration
+  const ydocRef = useRef<Y.Doc | null>(null);
+  const providerRef = useRef<HocuspocusProvider | null>(null);
+  
+  // Generate consistent user color based on userName
+  const getUserColor = useCallback((name: string) => {
+    const colors = [
+      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+      '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  }, []);
+
+  // Setup collaboration
+  useEffect(() => {
+    if (enableCollaboration && documentName) {
+      // Create Y.Doc and provider
+      const ydoc = new Y.Doc();
+      const provider = new HocuspocusProvider({
+        url: collaborationServerUrl,
+        name: documentName,
+        document: ydoc,
+      });
+
+      ydocRef.current = ydoc;
+      providerRef.current = provider;
+
+      // Connection status handlers
+      provider.on('status', ({ status }: { status: string }) => {
+        if (status === 'connecting') {
+          setCollaborationStatus('connecting');
+        } else if (status === 'connected') {
+          setCollaborationStatus('connected');
+        } else {
+          setCollaborationStatus('disconnected');
+        }
+      });
+
+      // Track connected users
+      if (provider.awareness) {
+        provider.awareness.on('change', () => {
+          const states = provider.awareness!.getStates();
+          setConnectedUsers(states.size);
+        });
+
+        // Set current user info
+        provider.awareness.setLocalStateField('user', {
+          name: userName,
+          color: getUserColor(userName),
+        });
+      }
+
+      return () => {
+        provider.destroy();
+        ydoc.destroy();
+      };
+    }
+  }, [enableCollaboration, documentName, collaborationServerUrl, userName, getUserColor]);
 
   const editor = useEditor({
     extensions: [
@@ -276,6 +357,8 @@ const Editor: React.FC<EditorProps> = ({ content, onChange, onEditorReady }) => 
         codeBlock: false,
         blockquote: false,
         horizontalRule: false,
+        // Disable history when using collaboration (Y.js handles this)
+        ...(enableCollaboration ? { history: false } : {}),
       }),
       Placeholder.configure({
         placeholder: 'Start writing your document...',
@@ -314,12 +397,30 @@ const Editor: React.FC<EditorProps> = ({ content, onChange, onEditorReady }) => 
       YouTubeEmbed,
       LinkCard,
       MermaidDiagram,
+      // Conditional collaboration extensions
+      ...(enableCollaboration && ydocRef.current ? [
+        Collaboration.configure({
+          document: ydocRef.current,
+        }),
+        CollaborationCursor.configure({
+          provider: providerRef.current!,
+          user: {
+            name: userName,
+            color: getUserColor(userName),
+          },
+        }),
+      ] : []),
     ],
-    content: markdownToHtml(content),
+    // Only set initial content if not using collaboration
+    content: enableCollaboration ? undefined : markdownToHtml(content),
     onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
-      const md = htmlToMarkdown(html);
-      onChange(md);
+      // Only call onChange in non-collaborative mode
+      // In collaborative mode, the Hocuspocus server handles saving
+      if (!enableCollaboration) {
+        const html = editor.getHTML();
+        const md = htmlToMarkdown(html);
+        onChange(md);
+      }
     },
     editorProps: {
       attributes: {
@@ -327,16 +428,16 @@ const Editor: React.FC<EditorProps> = ({ content, onChange, onEditorReady }) => 
         spellcheck: spellCheck.toString(),
       },
     },
-  });
+  }, [enableCollaboration, ydocRef.current, providerRef.current, userName]);
 
   useEffect(() => {
-    if (editor) {
+    if (editor && !enableCollaboration) {
       const currentMd = htmlToMarkdown(editor.getHTML());
       if (content !== currentMd) {
         editor.commands.setContent(markdownToHtml(content));
       }
     }
-  }, [content, editor]);
+  }, [content, editor, enableCollaboration]);
 
   useEffect(() => {
     if (editor) {
@@ -360,6 +461,32 @@ const Editor: React.FC<EditorProps> = ({ content, onChange, onEditorReady }) => 
 
   return (
     <div className="google-docs-editor">
+      {/* Collaboration status indicator */}
+      {enableCollaboration && (
+        <div className="collaboration-status">
+          <div className={`status-indicator ${collaborationStatus}`}>
+            {collaborationStatus === 'connected' && (
+              <>
+                <span className="status-dot"></span>
+                Connected • {connectedUsers} user{connectedUsers !== 1 ? 's' : ''}
+              </>
+            )}
+            {collaborationStatus === 'connecting' && (
+              <>
+                <span className="status-dot connecting"></span>
+                Connecting...
+              </>
+            )}
+            {collaborationStatus === 'disconnected' && (
+              <>
+                <span className="status-dot disconnected"></span>
+                Disconnected
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      
       <div className="editor-content-area">
         <EditorContent 
           editor={editor} 

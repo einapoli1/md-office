@@ -1396,6 +1396,95 @@ body {
   }
 }
 
+/* Collaboration Status Indicator */
+.collaboration-status {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 100;
+  background: var(--primary-bg);
+  border: 1px solid var(--border-medium);
+  border-radius: 24px;
+  padding: 8px 16px;
+  box-shadow: var(--shadow-2);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.status-indicator.connected {
+  color: var(--success);
+}
+
+.status-indicator.connecting {
+  color: var(--warning);
+}
+
+.status-indicator.disconnected {
+  color: var(--error);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--success);
+}
+
+.status-dot.connecting {
+  background-color: var(--warning);
+  animation: pulse-connecting 1.5s ease-in-out infinite;
+}
+
+.status-dot.disconnected {
+  background-color: var(--error);
+}
+
+@keyframes pulse-connecting {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* Collaboration cursor styles */
+.collaboration-cursor__caret {
+  position: relative;
+  margin-left: -1px;
+  margin-right: -1px;
+  border-left: 1px solid currentColor;
+  border-right: 1px solid currentColor;
+  word-break: normal;
+  pointer-events: none;
+}
+
+.collaboration-cursor__label {
+  position: absolute;
+  top: -1.4em;
+  left: -1px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  user-select: none;
+  color: currentColor;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px 3px 3px 0;
+  background-color: currentColor;
+  color: white;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 /* Focus states for accessibility */
 button:focus-visible,
 input:focus-visible {

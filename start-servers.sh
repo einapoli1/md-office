@@ -4,15 +4,15 @@ echo "Starting MD Office with Collaboration Support..."
 
 # Kill any existing processes on the ports
 pkill -f "md-office"
-pkill -f "collaboration-server"
+pkill -f "collab-server"
 
 # Wait a bit for cleanup
 sleep 1
 
 # Start collaboration server in the background
-echo "Starting collaboration server on port 1234..."
-cd collaboration-server
-WORKSPACE_PATH="../backend/workspace" node server.js &
+echo "Starting Hocuspocus collaboration server on port 1234..."
+cd collab-server
+WORKSPACE_PATH="../backend/workspace" BACKEND_URL="http://localhost:8080" node server.js &
 COLLAB_PID=$!
 cd ..
 
