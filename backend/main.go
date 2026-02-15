@@ -102,8 +102,15 @@ type WorkspaceConfig struct {
 type User struct {
 	ID           string    `json:"id"`
 	Username     string    `json:"username"`
-	PasswordHash string    `json:"-"` // Don't expose password hash in JSON
+	PasswordHash string    `json:"passwordHash,omitempty"` // Stored in users.json, stripped from API responses
 	CreatedAt    time.Time `json:"createdAt"`
+}
+
+// SafeUser is the API-safe version without password hash.
+type SafeUser struct {
+	ID        string    `json:"id"`
+	Username  string    `json:"username"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 type UserStorage struct {
@@ -121,8 +128,8 @@ type RegisterRequest struct {
 }
 
 type AuthResponse struct {
-	Token string `json:"token"`
-	User  User   `json:"user"`
+	Token string   `json:"token"`
+	User  SafeUser `json:"user"`
 }
 
 type JWTClaims struct {
@@ -503,6 +510,10 @@ func register(c *fiber.Ctx) error {
 			for i := range config.Workspaces {
 				if config.Workspaces[i].ID == currentWorkspace.ID {
 					config.Workspaces[i].Owner = userID
+					// Initialize permissions map if nil
+					if config.Workspaces[i].Permissions == nil {
+						config.Workspaces[i].Permissions = make(map[string]string)
+					}
 					config.Workspaces[i].Permissions[userID] = "owner"
 					config.Workspaces[i].Members = []WorkspaceMember{
 						{
@@ -512,6 +523,7 @@ func register(c *fiber.Ctx) error {
 							JoinedAt:   time.Now(),
 						},
 					}
+					// Update the currentWorkspace pointer with the corrected data
 					currentWorkspace = &config.Workspaces[i]
 					saveWorkspaceConfig(config)
 					break
@@ -528,7 +540,7 @@ func register(c *fiber.Ctx) error {
 
 	return c.JSON(APIResponse{Data: AuthResponse{
 		Token: token,
-		User:  user,
+		User:  SafeUser{ID: user.ID, Username: user.Username, CreatedAt: user.CreatedAt},
 	}})
 }
 
@@ -571,7 +583,7 @@ func login(c *fiber.Ctx) error {
 
 	return c.JSON(APIResponse{Data: AuthResponse{
 		Token: token,
-		User:  *user,
+		User:  SafeUser{ID: user.ID, Username: user.Username, CreatedAt: user.CreatedAt},
 	}})
 }
 
@@ -586,7 +598,7 @@ func getCurrentUser(c *fiber.Ctx) error {
 
 	for _, user := range userStorage.Users {
 		if user.ID == userID {
-			return c.JSON(APIResponse{Data: user})
+			return c.JSON(APIResponse{Data: SafeUser{ID: user.ID, Username: user.Username, CreatedAt: user.CreatedAt}})
 		}
 	}
 
@@ -1104,6 +1116,17 @@ func mergeBranch(c *fiber.Ctx) error {
 func checkWorkspacePermission(userID string, requiredLevel string) error {
 	if currentWorkspace == nil {
 		return fmt.Errorf("no active workspace")
+	}
+
+	// Refresh workspace info to ensure we have the latest permissions
+	config, err := loadWorkspaceConfigObject()
+	if err == nil {
+		for i := range config.Workspaces {
+			if config.Workspaces[i].ID == currentWorkspace.ID {
+				currentWorkspace = &config.Workspaces[i]
+				break
+			}
+		}
 	}
 
 	// Owner has all permissions
