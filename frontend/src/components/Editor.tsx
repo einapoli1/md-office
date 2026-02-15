@@ -16,20 +16,15 @@ import { Mathematics } from '@tiptap/extension-mathematics';
 import TurndownService from 'turndown';
 // @ts-ignore - turndown-plugin-gfm types
 import { gfm } from 'turndown-plugin-gfm';
-import {
-  Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code,
-  List, ListOrdered, CheckSquare, Quote, Minus, Link as LinkIcon,
-  Image as ImageIcon, Table as TableIcon, AlignLeft, AlignCenter,
-  AlignRight, Highlighter, Undo, Redo, Heading1, Heading2, Heading3,
-  Sigma, GitBranch, Settings, Hash,
-  PlayCircle, ExternalLink
-} from 'lucide-react';
 
 // Import custom extensions
 import { Footnote } from '../extensions/Footnote';
 import { YouTubeEmbed } from '../extensions/YouTubeEmbed';
 import { LinkCard } from '../extensions/LinkCard';
 import { MermaidDiagram } from '../extensions/Mermaid';
+
+// Import the new toolbar
+import DocsToolbar from './DocsToolbar';
 
 interface EditorProps {
   content: string;
@@ -337,74 +332,6 @@ const Editor: React.FC<EditorProps> = ({ content, onChange }) => {
     }
   }, [spellCheck, editor]);
 
-  const setLink = useCallback(() => {
-    if (!editor) return;
-    const url = window.prompt('Enter URL:', 'https://');
-    if (url === null) return;
-    if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run();
-      return;
-    }
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-  }, [editor]);
-
-  const addImage = useCallback(() => {
-    if (!editor) return;
-    const url = window.prompt('Enter image URL:');
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
-    }
-  }, [editor]);
-
-  const insertTable = useCallback(() => {
-    if (!editor) return;
-    editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
-  }, [editor]);
-
-  const insertMath = useCallback((inline = true) => {
-    if (!editor) return;
-    const latex = window.prompt(inline ? 'Enter inline LaTeX:' : 'Enter block LaTeX:', 'E = mc^2');
-    if (latex) {
-      if (inline) {
-        editor.chain().focus().insertContent(`$${latex}$`).run();
-      } else {
-        editor.chain().focus().insertContent(`$$${latex}$$`).run();
-      }
-    }
-  }, [editor]);
-
-  const insertMermaid = useCallback(() => {
-    if (!editor) return;
-    const code = window.prompt('Enter Mermaid code:', 'graph TD\n    A[Start] --> B[End]');
-    if (code) {
-      editor.chain().focus().setMermaid(code).run();
-    }
-  }, [editor]);
-
-  const addFootnote = useCallback(() => {
-    if (!editor) return;
-    const id = window.prompt('Enter footnote ID:', '1');
-    if (id) {
-      editor.chain().focus().setFootnote(id).run();
-    }
-  }, [editor]);
-
-  const insertYouTube = useCallback(() => {
-    if (!editor) return;
-    const url = window.prompt('Enter YouTube URL:');
-    if (url) {
-      editor.chain().focus().setYouTubeVideo({ src: url }).run();
-    }
-  }, [editor]);
-
-  const insertLinkCard = useCallback(() => {
-    if (!editor) return;
-    const url = window.prompt('Enter URL:');
-    if (url) {
-      editor.chain().focus().setLinkCard({ href: url }).run();
-    }
-  }, [editor]);
-
   const toggleSpellCheck = useCallback(() => {
     const newValue = !spellCheck;
     setSpellCheck(newValue);
@@ -412,167 +339,36 @@ const Editor: React.FC<EditorProps> = ({ content, onChange }) => {
   }, [spellCheck]);
 
   if (!editor) {
-    return <div>Loading editor...</div>;
+    return <div className="editor-loading">Loading editor...</div>;
   }
 
-  const ToolButton = ({ onClick, active, title, children }: {
-    onClick: () => void; active?: boolean; title: string; children: React.ReactNode;
-  }) => (
-    <button onClick={onClick} className={active ? 'primary' : ''} title={title}>
-      {children}
-    </button>
-  );
-
-  const Divider = () => (
-    <span style={{ width: '1px', height: '20px', background: 'var(--border)', margin: '0 4px', flexShrink: 0 }} />
-  );
-
   return (
-    <div>
-      <div className="toolbar">
-        {/* Undo / Redo */}
-        <ToolButton onClick={() => editor.chain().focus().undo().run()} title="Undo">
-          <Undo size={16} />
-        </ToolButton>
-        <ToolButton onClick={() => editor.chain().focus().redo().run()} title="Redo">
-          <Redo size={16} />
-        </ToolButton>
-
-        <Divider />
-
-        {/* Text formatting */}
-        <ToolButton onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive('bold')} title="Bold (Ctrl+B)">
-          <Bold size={16} />
-        </ToolButton>
-        <ToolButton onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive('italic')} title="Italic (Ctrl+I)">
-          <Italic size={16} />
-        </ToolButton>
-        <ToolButton onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive('underline')} title="Underline (Ctrl+U)">
-          <UnderlineIcon size={16} />
-        </ToolButton>
-        <ToolButton onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive('strike')} title="Strikethrough">
-          <Strikethrough size={16} />
-        </ToolButton>
-        <ToolButton onClick={() => editor.chain().focus().toggleHighlight().run()} active={editor.isActive('highlight')} title="Highlight">
-          <Highlighter size={16} />
-        </ToolButton>
-        <ToolButton onClick={() => editor.chain().focus().toggleCode().run()} active={editor.isActive('code')} title="Inline Code">
-          <Code size={16} />
-        </ToolButton>
-
-        <Divider />
-
-        {/* Headings */}
-        <ToolButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} active={editor.isActive('heading', { level: 1 })} title="Heading 1">
-          <Heading1 size={16} />
-        </ToolButton>
-        <ToolButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive('heading', { level: 2 })} title="Heading 2">
-          <Heading2 size={16} />
-        </ToolButton>
-        <ToolButton onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive('heading', { level: 3 })} title="Heading 3">
-          <Heading3 size={16} />
-        </ToolButton>
-
-        <Divider />
-
-        {/* Alignment */}
-        <ToolButton onClick={() => editor.chain().focus().setTextAlign('left').run()} active={editor.isActive({ textAlign: 'left' })} title="Align Left">
-          <AlignLeft size={16} />
-        </ToolButton>
-        <ToolButton onClick={() => editor.chain().focus().setTextAlign('center').run()} active={editor.isActive({ textAlign: 'center' })} title="Align Center">
-          <AlignCenter size={16} />
-        </ToolButton>
-        <ToolButton onClick={() => editor.chain().focus().setTextAlign('right').run()} active={editor.isActive({ textAlign: 'right' })} title="Align Right">
-          <AlignRight size={16} />
-        </ToolButton>
-
-        <Divider />
-
-        {/* Lists */}
-        <ToolButton onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive('bulletList')} title="Bullet List">
-          <List size={16} />
-        </ToolButton>
-        <ToolButton onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive('orderedList')} title="Ordered List">
-          <ListOrdered size={16} />
-        </ToolButton>
-        <ToolButton onClick={() => editor.chain().focus().toggleTaskList().run()} active={editor.isActive('taskList')} title="Task List">
-          <CheckSquare size={16} />
-        </ToolButton>
-
-        <Divider />
-
-        {/* Block elements */}
-        <ToolButton onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive('blockquote')} title="Blockquote">
-          <Quote size={16} />
-        </ToolButton>
-        <ToolButton onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Horizontal Rule">
-          <Minus size={16} />
-        </ToolButton>
-
-        <Divider />
-
-        {/* Insert */}
-        <ToolButton onClick={setLink} active={editor.isActive('link')} title="Insert Link">
-          <LinkIcon size={16} />
-        </ToolButton>
-        <ToolButton onClick={addImage} title="Insert Image">
-          <ImageIcon size={16} />
-        </ToolButton>
-        <ToolButton onClick={insertTable} title="Insert Table">
-          <TableIcon size={16} />
-        </ToolButton>
-
-        <Divider />
-
-        {/* Math & Advanced */}
-        <ToolButton onClick={() => insertMath(true)} title="Inline Math ($...$)">
-          <Sigma size={16} />
-        </ToolButton>
-        <ToolButton onClick={() => insertMath(false)} title="Block Math ($$...$$)">
-          <span style={{ fontSize: '16px', fontWeight: 'bold' }}>∑</span>
-        </ToolButton>
-        <ToolButton onClick={insertMermaid} title="Insert Mermaid Diagram">
-          <GitBranch size={16} />
-        </ToolButton>
-        <ToolButton onClick={addFootnote} title="Add Footnote">
-          <Hash size={16} />
-        </ToolButton>
-
-        <Divider />
-
-        {/* Embeds */}
-        <ToolButton onClick={insertYouTube} title="Embed YouTube Video">
-          <PlayCircle size={16} />
-        </ToolButton>
-        <ToolButton onClick={insertLinkCard} title="Insert Link Card">
-          <ExternalLink size={16} />
-        </ToolButton>
-
-        <Divider />
-
-        {/* Settings */}
-        <div style={{ position: 'relative' }}>
-          <ToolButton onClick={() => setShowSettings(!showSettings)} title="Settings">
-            <Settings size={16} />
-          </ToolButton>
-          
-          {showSettings && (
-            <div className="settings-panel">
-              <div className="settings-item">
-                <label htmlFor="spellcheck">Spell check</label>
-                <input 
-                  id="spellcheck"
-                  type="checkbox" 
-                  checked={spellCheck} 
-                  onChange={toggleSpellCheck} 
-                />
-              </div>
-            </div>
-          )}
-        </div>
+    <div className="google-docs-editor">
+      <DocsToolbar editor={editor} />
+      
+      <div className="editor-content-area">
+        <EditorContent 
+          editor={editor} 
+          className="docs-editor-content"
+        />
       </div>
 
-      <EditorContent editor={editor} />
+      {/* Settings panel (if needed) */}
+      {showSettings && (
+        <div className="settings-overlay" onClick={() => setShowSettings(false)}>
+          <div className="settings-panel" onClick={e => e.stopPropagation()}>
+            <div className="settings-item">
+              <label htmlFor="spellcheck">Spell check</label>
+              <input 
+                id="spellcheck"
+                type="checkbox" 
+                checked={spellCheck} 
+                onChange={toggleSpellCheck} 
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

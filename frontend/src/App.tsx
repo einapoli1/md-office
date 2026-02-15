@@ -1,28 +1,28 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import FileTree from './components/FileTree';
-import Editor from './components/Editor';
-import Preview from './components/Preview';
-import VersionHistory from './components/VersionHistory';
-// Removed unused component imports
+import DocumentSidebar from './components/DocumentSidebar';
+import DocumentEditor from './components/DocumentEditor';
+import MenuBar from './components/MenuBar';
+import StatusBar from './components/StatusBar';
 import TemplateSelector from './components/TemplateSelector';
-import TableOfContents from './components/TableOfContents';
-import { FileSystemItem, FileContent, GitCommit } from './types';
-import { fileAPI, gitAPI } from './utils/api';
+import { FileSystemItem, FileContent } from './types';
+import { fileAPI } from './utils/api';
 import { Template } from './utils/templates';
-import { FileText, Folder, Plus, ChevronDown, Download, Printer } from 'lucide-react';
 
 function App() {
   const [files, setFiles] = useState<FileSystemItem[]>([]);
   const [activeFile, setActiveFile] = useState<FileContent | null>(null);
   const [content, setContent] = useState('');
-  const [history, setHistory] = useState<GitCommit[]>([]);
-  const [showPreview, setShowPreview] = useState(true);
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
-  const [showNewFileMenu, setShowNewFileMenu] = useState(false);
-  
-  // Removed unused collaboration state variables
+  const [recentFiles, setRecentFiles] = useState<string[]>([]);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Check localStorage first, then system preference
+    const saved = localStorage.getItem('darkMode');
+    if (saved !== null) return JSON.parse(saved);
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+  const [lastSaved, setLastSaved] = useState<Date | undefined>();
 
   // Auto-save functionality
   const saveTimeoutRef = useRef<number>();
@@ -31,12 +31,18 @@ function App() {
   // Load file tree on mount
   useEffect(() => {
     loadFiles();
+    loadRecentFiles();
   }, []);
+
+  // Apply dark mode class to body
+  useEffect(() => {
+    document.body.className = isDarkMode ? 'dark' : '';
+    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+  }, [isDarkMode]);
 
   // Load git history when active file changes
   useEffect(() => {
     if (activeFile) {
-      loadHistory(activeFile.path);
       originalContentRef.current = activeFile.content;
     }
   }, [activeFile]);
@@ -55,7 +61,7 @@ function App() {
       setSaveStatus('unsaved');
     }
 
-    // Set up debounced save (500ms after last keystroke)
+    // Set up debounced save (1 second after last keystroke)
     saveTimeoutRef.current = setTimeout(async () => {
       if (newContent === originalContentRef.current) {
         setSaveStatus('saved');
@@ -67,9 +73,10 @@ function App() {
         await fileAPI.saveFile(activeFile.path, newContent);
         originalContentRef.current = newContent;
         setSaveStatus('saved');
+        setLastSaved(new Date());
         
-        // Refresh history after auto-save
-        await loadHistory(activeFile.path);
+        // Update recent files
+        updateRecentFiles(activeFile.path);
       } catch (error) {
         console.error('Auto-save failed:', error);
         setSaveStatus('error');
@@ -79,7 +86,7 @@ function App() {
           debouncedSave(newContent);
         }, 5000);
       }
-    }, 500);
+    }, 1000);
   }, [activeFile]);
 
   // Clean up timeout on unmount
@@ -100,13 +107,20 @@ function App() {
     }
   };
 
-  const loadHistory = async (path?: string) => {
-    try {
-      const historyData = await gitAPI.getHistory(path);
-      setHistory(historyData.commits);
-    } catch (error) {
-      console.error('Failed to load history:', error);
+  const loadRecentFiles = () => {
+    const recent = localStorage.getItem('recentFiles');
+    if (recent) {
+      setRecentFiles(JSON.parse(recent));
     }
+  };
+
+  const updateRecentFiles = (filePath: string) => {
+    setRecentFiles(prev => {
+      const filtered = prev.filter(f => f !== filePath);
+      const updated = [filePath, ...filtered].slice(0, 10); // Keep last 10
+      localStorage.setItem('recentFiles', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const handleFileSelect = async (file: FileSystemItem) => {
@@ -118,7 +132,9 @@ function App() {
       setActiveFile(fileContent);
       setContent(fileContent.content);
       setSaveStatus('saved');
+      setLastSaved(undefined);
       originalContentRef.current = fileContent.content;
+      updateRecentFiles(file.path);
     } catch (error) {
       console.error('Failed to load file:', error);
     } finally {
@@ -131,19 +147,16 @@ function App() {
     debouncedSave(newContent);
   };
 
-  const handleManualSave = async () => {
+  const handleTitleChange = async (newPath: string) => {
     if (!activeFile) return;
 
     try {
-      setSaveStatus('saving');
-      await fileAPI.saveFile(activeFile.path, content);
-      setActiveFile({ ...activeFile, content });
-      originalContentRef.current = content;
-      setSaveStatus('saved');
-      await loadHistory(activeFile.path);
+      // This would need to be implemented in the backend API
+      // For now, we'll just update the local state
+      setActiveFile({ ...activeFile, path: newPath });
+      await loadFiles();
     } catch (error) {
-      console.error('Failed to save file:', error);
-      setSaveStatus('error');
+      console.error('Failed to rename file:', error);
     }
   };
 
@@ -153,6 +166,16 @@ function App() {
         await fileAPI.createDirectory(name);
       } else {
         await fileAPI.createFile(name);
+        // Auto-open new files
+        const newFile: FileContent = { 
+          path: name, 
+          content: '',
+          lastModified: new Date().toISOString()
+        };
+        setActiveFile(newFile);
+        setContent('');
+        setSaveStatus('saved');
+        originalContentRef.current = '';
       }
       await loadFiles();
     } catch (error) {
@@ -171,13 +194,14 @@ function App() {
       // Auto-open the new file
       const newFile: FileContent = { 
         path: name, 
-        content: template.content,
+        content: template.content || '',
         lastModified: new Date().toISOString()
       };
       setActiveFile(newFile);
-      setContent(template.content);
+      setContent(template.content || '');
       setSaveStatus('saved');
-      originalContentRef.current = template.content;
+      originalContentRef.current = template.content || '';
+      updateRecentFiles(name);
     } catch (error) {
       console.error('Failed to create file from template:', error);
     }
@@ -192,57 +216,15 @@ function App() {
         setSaveStatus('saved');
       }
       await loadFiles();
+      
+      // Remove from recent files
+      setRecentFiles(prev => {
+        const updated = prev.filter(f => f !== path);
+        localStorage.setItem('recentFiles', JSON.stringify(updated));
+        return updated;
+      });
     } catch (error) {
       console.error('Failed to delete item:', error);
-    }
-  };
-
-  const handleRevert = async (commit: GitCommit) => {
-    if (!activeFile) return;
-    
-    try {
-      await gitAPI.revertToCommit(commit.hash, activeFile.path);
-      // Reload the file content after revert
-      await handleFileSelect({ name: activeFile.path, path: activeFile.path, isDirectory: false });
-      await loadHistory(activeFile.path);
-    } catch (error) {
-      console.error('Failed to revert:', error);
-    }
-  };
-
-  const handleViewDiff = async (commit: GitCommit) => {
-    setSelectedCommit(commit);
-    setShowDiffViewer(true);
-  };
-
-  const handleCommentsChange = (newComments: Comment[]) => {
-    setComments(newComments);
-  };
-
-  const handleSuggestionsChange = (newSuggestions: Suggestion[]) => {
-    setSuggestions(newSuggestions);
-  };
-
-  const handleToggleSuggestionsMode = () => {
-    setSuggestionsMode(!suggestionsMode);
-  };
-
-  const handleCommentSelect = (commentId: string) => {
-    // Could scroll to comment or highlight it
-    console.log('Selected comment:', commentId);
-  };
-
-  const handleMoveFile = async (sourcePath: string, targetPath: string) => {
-    try {
-      await fileAPI.moveFile(sourcePath, targetPath);
-      await loadFiles();
-      
-      // Update active file path if it was moved
-      if (activeFile?.path === sourcePath) {
-        setActiveFile({ ...activeFile, path: targetPath });
-      }
-    } catch (error) {
-      console.error('Failed to move file:', error);
     }
   };
 
@@ -276,21 +258,15 @@ function App() {
     window.print();
   };
 
-  const handleNewFileClick = () => {
-    setShowNewFileMenu(!showNewFileMenu);
-  };
-
-  const handleNewBlankFile = () => {
+  const handleNewFile = () => {
     const fileName = window.prompt('Enter file name (include .md extension):');
     if (fileName) {
       handleCreateFile(fileName, false);
     }
-    setShowNewFileMenu(false);
   };
 
   const handleNewFromTemplate = () => {
     setShowTemplateSelector(true);
-    setShowNewFileMenu(false);
   };
 
   const handleTemplateSelect = (template: Template) => {
@@ -300,149 +276,53 @@ function App() {
     }
   };
 
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
   return (
     <div className="app">
-      <div className="sidebar">
-        <div className="header">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FileText size={20} />
-            MD Office
-          </h2>
-          
-          {/* New File Menu */}
-          <div className="new-file-menu" style={{ position: 'relative' }}>
-            <button 
-              onClick={handleNewFileClick}
-              className="new-file-button"
-              title="Create New File"
-            >
-              <Plus size={16} />
-              <ChevronDown size={12} />
-            </button>
-            
-            {showNewFileMenu && (
-              <div className="new-file-dropdown">
-                <button onClick={handleNewBlankFile} className="dropdown-item">
-                  <FileText size={14} />
-                  Blank Document
-                </button>
-                <button onClick={handleNewFromTemplate} className="dropdown-item">
-                  <FileText size={14} />
-                  From Template
-                </button>
-                <div className="dropdown-divider"></div>
-                <button 
-                  onClick={() => {
-                    const name = window.prompt('Enter directory name:');
-                    if (name) handleCreateFile(name, true);
-                    setShowNewFileMenu(false);
-                  }} 
-                  className="dropdown-item"
-                >
-                  <Folder size={14} />
-                  New Folder
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <FileTree 
-          files={files} 
+      <MenuBar
+        onNewFile={handleNewFile}
+        onTemplateSelect={handleNewFromTemplate}
+        onExportPDF={handleExportPDF}
+        onPrint={handlePrint}
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={toggleDarkMode}
+        saveStatus={saveStatus}
+      />
+
+      <div className="app-content">
+        <DocumentSidebar
+          files={files}
+          activeFile={activeFile?.path || null}
           onFileSelect={handleFileSelect}
-          onCreateFile={handleCreateFile}
           onDelete={handleDelete}
-          onMoveFile={handleMoveFile}
-          activeFile={activeFile?.path}
+          onNewFile={handleNewFile}
+          onNewFromTemplate={handleNewFromTemplate}
+          recentFiles={recentFiles}
         />
-        
-        {activeFile && (
-          <div style={{ padding: '10px', borderTop: '1px solid var(--border)' }}>
-            <TableOfContents content={content} />
-          </div>
-        )}
-        
-        <VersionHistory 
-          commits={history}
-          onRevert={handleRevert}
-          onViewDiff={handleViewDiff}
-        />
-      </div>
 
-      <div className="main-content">
-        <div className="header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {activeFile && (
-              <>
-                <span>{activeFile.path}</span>
-                <button onClick={handleManualSave} className="primary">
-                  Save
-                </button>
-                <button onClick={() => setShowPreview(!showPreview)}>
-                  {showPreview ? 'Hide Preview' : 'Show Preview'}
-                </button>
-                <button onClick={handleExportPDF} title="Export to PDF">
-                  <Download size={16} />
-                  PDF
-                </button>
-                <button onClick={handlePrint} title="Print">
-                  <Printer size={16} />
-                  Print
-                </button>
-              </>
-            )}
-          </div>
+        <div className="main-editor">
+          {loading ? (
+            <div className="editor-loading">Loading document...</div>
+          ) : (
+            <DocumentEditor
+              activeFile={activeFile}
+              content={content}
+              onChange={handleContentChange}
+              onTitleChange={handleTitleChange}
+            />
+          )}
         </div>
-
-        {activeFile ? (
-          <div className="editor-container">
-            <div className="editor">
-              {loading ? (
-                <div>Loading...</div>
-              ) : (
-                <Editor
-                  content={content}
-                  onChange={handleContentChange}
-                  filePath={activeFile.path}
-                  comments={comments}
-                  onCommentsChange={setComments}
-                  suggestionsMode={suggestionsMode}
-                  saveStatus={saveStatus}
-                />
-              )}
-            </div>
-            
-            {showPreview && (
-              <Preview content={content} />
-            )}
-          </div>
-        ) : (
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            height: '100%',
-            flexDirection: 'column',
-            gap: '20px',
-            color: '#666'
-          }}>
-            <Folder size={48} />
-            <p>Select a file to start editing</p>
-            <p style={{ fontSize: '14px' }}>Create a new file or open an existing one from the sidebar</p>
-            
-            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-              <button onClick={handleNewBlankFile} className="primary">
-                <Plus size={16} />
-                New File
-              </button>
-              <button onClick={() => setShowTemplateSelector(true)}>
-                <FileText size={16} />
-                From Template
-              </button>
-            </div>
-          </div>
-        )}
       </div>
+
+      <StatusBar
+        content={content}
+        activeFile={activeFile?.path}
+        saveStatus={saveStatus}
+        lastSaved={lastSaved}
+      />
 
       {/* Template Selector Modal */}
       <TemplateSelector

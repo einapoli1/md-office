@@ -357,7 +357,7 @@ const FileTree: React.FC<FileTreeProps> = ({ files, onFileSelect, onCreateFile, 
   const [createInFolder, setCreateInFolder] = useState<string>('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [_searchQuery, setSearchQuery] = useState('');
 
   const sensors = useSensors(
     useSensor(PointerSensor),

@@ -19,13 +19,13 @@ const enhancedMarkdownToHtml = (markdown: string): string => {
   const footnoteDefinitions: Record<string, string> = {};
 
   // Extract footnote definitions
-  html = html.replace(/^\[\^([^\]]+)\]:\s*(.+)$/gm, (match, id, definition) => {
+  html = html.replace(/^\[\^([^\]]+)\]:\s*(.+)$/gm, (_match, id, definition) => {
     footnoteDefinitions[id] = definition.trim();
     return ''; // Remove from main content
   });
 
   // Replace footnote references
-  html = html.replace(/\[\^([^\]]+)\]/g, (match, id) => {
+  html = html.replace(/\[\^([^\]]+)\]/g, (_match, id) => {
     if (footnoteDefinitions[id]) {
       footnoteRefs.push({ id, text: footnoteDefinitions[id] });
     }
@@ -34,7 +34,7 @@ const enhancedMarkdownToHtml = (markdown: string): string => {
 
   // Process math expressions (must be before other markdown processing)
   // Block math: $$...$$
-  html = html.replace(/\$\$([\s\S]*?)\$\$/g, (match, content) => {
+  html = html.replace(/\$\$([\s\S]*?)\$\$/g, (_match, content) => {
     try {
       const rendered = katex.renderToString(content.trim(), {
         displayMode: true,
@@ -47,7 +47,7 @@ const enhancedMarkdownToHtml = (markdown: string): string => {
   });
 
   // Inline math: $...$
-  html = html.replace(/\$([^$\n]+)\$/g, (match, content) => {
+  html = html.replace(/\$([^$\n]+)\$/g, (_match, content) => {
     try {
       const rendered = katex.renderToString(content.trim(), {
         displayMode: false,
@@ -60,14 +60,14 @@ const enhancedMarkdownToHtml = (markdown: string): string => {
   });
 
   // Process mermaid code blocks
-  html = html.replace(/```mermaid\n([\s\S]*?)```/g, (match, code) => {
+  html = html.replace(/```mermaid\n([\s\S]*?)```/g, (_match, code) => {
     return `<div class="mermaid-container" data-mermaid-code="${encodeURIComponent(code.trim())}">
       <div class="mermaid-rendered" data-processed="false"></div>
     </div>`;
   });
 
   // YouTube embeds
-  html = html.replace(/https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/g, (match, www, urlPart, videoId) => {
+  html = html.replace(/https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/g, (_match, _www, _urlPart, videoId) => {
     return `<div class="embed-container">
       <div class="youtube-embed">
         <iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>
@@ -76,7 +76,7 @@ const enhancedMarkdownToHtml = (markdown: string): string => {
   });
 
   // Generic link cards for other URLs (but not YouTube)
-  html = html.replace(/^(https?:\/\/(?!.*youtube\.com|.*youtu\.be)[^\s]+)$/gm, (match, url) => {
+  html = html.replace(/^(https?:\/\/(?!.*youtube\.com|.*youtu\.be)[^\s]+)$/gm, (_match, url) => {
     const domain = new URL(url).hostname.replace('www.', '');
     return `<div class="embed-container">
       <a href="${url}" target="_blank" rel="noopener noreferrer" class="link-card">

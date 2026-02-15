@@ -13,9 +13,6 @@ import {
   CreateWorkspaceRequest,
   SwitchWorkspaceRequest,
   WorkspaceMember,
-  CreateBranchRequest,
-  CheckoutBranchRequest,
-  MergeBranchRequest,
   InviteUserRequest
 } from '../types';
 
