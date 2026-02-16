@@ -47,6 +47,7 @@ import { runMacro, loadSavedMacros, saveMacro, MacroContext } from './lib/macroE
 import SpreadsheetEditor from './sheets/SpreadsheetEditor';
 import SlidesEditor from './slides/SlidesEditor';
 import _DrawingEditor from './draw/DrawingEditor';
+import DatabaseEditor from './databases/DatabaseEditor';
 import NotificationCenter from './components/NotificationCenter';
 import UserPreferences from './components/UserPreferences';
 import FocusMode from './components/FocusMode';
@@ -57,10 +58,11 @@ import ShortcutOverlay from './components/ShortcutOverlay';
 import { commandRegistry } from './lib/commandRegistry';
 import { shortcutManager } from './lib/shortcutManager';
 
-export type AppMode = 'docs' | 'sheets' | 'slides' | 'draw';
+export type AppMode = 'docs' | 'sheets' | 'slides' | 'draw' | 'database';
 
 /** Detect app mode from file extension */
 function detectAppMode(filePath: string): AppMode {
+  if (/\.db\.json$/i.test(filePath)) return 'database';
   if (/\.draw\.json$/i.test(filePath)) return 'draw';
   if (/\.slides\.md$/i.test(filePath)) return 'slides';
   if (/\.(sheet\.md|mds|tsv)$/i.test(filePath)) return 'sheets';
@@ -639,6 +641,19 @@ function App() {
     setAppMode('draw');
   };
 
+  const handleNewDatabase = () => {
+    const now = new Date();
+    const timestamp = now.toISOString().split('T')[0];
+    let fileName = `Untitled Database ${timestamp}.db.json`;
+    let counter = 1;
+    while (files.some(f => f.path === fileName)) {
+      fileName = `Untitled Database ${timestamp} ${counter}.db.json`;
+      counter++;
+    }
+    handleCreateFile(fileName, false);
+    setAppMode('database');
+  };
+
   const handleNewFromTemplate = () => {
     setShowTemplateSelector(true);
   };
@@ -1159,6 +1174,7 @@ function App() {
     commandRegistry.registerCommand('file.new', 'New Document', 'File', () => handleNewFile(), '⌘N');
     commandRegistry.registerCommand('file.newSpreadsheet', 'New Spreadsheet', 'File', () => { handleNewSpreadsheet(); });
     commandRegistry.registerCommand('file.newPresentation', 'New Presentation', 'File', () => { handleNewPresentation(); });
+    commandRegistry.registerCommand('file.newDatabase', 'New Database', 'File', () => { handleNewDatabase(); });
     commandRegistry.registerCommand('file.print', 'Print', 'File', handlePrint, '⌘P');
     commandRegistry.registerCommand('file.export', 'Export', 'File', () => setShowExport(true));
     commandRegistry.registerCommand('file.templates', 'Browse Templates', 'File', () => setShowTemplateSelector(true));
@@ -1435,6 +1451,7 @@ function App() {
         onNewSpreadsheet={handleNewSpreadsheet}
         onNewPresentation={handleNewPresentation}
         onNewDrawing={handleNewDrawing}
+        onNewDatabase={handleNewDatabase}
         onTemplateSelect={handleNewFromTemplate}
         onPrint={handlePrint}
         isDarkMode={isDarkMode}
@@ -1492,6 +1509,7 @@ function App() {
               onNewSpreadsheet={handleNewSpreadsheet}
               onNewPresentation={handleNewPresentation}
               onNewDrawing={handleNewDrawing}
+              onNewDatabase={handleNewDatabase}
               onNewFromTemplate={handleNewFromTemplate}
               landingMode={landingMode}
               onLandingModeChange={setLandingMode}
@@ -1525,6 +1543,11 @@ function App() {
               content={content}
               onChange={handleContentChange}
               filePath={activeFile.path}
+            />
+          ) : appMode === 'database' && activeFile ? (
+            <DatabaseEditor
+              initialData={content}
+              onSave={(data) => handleContentChange(data)}
             />
           ) : (
             <DocumentEditor

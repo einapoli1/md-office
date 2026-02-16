@@ -19,6 +19,7 @@ interface RecentDocsProps {
   onNewSpreadsheet: () => void;
   onNewPresentation: () => void;
   onNewDrawing?: () => void;
+  onNewDatabase?: () => void;
   onNewFromTemplate: () => void;
   recentDocs: RecentDocEntry[];
   landingMode: AppMode;
@@ -109,10 +110,11 @@ const HERO_CONFIG: Record<AppMode, { icon: React.FC<any>; color: string; name: s
   sheets: { icon: Table2, color: '#0f9d58', name: 'MD Sheets' },
   slides: { icon: Presentation, color: '#f4b400', name: 'MD Slides' },
   draw: { icon: Pencil, color: '#db4437', name: 'MD Draw' },
+  database: { icon: Table2, color: '#8430ce', name: 'MD Database' },
 };
 
 const RecentDocs: React.FC<RecentDocsProps> = ({
-  onOpenDocument, onNewDocument, onNewSpreadsheet, onNewPresentation, onNewDrawing, onNewFromTemplate,
+  onOpenDocument, onNewDocument, onNewSpreadsheet, onNewPresentation, onNewDrawing, onNewDatabase, onNewFromTemplate,
   recentDocs, landingMode, onLandingModeChange,
 }) => {
   const [query, setQuery] = useState('');
@@ -189,6 +191,12 @@ const RecentDocs: React.FC<RecentDocsProps> = ({
             <button className="recent-docs-action-btn draw-btn" onClick={onNewDrawing}>
               <Plus size={20} />
               <span>New Drawing</span>
+            </button>
+            )}
+            {onNewDatabase && (
+            <button className="recent-docs-action-btn secondary" onClick={onNewDatabase}>
+              <Plus size={20} />
+              <span>New Database</span>
             </button>
             )}
             <button className="recent-docs-action-btn secondary" onClick={onNewFromTemplate}>
