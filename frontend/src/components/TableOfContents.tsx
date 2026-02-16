@@ -46,8 +46,23 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({ editor, onClose }) =>
 
   const scrollTo = (pos: number) => {
     if (!editor) return;
-    editor.commands.focus();
     editor.commands.setTextSelection(pos + 1);
+    // Find the DOM node for this position and smooth-scroll to it
+    try {
+      const domAtPos = editor.view.domAtPos(pos + 1);
+      const element = domAtPos.node instanceof HTMLElement 
+        ? domAtPos.node 
+        : domAtPos.node.parentElement;
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Focus after scroll
+        setTimeout(() => editor.commands.focus(), 300);
+        return;
+      }
+    } catch {
+      // fallback
+    }
+    editor.commands.focus();
     editor.commands.scrollIntoView();
   };
 

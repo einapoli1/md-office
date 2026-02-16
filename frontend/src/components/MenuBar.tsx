@@ -121,6 +121,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Document outline', action: () => {
         window.dispatchEvent(new CustomEvent('outline-toggle'));
       }},
+      { label: 'Pageless', action: () => {
+        window.dispatchEvent(new CustomEvent('pageless-toggle'));
+      }},
       { label: 'Full screen', action: () => {
         if (document.fullscreenElement) document.exitFullscreen();
         else document.documentElement.requestFullscreen();

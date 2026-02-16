@@ -1435,6 +1435,49 @@ body {
   }
 }
 
+/* ========== Pageless Mode ========== */
+.document-editor--pageless {
+  background: var(--primary-bg);
+  padding: 0;
+}
+
+.document-editor--pageless .document-page--pageless {
+  max-width: 900px;
+  width: 100%;
+  min-height: auto;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+  margin: 0 auto;
+}
+
+.document-editor--pageless .editor-content-area {
+  padding: 32px 48px 64px;
+  min-height: auto;
+}
+
+.document-editor--pageless .document-content {
+  min-height: auto !important;
+}
+
+.document-editor--pageless .ProseMirror {
+  min-height: 60vh;
+}
+
+/* Hide page break decorations in pageless mode */
+.document-editor--pageless .page-break-gap-wrapper,
+.document-editor--pageless .page-break-gap,
+.document-editor--pageless .page-number,
+.document-editor--pageless .page-header-area {
+  display: none !important;
+}
+
+/* Remove page-break margin offsets in pageless */
+.document-editor--pageless .ProseMirror [data-page-break] {
+  margin-top: 0 !important;
+}
+
 /* Print Styles */
 @media print {
   /* ===== Page setup ===== */

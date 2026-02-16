@@ -54,6 +54,7 @@ interface EditorProps {
   collaborationServerUrl?: string; // Hocuspocus server URL
   userName?: string; // Current user name for cursor display
   onProviderReady?: (provider: HocuspocusProvider | null) => void;
+  pageless?: boolean;
 }
 
 // Enhanced turndown for all new features
@@ -293,12 +294,16 @@ const Editor: React.FC<EditorProps> = ({
   enableCollaboration = false,
   collaborationServerUrl = 'ws://localhost:1234',
   userName = 'Anonymous User',
-  onProviderReady
+  onProviderReady,
+  pageless = false
 }) => {
   const [spellCheck, setSpellCheck] = useState(() => {
     return localStorage.getItem('spellcheck') !== 'false';
   });
   const [showSettings, setShowSettings] = useState(false);
+  
+  // Paint Format state
+  const paintFormatRef = useRef<{ marks: any[]; persistent: boolean } | null>(null);
   const [collaborationStatus, setCollaborationStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [connectedUsers, setConnectedUsers] = useState<number>(0);
   
@@ -441,7 +446,7 @@ const Editor: React.FC<EditorProps> = ({
       PageBreaks.configure({
         pageHeight: 1056,
         gapHeight: 24,
-        enabled: true,
+        enabled: !pageless,
       }),
       // Collaboration extension (only when ydoc is ready)
       ...(collabReady ? [
@@ -526,6 +531,143 @@ const Editor: React.FC<EditorProps> = ({
     return () => window.removeEventListener('spellcheck-toggle', handleSpellCheckToggle);
   }, [toggleSpellCheck]);
 
+  // Keyboard shortcuts handler
+  useEffect(() => {
+    if (!editor) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+
+      // Cmd+\ — Clear formatting
+      if (e.key === '\\' && !e.shiftKey) {
+        e.preventDefault();
+        editor.chain().focus().clearNodes().unsetAllMarks().run();
+        return;
+      }
+      // Cmd+E — Center align
+      if (e.key === 'e' && !e.shiftKey) {
+        e.preventDefault();
+        editor.chain().focus().setTextAlign('center').run();
+        return;
+      }
+      // Cmd+J — Justify
+      if (e.key === 'j' && !e.shiftKey) {
+        e.preventDefault();
+        editor.chain().focus().setTextAlign('justify').run();
+        return;
+      }
+      // Cmd+L — Left align
+      if (e.key === 'l' && !e.shiftKey) {
+        e.preventDefault();
+        editor.chain().focus().setTextAlign('left').run();
+        return;
+      }
+      // Cmd+R — Right align
+      if (e.key === 'r' && !e.shiftKey) {
+        e.preventDefault();
+        editor.chain().focus().setTextAlign('right').run();
+        return;
+      }
+
+      if (!e.shiftKey) return;
+
+      // Cmd+Shift+C — Copy formatting
+      if (e.key === 'C') {
+        e.preventDefault();
+        const marks = editor.state.storedMarks || editor.state.selection.$from.marks();
+        paintFormatRef.current = { marks: marks.map((m: any) => m.toJSON()), persistent: false };
+        window.dispatchEvent(new CustomEvent('paint-format-change', { detail: { active: true, persistent: false } }));
+        return;
+      }
+      // Cmd+Shift+V — Paste without formatting (or apply stored format)
+      if (e.key === 'V') {
+        if (paintFormatRef.current) {
+          // Apply stored formatting
+          e.preventDefault();
+          const chain = editor.chain().focus().unsetAllMarks();
+          for (const mark of paintFormatRef.current.marks) {
+            chain.setMark(mark.type, mark.attrs);
+          }
+          chain.run();
+          if (!paintFormatRef.current.persistent) {
+            paintFormatRef.current = null;
+            window.dispatchEvent(new CustomEvent('paint-format-change', { detail: { active: false, persistent: false } }));
+          }
+        } else {
+          // Paste as plain text
+          e.preventDefault();
+          navigator.clipboard.readText().then(text => {
+            editor.chain().focus().insertContent(text).run();
+          });
+        }
+        return;
+      }
+      // Cmd+Shift+L — Bullet list
+      if (e.key === 'L') {
+        e.preventDefault();
+        editor.chain().focus().toggleBulletList().run();
+        return;
+      }
+      // Cmd+Shift+7 — Numbered list
+      if (e.key === '7' || e.code === 'Digit7') {
+        e.preventDefault();
+        editor.chain().focus().toggleOrderedList().run();
+        return;
+      }
+      // Cmd+Shift+8 — Bullet list
+      if (e.key === '8' || e.code === 'Digit8') {
+        e.preventDefault();
+        editor.chain().focus().toggleBulletList().run();
+        return;
+      }
+    };
+
+    // Escape to cancel paint format
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && paintFormatRef.current) {
+        paintFormatRef.current = null;
+        window.dispatchEvent(new CustomEvent('paint-format-change', { detail: { active: false, persistent: false } }));
+      }
+    };
+
+    // Apply paint format on click in editor
+    const handleEditorClick = () => {
+      if (!paintFormatRef.current) return;
+      const chain = editor.chain().focus().unsetAllMarks();
+      for (const mark of paintFormatRef.current.marks) {
+        chain.setMark(mark.type, mark.attrs);
+      }
+      chain.run();
+      if (!paintFormatRef.current.persistent) {
+        paintFormatRef.current = null;
+        window.dispatchEvent(new CustomEvent('paint-format-change', { detail: { active: false, persistent: false } }));
+      }
+    };
+
+    // Listen for paint-format-copy events from toolbar
+    const handlePaintFormatCopy = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const marks = editor.state.storedMarks || editor.state.selection.$from.marks();
+      paintFormatRef.current = { marks: marks.map((m: any) => m.toJSON()), persistent: detail?.persistent || false };
+    };
+    const handlePaintFormatClear = () => {
+      paintFormatRef.current = null;
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleEscape);
+    editor.view.dom.addEventListener('click', handleEditorClick);
+    window.addEventListener('paint-format-copy', handlePaintFormatCopy);
+    window.addEventListener('paint-format-clear', handlePaintFormatClear);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleEscape);
+      editor.view.dom.removeEventListener('click', handleEditorClick);
+      window.removeEventListener('paint-format-copy', handlePaintFormatCopy);
+      window.removeEventListener('paint-format-clear', handlePaintFormatClear);
+    };
+  }, [editor]);
+
   useEffect(() => {
     if (editor) {
       editor.view.dom.setAttribute('spellcheck', spellCheck.toString());
@@ -534,6 +676,18 @@ const Editor: React.FC<EditorProps> = ({
       }
     }
   }, [spellCheck, editor, onEditorReady]);
+
+  // Update PageBreaks enabled state when pageless changes
+  useEffect(() => {
+    if (editor) {
+      const pbExt = editor.extensionManager.extensions.find((e: any) => e.name === 'pageBreaks');
+      if (pbExt) {
+        pbExt.options.enabled = !pageless;
+        // Force a re-render of decorations by dispatching a doc-changed-like transaction
+        editor.view.dispatch(editor.state.tr.setMeta('forcePageBreakRecalc', true));
+      }
+    }
+  }, [pageless, editor]);
 
   if (!editor) {
     return <div className="editor-loading">Loading editor...</div>;

@@ -5,7 +5,8 @@ import {
   List, ListOrdered, Link as LinkIcon, Image as ImageIcon,
   Type, Palette, Highlighter, Undo, Redo, CheckSquare,
   ChevronDown, MoreHorizontal, Minus, Quote, Code2,
-  RotateCcw, Printer, MessageSquare, PenTool, Smile
+  RotateCcw, Printer, MessageSquare, PenTool, Smile,
+  PaintBucket
 } from 'lucide-react';
 import EmojiPicker from './EmojiPicker';
 
@@ -43,6 +44,42 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
       editor.off('transaction', handler);
     };
   }, [editor]);
+
+  const [paintFormatActive, setPaintFormatActive] = useState(false);
+  const paintClickCountRef = useRef(0);
+  const paintClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Listen for paint format state changes
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setPaintFormatActive(detail.active);
+    };
+    window.addEventListener('paint-format-change', handler);
+    return () => window.removeEventListener('paint-format-change', handler);
+  }, []);
+
+  const handlePaintFormatClick = () => {
+    paintClickCountRef.current++;
+    if (paintClickTimerRef.current) clearTimeout(paintClickTimerRef.current);
+    
+    paintClickTimerRef.current = setTimeout(() => {
+      const clicks = paintClickCountRef.current;
+      paintClickCountRef.current = 0;
+      
+      if (paintFormatActive) {
+        // Already active — toggle off
+        setPaintFormatActive(false);
+        window.dispatchEvent(new CustomEvent('paint-format-clear'));
+        window.dispatchEvent(new CustomEvent('paint-format-change', { detail: { active: false, persistent: false } }));
+      } else {
+        const persistent = clicks >= 2;
+        setPaintFormatActive(true);
+        window.dispatchEvent(new CustomEvent('paint-format-copy', { detail: { persistent } }));
+        window.dispatchEvent(new CustomEvent('paint-format-change', { detail: { active: true, persistent } }));
+      }
+    }, 250);
+  };
 
   const [showFontSize, setShowFontSize] = useState(false);
   const [showFontFamily, setShowFontFamily] = useState(false);
@@ -186,6 +223,7 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
           title="Undo (Ctrl+Z)"
+          aria-label="Undo"
         >
           <Undo size={16} />
         </button>
@@ -194,6 +232,7 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
           title="Redo (Ctrl+Y)"
+          aria-label="Redo"
         >
           <Redo size={16} />
         </button>
@@ -203,8 +242,19 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
           className="toolbar-btn"
           onClick={printDocument}
           title="Print (Ctrl+P)"
+          aria-label="Print"
         >
           <Printer size={16} />
+        </button>
+
+        {/* Paint Format */}
+        <button 
+          className={`toolbar-btn ${paintFormatActive ? 'active' : ''}`}
+          onClick={handlePaintFormatClick}
+          title="Paint format (click to copy, double-click for persistent mode)"
+          aria-label="Paint format"
+        >
+          <PaintBucket size={16} />
         </button>
       </div>
 
@@ -313,28 +363,28 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
         <button 
           className={`toolbar-btn ${editor.isActive('bold') ? 'active' : ''}`}
           onClick={() => editor.chain().focus().toggleBold().run()}
-          title="Bold (Ctrl+B)"
+          title="Bold (Ctrl+B)" aria-label="Bold"
         >
           <Bold size={16} />
         </button>
         <button 
           className={`toolbar-btn ${editor.isActive('italic') ? 'active' : ''}`}
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          title="Italic (Ctrl+I)"
+          title="Italic (Ctrl+I)" aria-label="Italic"
         >
           <Italic size={16} />
         </button>
         <button 
           className={`toolbar-btn ${editor.isActive('underline') ? 'active' : ''}`}
           onClick={() => editor.chain().focus().toggleUnderline().run()}
-          title="Underline (Ctrl+U)"
+          title="Underline (Ctrl+U)" aria-label="Underline"
         >
           <Underline size={16} />
         </button>
         <button 
           className={`toolbar-btn ${editor.isActive('strike') ? 'active' : ''}`}
           onClick={() => editor.chain().focus().toggleStrike().run()}
-          title="Strikethrough"
+          title="Strikethrough" aria-label="Strikethrough"
         >
           <Strikethrough size={16} />
         </button>
@@ -344,7 +394,7 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
           <button 
             className="toolbar-btn color-btn"
             onClick={() => setShowTextColor(!showTextColor)}
-            title="Text color"
+            title="Text color" aria-label="Text color"
           >
             <Palette size={16} />
             <ChevronDown size={10} />
@@ -371,7 +421,7 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
           <button 
             className="toolbar-btn color-btn"
             onClick={() => setShowHighlightColor(!showHighlightColor)}
-            title="Highlight color"
+            title="Highlight color" aria-label="Highlight color"
           >
             <Highlighter size={16} />
             <ChevronDown size={10} />
@@ -414,14 +464,14 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
         <button 
           className={`toolbar-btn ${editor.isActive('superscript') ? 'active' : ''}`}
           onClick={() => editor.chain().focus().toggleSuperscript().run()}
-          title="Superscript"
+          title="Superscript" aria-label="Superscript"
         >
           <span style={{ fontSize: '12px', fontWeight: 'bold' }}>x²</span>
         </button>
         <button 
           className={`toolbar-btn ${editor.isActive('subscript') ? 'active' : ''}`}
           onClick={() => editor.chain().focus().toggleSubscript().run()}
-          title="Subscript"
+          title="Subscript" aria-label="Subscript"
         >
           <span style={{ fontSize: '12px', fontWeight: 'bold' }}>x₂</span>
         </button>
@@ -430,7 +480,7 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
         <button 
           className="toolbar-btn"
           onClick={clearFormatting}
-          title="Clear formatting"
+          title="Clear formatting" aria-label="Clear formatting"
         >
           <RotateCcw size={16} />
         </button>
@@ -443,28 +493,28 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
         <button 
           className={`toolbar-btn ${editor.isActive({ textAlign: 'left' }) ? 'active' : ''}`}
           onClick={() => editor.chain().focus().setTextAlign('left').run()}
-          title="Align left (Ctrl+Shift+L)"
+          title="Align left (Ctrl+Shift+L)" aria-label="Align left"
         >
           <AlignLeft size={16} />
         </button>
         <button 
           className={`toolbar-btn ${editor.isActive({ textAlign: 'center' }) ? 'active' : ''}`}
           onClick={() => editor.chain().focus().setTextAlign('center').run()}
-          title="Align center (Ctrl+Shift+E)"
+          title="Align center (Ctrl+Shift+E)" aria-label="Align center"
         >
           <AlignCenter size={16} />
         </button>
         <button 
           className={`toolbar-btn ${editor.isActive({ textAlign: 'right' }) ? 'active' : ''}`}
           onClick={() => editor.chain().focus().setTextAlign('right').run()}
-          title="Align right (Ctrl+Shift+R)"
+          title="Align right (Ctrl+Shift+R)" aria-label="Align right"
         >
           <AlignRight size={16} />
         </button>
         <button 
           className={`toolbar-btn ${editor.isActive({ textAlign: 'justify' }) ? 'active' : ''}`}
           onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-          title="Justify (Ctrl+Shift+J)"
+          title="Justify (Ctrl+Shift+J)" aria-label="Justify"
         >
           <AlignJustify size={16} />
         </button>
@@ -477,14 +527,14 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
         <button 
           className={`toolbar-btn ${editor.isActive('bulletList') ? 'active' : ''}`}
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          title="Bullet list (Ctrl+Shift+8)"
+          title="Bullet list (Ctrl+Shift+8)" aria-label="Bullet list"
         >
           <List size={16} />
         </button>
         <button 
           className={`toolbar-btn ${editor.isActive('orderedList') ? 'active' : ''}`}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          title="Numbered list (Ctrl+Shift+7)"
+          title="Numbered list (Ctrl+Shift+7)" aria-label="Numbered list"
         >
           <ListOrdered size={16} />
         </button>
@@ -493,7 +543,7 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
         <button 
           className={`toolbar-btn ${editor.isActive('taskList') ? 'active' : ''}`}
           onClick={() => editor.chain().focus().toggleTaskList().run()}
-          title="Checklist"
+          title="Checklist" aria-label="Checklist"
         >
           <CheckSquare size={16} />
         </button>
@@ -502,14 +552,14 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
         <button 
           className="toolbar-btn"
           onClick={() => editor.chain().focus().liftListItem('listItem').run()}
-          title="Decrease indent (Ctrl+[)"
+          title="Decrease indent (Ctrl+[)" aria-label="Decrease indent"
         >
           <span style={{ fontSize: '14px', fontWeight: 'bold' }}>⇤</span>
         </button>
         <button 
           className="toolbar-btn"
           onClick={() => editor.chain().focus().sinkListItem('listItem').run()}
-          title="Increase indent (Ctrl+])"
+          title="Increase indent (Ctrl+])" aria-label="Increase indent"
         >
           <span style={{ fontSize: '14px', fontWeight: 'bold' }}>⇥</span>
         </button>
@@ -519,7 +569,7 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
           <button
             className="toolbar-btn"
             onClick={() => setShowLineSpacing(!showLineSpacing)}
-            title="Line spacing"
+            title="Line spacing" aria-label="Line spacing"
           >
             <AlignJustify size={16} />
             <ChevronDown size={10} />
@@ -555,7 +605,7 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
         <button 
           className={`toolbar-btn ${editor.isActive('blockquote') ? 'active' : ''}`}
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          title="Quote"
+          title="Quote" aria-label="Block quote"
         >
           <Quote size={16} />
         </button>
@@ -563,7 +613,7 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
         <button 
           className={`toolbar-btn ${editor.isActive('codeBlock') ? 'active' : ''}`}
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          title="Code block"
+          title="Code block" aria-label="Code block"
         >
           <Code2 size={16} />
         </button>
@@ -572,7 +622,7 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
         <button 
           className="toolbar-btn"
           onClick={insertHorizontalRule}
-          title="Insert horizontal rule"
+          title="Insert horizontal rule" aria-label="Insert horizontal rule"
         >
           <Minus size={16} />
         </button>
@@ -585,14 +635,14 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
         <button 
           className="toolbar-btn"
           onClick={setLink}
-          title="Insert link (Ctrl+K)"
+          title="Insert link (Ctrl+K)" aria-label="Insert link"
         >
           <LinkIcon size={16} />
         </button>
         <button 
           className="toolbar-btn"
           onClick={addImage}
-          title="Insert image"
+          title="Insert image" aria-label="Insert image"
         >
           <ImageIcon size={16} />
         </button>
@@ -604,7 +654,7 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
             editor.chain().focus().toggleSuggestionMode().run();
             window.dispatchEvent(new CustomEvent('suggestion-mode-toggle'));
           }}
-          title="Suggesting mode (track changes)"
+          title="Suggesting mode (track changes)" aria-label="Suggesting mode"
         >
           <PenTool size={16} />
         </button>
@@ -620,7 +670,7 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
             const selectedText = editor.state.doc.textBetween(from, to, ' ');
             window.dispatchEvent(new CustomEvent('comment-add', { detail: { commentId, quotedText: selectedText } }));
           }}
-          title="Add comment (select text first)"
+          title="Add comment (select text first)" aria-label="Add comment"
         >
           <MessageSquare size={16} />
         </button>
@@ -629,7 +679,7 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
         <button
           className="toolbar-btn"
           onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-          title="Insert table"
+          title="Insert table" aria-label="Insert table"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
         </button>
@@ -639,7 +689,7 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
           <button
             className="toolbar-btn"
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            title="Insert emoji"
+            title="Insert emoji" aria-label="Insert emoji"
           >
             <Smile size={16} />
           </button>
@@ -657,7 +707,7 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
         {/* More options */}
         <button 
           className="toolbar-btn"
-          title="More options"
+          title="More options" aria-label="More options"
         >
           <MoreHorizontal size={16} />
         </button>

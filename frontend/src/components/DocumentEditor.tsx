@@ -21,6 +21,7 @@ interface DocumentEditorProps {
   onTitleChange: (newTitle: string) => void;
   onEditorReady?: (editor: any) => void;
   marginOverride?: { left: number; right: number } | null;
+  pageless?: boolean;
 }
 
 const DocumentEditor: React.FC<DocumentEditorProps> = ({ 
@@ -28,7 +29,8 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   content, 
   onChange, 
   onEditorReady,
-  marginOverride
+  marginOverride,
+  pageless = false
 }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showPageSetup, setShowPageSetup] = useState(false);
@@ -102,11 +104,11 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   }
 
   return (
-    <div className="document-editor">
+    <div className={`document-editor ${pageless ? 'document-editor--pageless' : ''}`}>
       <div 
-        className="document-page" 
+        className={`document-page ${pageless ? 'document-page--pageless' : ''}`}
         dir={textDirection}
-        style={{ 
+        style={pageless ? { ...documentStyles } : { 
           maxWidth: pageStyles.maxWidth,
           minHeight: pageStyles.minHeight,
           ...documentStyles 
@@ -147,6 +149,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
                 documentName={activeFile?.path || 'untitled'}
                 userName={collabUserName}
                 onProviderReady={handleProviderReady}
+                pageless={pageless}
               />
             </div>
           </div>

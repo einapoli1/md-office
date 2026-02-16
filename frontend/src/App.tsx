@@ -72,6 +72,9 @@ function App() {
   const [hfEditType, setHfEditType] = useState<'header' | 'footer' | null>(null);
   const [hfContent, setHfContent] = useState<HeaderFooterContent>(defaultHFContent);
   const [showRuler, setShowRuler] = useState(true);
+  const [pageless, setPageless] = useState(() => {
+    return localStorage.getItem('md-office-pageless') === 'true';
+  });
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [rulerMargins, setRulerMargins] = useState<{ left: number; right: number } | null>(null);
   const [inputDialog, setInputDialog] = useState<{
@@ -685,8 +688,14 @@ function App() {
     window.addEventListener('word-count-open', handleWordCount);
     window.addEventListener('export-open', handleExport);
     const handleRulerToggle = () => setShowRuler(prev => !prev);
+    const handlePagelessToggle = () => setPageless(prev => {
+      const next = !prev;
+      localStorage.setItem('md-office-pageless', String(next));
+      return next;
+    });
     window.addEventListener('outline-toggle', handleOutline);
     window.addEventListener('ruler-toggle', handleRulerToggle);
+    window.addEventListener('pageless-toggle', handlePagelessToggle);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('find-replace-open', handleEvent);
@@ -694,6 +703,7 @@ function App() {
       window.removeEventListener('export-open', handleExport);
       window.removeEventListener('outline-toggle', handleOutline);
       window.removeEventListener('ruler-toggle', handleRulerToggle);
+      window.removeEventListener('pageless-toggle', handlePagelessToggle);
       window.removeEventListener('insert-link', handleInsertLink);
       window.removeEventListener('insert-image', handleInsertImage);
       window.removeEventListener('special-chars-open', handleSpecialChars);
@@ -784,7 +794,7 @@ function App() {
         )}
 
         <div className="main-editor">
-          {showRuler && activeFile && (() => {
+          {showRuler && !pageless && activeFile && (() => {
             const parsed = parseFrontmatter(content);
             const ps = getPageStyles(parsed.metadata);
             const pageW = parseInt(ps.maxWidth) || 816;
@@ -810,6 +820,7 @@ function App() {
               onTitleChange={handleTitleChange}
               onEditorReady={setEditorRef}
               marginOverride={rulerMargins}
+              pageless={pageless}
             />
           )}
         </div>
