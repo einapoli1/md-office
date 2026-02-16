@@ -332,6 +332,17 @@ const MenuBar: React.FC<MenuBarProps> = ({
         window.dispatchEvent(new CustomEvent('ai-assistant-toggle'));
       }},
       { label: 'divider' },
+      { label: 'divider' },
+      { label: 'Macro Editor', action: () => {
+        window.dispatchEvent(new CustomEvent('macro-editor-toggle'));
+      }},
+      { label: 'Record Macro', action: () => {
+        window.dispatchEvent(new CustomEvent('macro-start-recording'));
+      }},
+      { label: 'Run Macro...', action: () => {
+        window.dispatchEvent(new CustomEvent('macro-run-picker'));
+      }},
+      { label: 'divider' },
       { label: 'Preferences', action: onShowSettings, icon: Settings },
     ],
     ...(appMode === 'sheets' && {

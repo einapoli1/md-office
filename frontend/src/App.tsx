@@ -32,6 +32,9 @@ import AboutDialog from './components/AboutDialog';
 import TemplatePanel from './components/TemplatePanel';
 import TemplateSidebar from './components/TemplateSidebar';
 import OnboardingTour, { STORAGE_KEY as ONBOARDING_KEY } from './components/OnboardingTour';
+import MacroEditor from './components/MacroEditor';
+import MacroRecorder, { useMacroRecorder } from './components/MacroRecorder';
+import { runMacro, loadSavedMacros, saveMacro, MacroContext } from './lib/macroEngine';
 import SpreadsheetEditor from './sheets/SpreadsheetEditor';
 import SlidesEditor from './slides/SlidesEditor';
 import _DrawingEditor from './draw/DrawingEditor';
@@ -123,6 +126,8 @@ function App() {
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showMailMerge, setShowMailMerge] = useState(false);
   const [showTemplateSidebar, setShowTemplateSidebar] = useState(false);
+  const [showMacroEditor, setShowMacroEditor] = useState(false);
+  const { recording: macroRecording, startRecording: startMacroRecording, stopRecording: stopMacroRecording } = useMacroRecorder();
   const [vhCommits, setVhCommits] = useState<import('./types').GitCommit[]>([]);
   const [vhSelectedCommit, setVhSelectedCommit] = useState<import('./types').GitCommit | null>(null);
   const [vhPreviewContent, setVhPreviewContent] = useState<string | null>(null);
@@ -832,8 +837,14 @@ function App() {
     window.addEventListener('pageless-toggle', handlePagelessToggle);
     const handleMailMerge = () => setShowMailMerge(prev => !prev);
     const handleTemplateSidebar = () => setShowTemplateSidebar(prev => !prev);
+    const handleMacroEditor = () => setShowMacroEditor((prev: boolean) => !prev);
+    const handleMacroRecord = () => window.dispatchEvent(new CustomEvent('macro-start-recording'));
+    const handleMacroRunPicker = () => window.dispatchEvent(new CustomEvent('macro-run-picker'));
     window.addEventListener('mail-merge-toggle', handleMailMerge);
     window.addEventListener('template-sidebar-toggle', handleTemplateSidebar);
+    window.addEventListener('macro-editor-toggle', handleMacroEditor);
+    window.addEventListener('macro-record-toggle', handleMacroRecord);
+    window.addEventListener('macro-run-picker', handleMacroRunPicker);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('find-replace-open', handleEvent);
@@ -851,8 +862,79 @@ function App() {
       window.removeEventListener('edit-header-footer', handleHfEdit);
       window.removeEventListener('mail-merge-toggle', handleMailMerge);
       window.removeEventListener('template-sidebar-toggle', handleTemplateSidebar);
+      window.removeEventListener('macro-editor-toggle', handleMacroEditor);
+      window.removeEventListener('macro-record-toggle', handleMacroRecord);
+      window.removeEventListener('macro-run-picker', handleMacroRunPicker);
     };
   }, []);
+
+  // Macro recording & run-picker events
+  useEffect(() => {
+    const handleStartRec = () => startMacroRecording();
+    const handleStopRec = () => {
+      const code = stopMacroRecording();
+      if (code) {
+        setShowMacroEditor(true);
+      }
+    };
+    const handleStopRecSave = (e: Event) => {
+      const code = stopMacroRecording();
+      const name = (e as CustomEvent).detail?.name;
+      if (name && code) {
+        saveMacro({ name, code, createdAt: Date.now(), updatedAt: Date.now() });
+      }
+    };
+    const handleRunPicker = () => {
+      const macros = loadSavedMacros();
+      if (macros.length === 0) {
+        window.alert('No saved macros. Open the Macro Editor to create one.');
+        return;
+      }
+      const name = window.prompt('Run macro:\n' + macros.map(m => `• ${m.name}`).join('\n'));
+      if (!name) return;
+      const macro = macros.find(m => m.name === name);
+      if (!macro) { window.alert(`Macro "${name}" not found`); return; }
+      const ctx: MacroContext = {
+        getDocText: () => editorRef?.getText() ?? content ?? '',
+        insertText: (text: string) => editorRef?.commands?.insertContent(text),
+        replaceAll: (search: string, replace: string) => {
+          if (editorRef) {
+            const html = editorRef.getHTML();
+            editorRef.commands.setContent(html.replaceAll(search, replace));
+          }
+        },
+        getSelection: () => {
+          if (!editorRef) return '';
+          const { from, to } = editorRef.state.selection;
+          return editorRef.state.doc.textBetween(from, to, '\n');
+        },
+        getCell: () => undefined,
+        setCell: () => {},
+        getRange: () => [],
+        alert: (msg: string) => window.alert(msg),
+        prompt: (msg: string) => Promise.resolve(window.prompt(msg)),
+        toast: (msg: string) => toast(msg, 'info'),
+        log: (msg: string) => console.log('[macro]', msg),
+      };
+      runMacro(macro.code, ctx);
+    };
+    const handleMacroToast = (e: Event) => {
+      const msg = (e as CustomEvent).detail?.message;
+      if (msg) toast(msg, 'info');
+    };
+    window.addEventListener('macro-start-recording', handleStartRec);
+    window.addEventListener('macro-recording-stop', handleStopRec);
+    window.addEventListener('macro-recording-stop-save', handleStopRecSave);
+    window.addEventListener('macro-run-picker', handleRunPicker);
+    window.addEventListener('macro-toast', handleMacroToast);
+    return () => {
+      window.removeEventListener('macro-start-recording', handleStartRec);
+      window.removeEventListener('macro-recording-stop', handleStopRec);
+      window.removeEventListener('macro-recording-stop-save', handleStopRecSave);
+      window.removeEventListener('macro-run-picker', handleRunPicker);
+      window.removeEventListener('macro-toast', handleMacroToast);
+    };
+  }, [editorRef, content, startMacroRecording, stopMacroRecording]);
 
   // Show loading while checking authentication
   if (authLoading) {
@@ -1212,6 +1294,31 @@ function App() {
         run={runTour}
         onFinish={() => setRunTour(false)}
       />
+
+      {/* Macro Editor */}
+      {showMacroEditor && (
+        <MacroEditor
+          onClose={() => setShowMacroEditor(false)}
+          getDocText={() => editorRef?.getText() ?? content ?? ''}
+          insertText={(text: string) => editorRef?.commands?.insertContent(text)}
+          replaceAll={(search: string, replace: string) => {
+            if (editorRef) {
+              const html = editorRef.getHTML();
+              editorRef.commands.setContent(html.replaceAll(search, replace));
+            }
+          }}
+          getSelection={() => {
+            if (!editorRef) return '';
+            const { from, to } = editorRef.state.selection;
+            return editorRef.state.doc.textBetween(from, to, '\n');
+          }}
+        />
+      )}
+
+      {/* Macro Recorder */}
+      {macroRecording && (
+        <MacroRecorder onStop={() => {}} />
+      )}
 
       {/* Share Dialog */}
       <ShareDialog
