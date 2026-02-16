@@ -98,6 +98,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'New spreadsheet', action: onNewSpreadsheet, icon: Table2 },
       { label: 'New presentation', action: onNewPresentation, icon: Presentation },
       { label: 'From template', action: onTemplateSelect },
+      { label: 'Templates library', action: () => {
+        window.dispatchEvent(new CustomEvent('template-sidebar-toggle'));
+      }},
       { label: 'Import Word document (.docx)', action: () => {
         window.dispatchEvent(new CustomEvent('import-docx'));
       }},
@@ -296,6 +299,10 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'divider' },
       { label: 'Compare documents', action: () => {
         window.dispatchEvent(new CustomEvent('compare-open'));
+      }},
+      { label: 'divider' },
+      { label: 'Mail Merge', action: () => {
+        window.dispatchEvent(new CustomEvent('mail-merge-toggle'));
       }},
       { label: 'divider' },
       { label: 'AI Assistant', action: () => {

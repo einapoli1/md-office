@@ -29,6 +29,8 @@ import RecentDocs, { RecentDocEntry, loadRecentDocs, touchRecentDoc, removeRecen
 import _GlobalSearch from './components/GlobalSearch';
 import _AIAssistant from './components/AIAssistant';
 import AboutDialog from './components/AboutDialog';
+import TemplatePanel from './components/TemplatePanel';
+import TemplateSidebar from './components/TemplateSidebar';
 import OnboardingTour, { STORAGE_KEY as ONBOARDING_KEY } from './components/OnboardingTour';
 import SpreadsheetEditor from './sheets/SpreadsheetEditor';
 import SlidesEditor from './slides/SlidesEditor';
@@ -119,6 +121,8 @@ function App() {
   const [showAbout, setShowAbout] = useState(false);
   const [runTour, setRunTour] = useState(() => !localStorage.getItem(ONBOARDING_KEY));
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [showMailMerge, setShowMailMerge] = useState(false);
+  const [showTemplateSidebar, setShowTemplateSidebar] = useState(false);
   const [vhCommits, setVhCommits] = useState<import('./types').GitCommit[]>([]);
   const [vhSelectedCommit, setVhSelectedCommit] = useState<import('./types').GitCommit | null>(null);
   const [vhPreviewContent, setVhPreviewContent] = useState<string | null>(null);
@@ -826,6 +830,10 @@ function App() {
     };
     window.addEventListener('import-docx', handleImportDocx);
     window.addEventListener('pageless-toggle', handlePagelessToggle);
+    const handleMailMerge = () => setShowMailMerge(prev => !prev);
+    const handleTemplateSidebar = () => setShowTemplateSidebar(prev => !prev);
+    window.addEventListener('mail-merge-toggle', handleMailMerge);
+    window.addEventListener('template-sidebar-toggle', handleTemplateSidebar);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('find-replace-open', handleEvent);
@@ -841,6 +849,8 @@ function App() {
       window.removeEventListener('equation-dialog-open', handleEquationDialog);
       window.removeEventListener('whiteboard-open', handleWhiteboardOpen);
       window.removeEventListener('edit-header-footer', handleHfEdit);
+      window.removeEventListener('mail-merge-toggle', handleMailMerge);
+      window.removeEventListener('template-sidebar-toggle', handleTemplateSidebar);
     };
   }, []);
 
@@ -1018,6 +1028,31 @@ function App() {
           <SuggestionsSidebar
             editor={editorRef}
             onClose={() => setShowSuggestions(false)}
+          />
+        )}
+
+        {showMailMerge && (
+          <TemplatePanel
+            content={content}
+            onClose={() => setShowMailMerge(false)}
+            onPreview={(_rendered) => {
+              toast('Preview rendered — check document', 'success');
+            }}
+          />
+        )}
+
+        {showTemplateSidebar && (
+          <TemplateSidebar
+            onClose={() => setShowTemplateSidebar(false)}
+            currentContent={content}
+            onUseTemplate={(tplContent) => {
+              setContent(tplContent);
+              if (editorRef) {
+                editorRef.commands.setContent(tplContent);
+              }
+              setShowTemplateSidebar(false);
+              toast('Template applied', 'success');
+            }}
           />
         )}
 

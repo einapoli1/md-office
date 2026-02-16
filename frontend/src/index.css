@@ -2080,3 +2080,38 @@ button[title] {
 .dark-mode .equation-var-pill.used { background: #1b2e1b; border-color: #4caf50; color: #81c784; }
 .dark-mode .equation-variables-section { border-top-color: #444; }
 .dark-mode .sheet-latex-eval { color: #81c784; }
+
+/* Template Variable Decorations (Mail Merge) */
+.template-variable {
+  background: #e8d5f5;
+  color: #6b21a8;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border: 1px solid #d4b5e8;
+  transition: background 0.15s;
+}
+.template-variable:hover {
+  background: #d8b4f0;
+}
+.template-variable-block {
+  background: #f0e6f6;
+  color: #7c3aed;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 0.85em;
+  border: 1px dashed #c4a5d8;
+}
+.dark-mode .template-variable {
+  background: #3b1f5c;
+  color: #d4b5e8;
+  border-color: #5b3a7a;
+}
+.dark-mode .template-variable-block {
+  background: #2d1845;
+  color: #c4a5d8;
+  border-color: #4a2d6a;
+}

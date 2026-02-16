@@ -47,6 +47,7 @@ import { Title, Subtitle } from '../extensions/ParagraphStyles';
 import MentionExtension from '../extensions/Mention';
 import DateChip from '../extensions/DateChip';
 import { VariableChip } from '../extensions/VariableChip';
+import { TemplateVariable } from '../extensions/TemplateVariable';
 import { EquationEvaluator } from '../extensions/EquationEvaluator';
 import TableToolbar from './TableToolbar';
 import { importDocx } from '../utils/docxIO';
@@ -453,6 +454,7 @@ const Editor: React.FC<EditorProps> = ({
       MentionExtension,
       DateChip,
       VariableChip,
+      TemplateVariable,
       EquationEvaluator,
       PageBreaks.configure({
         pageHeight: 1056,
