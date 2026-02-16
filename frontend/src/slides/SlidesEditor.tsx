@@ -13,6 +13,10 @@ import { openPresenterWindow } from './PresenterView';
 import { TEMPLATES, createFromTemplate } from './slideTemplates';
 import type { ShapeType } from './ShapeTools';
 import { exportSlidesPDF, exportSlidesHTML } from './slideIO';
+import SlideCommentsComponent, { CommentPins } from './SlideComments';
+import type { SlideComment } from './SlideComments';
+import RehearsalMode from './RehearsalMode';
+import type { SlideTimings } from './RehearsalMode';
 import SlideMaster from './SlideMaster';
 import {
   initSlideCollab, syncPresentationFromYjs, updateSlideFieldInYjs,
@@ -46,6 +50,12 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
   const [remoteUsers, setRemoteUsers] = useState<RemoteSlideUser[]>([]);
   const [showMasterEditor, setShowMasterEditor] = useState(false);
   const [master, setMaster] = useState<SlideMasterData>({ ...DEFAULT_MASTER });
+  const [showComments, setShowComments] = useState(false);
+  const [commentMode, setCommentMode] = useState(false);
+  const [rehearsalMode, setRehearsalMode] = useState(false);
+  const [autoAdvance, setAutoAdvance] = useState(false);
+  const [notesHeight, setNotesHeight] = useState(120);
+  const notesDragRef = useRef(false);
 
   const collabRef = useRef<SlideCollabHandle | null>(null);
   const suppressRemoteRef = useRef(false);
@@ -266,6 +276,59 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
     }
   }, []);
 
+  const handleCommentsChange = useCallback((comments: SlideComment[]) => {
+    withUndo(slides => slides.map((s, i) => i === activeIdx ? { ...s, comments } : s));
+  }, [activeIdx, withUndo]);
+
+  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!commentMode) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    const text = prompt('Add comment:');
+    if (!text?.trim()) return;
+    const comment: SlideComment = {
+      id: `comment-${Date.now()}`,
+      x, y,
+      author: collab?.userName || 'User',
+      text: text.trim(),
+      timestamp: Date.now(),
+      replies: [],
+      resolved: false,
+    };
+    handleCommentsChange([...(currentSlide?.comments || []), comment]);
+    setCommentMode(false);
+  }, [commentMode, collab, currentSlide, handleCommentsChange]);
+
+  const handleSaveTimings = useCallback((timings: SlideTimings) => {
+    const newSlides = pres.slides.map((s, i) => ({ ...s, timingMs: timings.perSlide[i] || 0 }));
+    update(newSlides);
+    setAutoAdvance(true);
+    setRehearsalMode(false);
+  }, [pres.slides, update]);
+
+  const handleNotesResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    notesDragRef.current = true;
+    const startY = e.clientY;
+    const startH = notesHeight;
+    const onMove = (ev: MouseEvent) => {
+      if (!notesDragRef.current) return;
+      setNotesHeight(Math.max(40, startH - (ev.clientY - startY)));
+    };
+    const onUp = () => { notesDragRef.current = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [notesHeight]);
+
+  // Simple markdown rendering for notes preview
+  const renderNotesPreview = (text: string) => {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/^- (.+)$/gm, '• $1');
+  };
+
   // Undo / redo keyboard
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -315,8 +378,12 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
     usersBySlide.set(u.activeSlide, arr);
   }
 
+  if (rehearsalMode) {
+    return <RehearsalMode slides={pres.slides} theme={theme} onExit={() => setRehearsalMode(false)} onSaveTimings={handleSaveTimings} />;
+  }
+
   if (slideshow) {
-    return <SlideshowView slides={pres.slides} theme={theme} startIndex={activeIdx} onExit={() => setSlideshow(false)} />;
+    return <SlideshowView slides={pres.slides} theme={theme} startIndex={activeIdx} onExit={() => setSlideshow(false)} autoAdvance={autoAdvance} />;
   }
 
   return (
@@ -343,22 +410,27 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
         onExportHTML={handleExportHTML}
       />
 
-      {collab && collabRef.current && (
-        <div className="slides-collab-bar">
+      <div className="slides-collab-bar">
+        {collab && collabRef.current && (
           <CollabPresence provider={collabRef.current.provider} currentUser={collab.userName} />
-          <button className="btn-secondary btn-sm" onClick={() => setShowMasterEditor(true)}>
-            Master Slides
-          </button>
-        </div>
-      )}
-
-      {!collab && (
-        <div className="slides-collab-bar">
-          <button className="btn-secondary btn-sm" onClick={() => setShowMasterEditor(true)}>
-            Master Slides
-          </button>
-        </div>
-      )}
+        )}
+        <button className="btn-secondary btn-sm" onClick={() => setShowMasterEditor(true)}>
+          Master Slides
+        </button>
+        <button className={`btn-secondary btn-sm ${showComments ? 'btn-active' : ''}`} onClick={() => setShowComments(!showComments)}>
+          💬 Comments
+        </button>
+        <button className={`btn-secondary btn-sm ${commentMode ? 'btn-active' : ''}`} onClick={() => { setCommentMode(!commentMode); setShowComments(true); }}>
+          📌 Add Comment
+        </button>
+        <button className="btn-secondary btn-sm" onClick={() => setRehearsalMode(true)}>
+          ⏱ Rehearse
+        </button>
+        <label className="auto-advance-toggle">
+          <input type="checkbox" checked={autoAdvance} onChange={e => setAutoAdvance(e.target.checked)} />
+          Auto-advance
+        </label>
+      </div>
 
       <div className="slides-main">
         <SlideThumbnails
@@ -374,31 +446,56 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
         />
 
         <div className="slides-center">
-          <div className="slide-canvas-wrapper">
+          <div className="slide-canvas-wrapper" onClick={handleCanvasClick} style={commentMode ? { cursor: 'crosshair' } : undefined}>
             {currentSlide && (
-              <SlideCanvas
-                slide={currentSlide}
-                theme={theme}
-                editable
-                onContentChange={handleContentChange}
-                drawingTool={activeShapeTool}
-                onShapesChange={handleShapesChange}
-                onDrawEnd={() => setActiveShapeTool(null)}
-              />
+              <>
+                <SlideCanvas
+                  slide={currentSlide}
+                  theme={theme}
+                  editable
+                  onContentChange={handleContentChange}
+                  drawingTool={activeShapeTool}
+                  onShapesChange={handleShapesChange}
+                  onDrawEnd={() => setActiveShapeTool(null)}
+                />
+                {showComments && (
+                  <CommentPins
+                    comments={currentSlide.comments || []}
+                    onPinClick={() => setShowComments(true)}
+                    showResolved={false}
+                  />
+                )}
+              </>
             )}
           </div>
 
-          <div className="slide-notes-area">
-            <label>Speaker Notes</label>
+          <div className="slide-notes-resize-handle" onMouseDown={handleNotesResize} />
+          <div className="slide-notes-area" style={{ height: notesHeight }}>
+            <div className="slide-notes-header">
+              <label>Speaker Notes</label>
+              <span className="slide-notes-charcount">{(currentSlide?.notes || '').length} chars</span>
+            </div>
             <textarea
               className="slide-notes-input"
               value={currentSlide?.notes || ''}
               onChange={e => handleNotesChange(e.target.value)}
-              placeholder="Click to add speaker notes..."
+              placeholder="Click to add speaker notes… (supports **bold**, *italic*, - lists)"
+              style={{ height: '100%' }}
             />
+            {currentSlide?.notes && (
+              <div className="slide-notes-preview" dangerouslySetInnerHTML={{ __html: renderNotesPreview(currentSlide.notes) }} />
+            )}
           </div>
         </div>
       </div>
+
+      {showComments && currentSlide && (
+        <SlideCommentsComponent
+          comments={currentSlide.comments || []}
+          onChange={handleCommentsChange}
+          currentUser={collab?.userName || 'User'}
+        />
+      )}
 
       {showMasterEditor && (
         <SlideMaster

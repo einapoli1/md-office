@@ -10,7 +10,7 @@ export interface SlideTemplate {
 }
 
 function mkSlide(content: string, layout: Slide['layout'] = 'content', transition: Slide['transition'] = 'none'): Omit<Slide, 'id'> {
-  return { content, layout, notes: '', transition, transitionDuration: '0.5s' as TransitionDuration, fragments: [], shapes: [] };
+  return { content, layout, notes: '', transition, transitionDuration: '0.5s' as TransitionDuration, fragments: [], shapes: [], comments: [] };
 }
 
 export const TEMPLATES: SlideTemplate[] = [

@@ -23,6 +23,24 @@ export interface SlideShape {
   text: string;
 }
 
+export interface SlideCommentReply {
+  id: string;
+  author: string;
+  text: string;
+  timestamp: number;
+}
+
+export interface SlideComment {
+  id: string;
+  x: number;
+  y: number;
+  author: string;
+  text: string;
+  timestamp: number;
+  replies: SlideCommentReply[];
+  resolved: boolean;
+}
+
 export interface Slide {
   id: string;
   content: string;
@@ -32,6 +50,8 @@ export interface Slide {
   transitionDuration: TransitionDuration;
   fragments: Fragment[];
   shapes: SlideShape[];
+  comments: SlideComment[];
+  timingMs?: number;
 }
 
 export interface PresentationMeta {
@@ -104,10 +124,11 @@ export function parsePresentation(markdown: string): Presentation {
         transitionDuration: '0.3s' as TransitionDuration,
         fragments: parseFragments(content),
         shapes: [],
+        comments: [],
       };
     });
   if (slides.length === 0) {
-    slides.push({ id: genSlideId(), content: '# New Presentation', layout: 'title', notes: '', transition: 'none', transitionDuration: '0.3s', fragments: [], shapes: [] });
+    slides.push({ id: genSlideId(), content: '# New Presentation', layout: 'title', notes: '', transition: 'none', transitionDuration: '0.3s', fragments: [], shapes: [], comments: [] });
   }
   return { meta, slides };
 }
@@ -162,6 +183,7 @@ export function createSlide(layout: SlideLayout): Slide {
     transitionDuration: '0.3s',
     fragments: [],
     shapes: [],
+    comments: [],
   };
 }
 

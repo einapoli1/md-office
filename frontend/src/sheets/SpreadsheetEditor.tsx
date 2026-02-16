@@ -15,6 +15,12 @@ import { evaluateConditionalFormats, getNumericValuesInRange, isCellInRange, val
 import type { ConditionalRule, ValidationRule } from './conditionalEval';
 import PivotTableDialog from './PivotTable';
 import NamedRangesDialog from './NamedRanges';
+import SheetComments, { CommentTooltip } from './SheetComments';
+import ProtectedRanges from './ProtectedRanges';
+import SheetFindReplace from './SheetFindReplace';
+import type { FindMatch } from './SheetFindReplace';
+import { getFindMatchCellIds } from './SheetFindReplace';
+import type { CellComment, ProtectedRange } from './sheetModel';
 import { PivotConfig } from './pivotEngine';
 import {
   initSheetCollab,
@@ -104,6 +110,19 @@ export default function SpreadsheetEditor({
   const [fillDrag, setFillDrag] = useState<{ startRow: number; startCol: number; endRow: number; endCol: number; active: boolean } | null>(null);
   const [formulaHighlights, setFormulaHighlights] = useState<FormulaRef[]>([]);
 
+  // Comments state
+  const [commentPanel, setCommentPanel] = useState<{ cellId: string; rect: { top: number; left: number; width: number; height: number } } | null>(null);
+  const [hoveredComment, setHoveredComment] = useState<{ cellId: string; comment: CellComment; x: number; y: number } | null>(null);
+
+  // Protected ranges
+  const [showProtectedRangesDialog, setShowProtectedRangesDialog] = useState(false);
+  const [protectedToast, setProtectedToast] = useState<string | null>(null);
+
+  // Find & Replace
+  const [showFindReplace, setShowFindReplace] = useState(false);
+  const [findReplaceMode, setFindReplaceMode] = useState(false);
+  const [findMatches, setFindMatches] = useState<FindMatch[]>([]);
+
   // Collaboration state
   const [remoteCursors, setRemoteCursors] = useState<RemoteCursor[]>([]);
   const [collabStatus, setCollabStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
@@ -126,6 +145,7 @@ export default function SpreadsheetEditor({
   if (!sheet.validationRules) sheet.validationRules = [];
   if (!workbook.namedRanges) workbook.namedRanges = {};
   if (!workbook.pivotTables) workbook.pivotTables = [];
+  if (!sheet.protectedRanges) sheet.protectedRanges = [];
 
   // Build dep graph on mount / sheet change
   useEffect(() => {
@@ -247,6 +267,66 @@ export default function SpreadsheetEditor({
     setHiddenRows(hidden);
   }, [sheet.filters, sheet.filtersEnabled, sheet.cells]);
 
+  // ── Protected range check ───────────────────────────────────────────
+  const isCellProtected = useCallback((row: number, col: number): boolean => {
+    if (!sheet.protectedRanges || sheet.protectedRanges.length === 0) return false;
+    for (const pr of sheet.protectedRanges) {
+      if (!pr.locked) continue;
+      if (isCellInRange(col, row, pr.range)) return true;
+    }
+    return false;
+  }, [sheet]);
+
+  // ── Comment handlers ──────────────────────────────────────────────────
+  const handleAddComment = useCallback((cId: string, text: string) => {
+    if (!sheet.cells[cId]) sheet.cells[cId] = { value: '' };
+    sheet.cells[cId].comment = {
+      author: userName || 'You',
+      text,
+      timestamp: Date.now(),
+      replies: [],
+    };
+    setCommentPanel(null);
+    setWorkbook({ ...workbook });
+  }, [sheet, workbook, userName]);
+
+  const handleReplyComment = useCallback((cId: string, text: string) => {
+    const cell = sheet.cells[cId];
+    if (!cell?.comment) return;
+    cell.comment.replies.push({ author: userName || 'You', text, timestamp: Date.now() });
+    setWorkbook({ ...workbook });
+  }, [sheet, workbook, userName]);
+
+  const handleResolveComment = useCallback((cId: string) => {
+    const cell = sheet.cells[cId];
+    if (cell) delete cell.comment;
+    setCommentPanel(null);
+    setWorkbook({ ...workbook });
+  }, [sheet, workbook]);
+
+  const handleDeleteComment = useCallback((cId: string) => {
+    const cell = sheet.cells[cId];
+    if (cell) delete cell.comment;
+    setCommentPanel(null);
+    setWorkbook({ ...workbook });
+  }, [sheet, workbook]);
+
+  const handleDeleteReply = useCallback((cId: string, idx: number) => {
+    const cell = sheet.cells[cId];
+    if (cell?.comment) {
+      cell.comment.replies.splice(idx, 1);
+      setWorkbook({ ...workbook });
+    }
+  }, [sheet, workbook]);
+
+  const openCommentPanel = useCallback((row: number, col: number) => {
+    const id = cellId(col, row);
+    const top = row * 28;
+    const left = colLefts[col] ?? 0;
+    const width = getColWidth(sheet, col);
+    setCommentPanel({ cellId: id, rect: { top, left, width, height: 28 } });
+  }, [colLefts, sheet]);
+
   const getCellDisplay = useCallback((id: string): string => {
     const cell = sheet.cells[id];
     if (!cell) return '';
@@ -263,6 +343,15 @@ export default function SpreadsheetEditor({
   const commitEdit = useCallback((value?: string) => {
     const val = value ?? editValue;
     const id = cellId(activeCell.col, activeCell.row);
+
+    // Check protected range
+    if (isCellProtected(activeCell.row, activeCell.col)) {
+      setEditing(false);
+      setProtectedToast('This cell is in a protected range and cannot be edited.');
+      setTimeout(() => setProtectedToast(null), 3000);
+      return;
+    }
+
     const oldCell = sheet.cells[id] ? { ...sheet.cells[id] } : undefined;
 
     if (val === '') {
@@ -332,6 +421,11 @@ export default function SpreadsheetEditor({
   }, [editValue, activeCell, sheet, workbook, validationErrors, enableCollaboration]);
 
   const startEdit = useCallback((initialChar?: string) => {
+    if (isCellProtected(activeCell.row, activeCell.col)) {
+      setProtectedToast('This cell is in a protected range and cannot be edited.');
+      setTimeout(() => setProtectedToast(null), 3000);
+      return;
+    }
     const id = cellId(activeCell.col, activeCell.row);
     const raw = getCellRaw(id);
     setEditing(true);
@@ -423,6 +517,16 @@ export default function SpreadsheetEditor({
         if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
           e.preventDefault();
           startEdit(e.key);
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+          e.preventDefault();
+          setFindReplaceMode(false);
+          setShowFindReplace(true);
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
+          e.preventDefault();
+          setFindReplaceMode(true);
+          setShowFindReplace(true);
         }
         if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
           e.preventDefault();
@@ -743,6 +847,22 @@ export default function SpreadsheetEditor({
   }, [fillDrag, selRange, sheet, workbook, getCellRaw]);
 
   // Context menu handlers
+  // Cell context menu for right-click on cells
+  const [cellContextMenu, setCellContextMenu] = useState<{ x: number; y: number; row: number; col: number } | null>(null);
+
+  const handleCellContextMenu = useCallback((row: number, col: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCellContextMenu({ x: e.clientX, y: e.clientY, row, col });
+  }, []);
+
+  // Close cell context menu on click
+  useEffect(() => {
+    const handler = () => setCellContextMenu(null);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, []);
+
   const handleColHeaderContextMenu = useCallback((col: number, e: React.MouseEvent) => {
     e.preventDefault();
     setContextMenu({ x: e.clientX, y: e.clientY, type: 'col', index: col });
@@ -915,6 +1035,29 @@ export default function SpreadsheetEditor({
     setWorkbook({ ...workbook });
   }, [workbook, sheet]);
 
+  // Find & Replace handlers
+  const handleFindNavigate = useCallback((sheetIndex: number, row: number, col: number) => {
+    if (sheetIndex !== workbook.activeSheet) {
+      workbook.activeSheet = sheetIndex;
+    }
+    setActiveCell({ row, col });
+    setSelection({ startRow: row, startCol: col, endRow: row, endCol: col });
+    setWorkbook({ ...workbook });
+  }, [workbook]);
+
+  const handleFindReplace = useCallback((sheetIndex: number, cId: string, _oldVal: string, newVal: string) => {
+    const s = workbook.sheets[sheetIndex];
+    if (!s.cells[cId]) s.cells[cId] = { value: '' };
+    if (s.cells[cId].formula) {
+      // Don't replace in formula cells
+      return;
+    }
+    s.cells[cId].value = newVal;
+    graphRef.current = buildDependencyGraph(s);
+    recalcAll(s, graphRef.current, workbook.namedRanges);
+    setWorkbook({ ...workbook });
+  }, [workbook]);
+
   // Import/Export handlers
   const handleImportCSV = useCallback((file: File) => {
     const reader = new FileReader();
@@ -953,6 +1096,9 @@ export default function SpreadsheetEditor({
   }, [workbook.sheets]);
 
   // Freeze pane styles
+  // Find match highlights
+  const findMatchSet = useMemo(() => getFindMatchCellIds(findMatches, workbook.activeSheet), [findMatches, workbook.activeSheet]);
+
   const freezeRowPx = sheet.freeze.rows * 28;
   const freezeColPx = useMemo(() => {
     let w = 0;
@@ -983,6 +1129,9 @@ export default function SpreadsheetEditor({
         onDataValidation={() => setShowDVDialog(true)}
         onPivotTable={() => setShowPivotDialog(true)}
         onNamedRanges={() => setShowNamedRangesDialog(true)}
+        onInsertComment={() => openCommentPanel(activeCell.row, activeCell.col)}
+        onProtectedRanges={() => setShowProtectedRangesDialog(true)}
+        onFindReplace={() => { setFindReplaceMode(false); setShowFindReplace(true); }}
       />
       {enableCollaboration && (
         <div className="sheet-collab-bar">
@@ -1266,13 +1415,18 @@ export default function SpreadsheetEditor({
                     );
                   }
 
+                  const hasComment = !!cell?.comment;
+                  const isProtected = isCellProtected(r, c);
+                  const isFindMatch = showFindReplace && findMatchSet.has(id);
+
                   return (
                     <div
                       key={id}
-                      className={`sheet-cell ${valError ? 'sheet-cell-invalid' : ''}`}
+                      className={`sheet-cell ${valError ? 'sheet-cell-invalid' : ''} ${isProtected ? 'sheet-cell-protected' : ''} ${isFindMatch ? 'sheet-cell-find-match' : ''}`}
                       style={style}
                       onClick={e => handleCellClick(r, c, e)}
                       onDoubleClick={() => handleCellDoubleClick()}
+                      onContextMenu={e => handleCellContextMenu(r, c, e)}
                       title={valError || undefined}
                     >
                       {cfResult?.dataBarWidth !== undefined && (
@@ -1288,6 +1442,15 @@ export default function SpreadsheetEditor({
                       <span className="sheet-cell-text">{display}</span>
                       {hasListValidation && <span className="sheet-dropdown-arrow">▾</span>}
                       {valError && <span className="sheet-validation-indicator" />}
+                      {hasComment && (
+                        <div
+                          className="sheet-comment-indicator"
+                          onClick={e => { e.stopPropagation(); openCommentPanel(r, c); }}
+                          onMouseEnter={e => setHoveredComment({ cellId: id, comment: cell!.comment!, x: e.clientX, y: e.clientY })}
+                          onMouseLeave={() => setHoveredComment(null)}
+                        />
+                      )}
+                      {isProtected && <span className="sheet-protected-icon">🔒</span>}
                     </div>
                   );
                 });
@@ -1401,6 +1564,72 @@ export default function SpreadsheetEditor({
           namedRanges={workbook.namedRanges}
           onSave={handleSaveNamedRanges}
           onClose={() => setShowNamedRangesDialog(false)}
+        />
+      )}
+
+      {/* Cell context menu */}
+      {cellContextMenu && (
+        <div
+          className="sheet-context-menu"
+          style={{ position: 'fixed', left: cellContextMenu.x, top: cellContextMenu.y, background: '#fff', border: '1px solid #ccc', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 1000, padding: '4px 0', minWidth: 160 }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="sheet-ctx-item" style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={() => { openCommentPanel(cellContextMenu.row, cellContextMenu.col); setCellContextMenu(null); }}>
+            💬 {sheet.cells[cellId(cellContextMenu.col, cellContextMenu.row)]?.comment ? 'Edit comment' : 'Insert comment'}
+          </div>
+        </div>
+      )}
+
+      {/* Comment panel */}
+      {commentPanel && (
+        <SheetComments
+          cellId={commentPanel.cellId}
+          comment={sheet.cells[commentPanel.cellId]?.comment}
+          anchorRect={commentPanel.rect}
+          onAddComment={handleAddComment}
+          onReply={handleReplyComment}
+          onResolve={handleResolveComment}
+          onDelete={handleDeleteComment}
+          onDeleteReply={handleDeleteReply}
+          onClose={() => setCommentPanel(null)}
+        />
+      )}
+
+      {/* Comment tooltip on hover */}
+      {hoveredComment && !commentPanel && (
+        <CommentTooltip
+          comment={hoveredComment.comment}
+          style={{ position: 'fixed', left: hoveredComment.x + 12, top: hoveredComment.y + 12, zIndex: 200 }}
+        />
+      )}
+
+      {/* Protected ranges dialog */}
+      {showProtectedRangesDialog && (
+        <ProtectedRanges
+          ranges={sheet.protectedRanges}
+          selectedRange={selectedRangeStr}
+          onSave={(ranges: ProtectedRange[]) => {
+            sheet.protectedRanges = ranges;
+            setWorkbook({ ...workbook });
+          }}
+          onClose={() => setShowProtectedRangesDialog(false)}
+        />
+      )}
+
+      {/* Protected cell toast */}
+      {protectedToast && (
+        <div className="sheet-toast">{protectedToast}</div>
+      )}
+
+      {/* Find & Replace */}
+      {showFindReplace && (
+        <SheetFindReplace
+          workbook={workbook}
+          activeSheet={workbook.activeSheet}
+          onNavigate={handleFindNavigate}
+          onReplace={handleFindReplace}
+          onClose={() => { setShowFindReplace(false); setFindMatches([]); }}
+          replaceMode={findReplaceMode}
         />
       )}
     </div>

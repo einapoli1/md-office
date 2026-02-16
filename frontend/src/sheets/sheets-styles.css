@@ -463,3 +463,290 @@
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.4; }
 }
+
+/* ── Cell comment indicator ────────────────────────────────────────────── */
+
+.sheet-comment-indicator {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-top: 8px solid #f9ab00;
+  cursor: pointer;
+  z-index: 6;
+}
+.sheet-comment-indicator:hover {
+  border-top-color: #e8710a;
+}
+
+/* Comment panel / popover */
+.sheet-comment-panel {
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+  width: 280px;
+  padding: 12px;
+  font-size: 13px;
+}
+.sheet-comment-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.sheet-comment-author {
+  font-weight: 600;
+  color: #202124;
+}
+.sheet-comment-time {
+  font-size: 11px;
+  color: #80868b;
+  flex: 1;
+}
+.sheet-comment-actions {
+  display: flex;
+  gap: 2px;
+}
+.sheet-comment-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: #5f6368;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+.sheet-comment-actions button:hover { background: #f1f3f4; }
+.sheet-comment-text {
+  color: #3c4043;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.sheet-comment-reply {
+  border-top: 1px solid #e8eaed;
+  padding-top: 8px;
+  margin-top: 4px;
+}
+.sheet-comment-reply-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.sheet-comment-delete-reply {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: #80868b;
+  margin-left: auto;
+}
+.sheet-comment-reply-box {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.sheet-comment-reply-box input {
+  flex: 1;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  outline: none;
+}
+.sheet-comment-reply-box input:focus { border-color: #1a73e8; }
+.sheet-comment-reply-box button {
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.sheet-comment-reply-box button:disabled { opacity: 0.5; }
+.sheet-comment-new textarea {
+  width: 100%;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 13px;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.sheet-comment-new textarea:focus { border-color: #1a73e8; }
+.sheet-comment-new-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.sheet-comment-new-actions button {
+  border: none;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  background: #f1f3f4;
+  color: #3c4043;
+}
+.sheet-comment-submit {
+  background: #1a73e8 !important;
+  color: #fff !important;
+}
+.sheet-comment-submit:disabled { opacity: 0.5; }
+
+/* Comment tooltip */
+.sheet-comment-tooltip {
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.15);
+  padding: 8px 12px;
+  max-width: 240px;
+  font-size: 12px;
+  pointer-events: none;
+}
+.sheet-comment-tooltip strong { display: block; margin-bottom: 2px; }
+.sheet-comment-tooltip-time { font-size: 10px; color: #80868b; display: block; margin-bottom: 4px; }
+.sheet-comment-tooltip p { margin: 0; color: #3c4043; }
+.sheet-comment-tooltip-replies { font-size: 10px; color: #1a73e8; margin-top: 4px; }
+
+/* ── Protected cells ───────────────────────────────────────────────────── */
+
+.sheet-cell-protected {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    rgba(0,0,0,0.02) 4px,
+    rgba(0,0,0,0.02) 8px
+  ) !important;
+}
+.sheet-protected-icon {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  font-size: 8px;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Protected range item in dialog */
+.sheet-protected-range-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #f1f3f4;
+}
+.sheet-protected-range-cell {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 80px;
+}
+.sheet-protected-range-desc {
+  flex: 1;
+  font-size: 12px;
+  color: #5f6368;
+}
+
+/* Toast notification */
+.sheet-toast {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #323232;
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-size: 13px;
+  z-index: 9999;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  animation: sheet-toast-in 0.2s ease;
+}
+@keyframes sheet-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Find & Replace bar ────────────────────────────────────────────────── */
+
+.sheet-find-replace {
+  position: absolute;
+  top: 0;
+  right: 20px;
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  padding: 8px 12px;
+  z-index: 100;
+  min-width: 340px;
+}
+.sheet-find-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.sheet-find-input {
+  flex: 1;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 13px;
+  outline: none;
+}
+.sheet-find-input:focus { border-color: #1a73e8; }
+.sheet-find-count {
+  font-size: 11px;
+  color: #80868b;
+  min-width: 60px;
+  text-align: center;
+}
+.sheet-find-options {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: #5f6368;
+}
+.sheet-find-options label {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+}
+
+/* Find match highlight on cells */
+.sheet-cell-find-match {
+  outline: 2px solid #f9ab00 !important;
+  outline-offset: -1px;
+  z-index: 5;
+}
+
+/* ── Dialog overlay (shared) ───────────────────────────────────────────── */
+.sheet-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.sheet-dialog {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  max-height: 80vh;
+  overflow-y: auto;
+}

@@ -52,6 +52,7 @@ function slideToYMap(slide: Slide, _ydoc: Y.Doc): Y.Map<any> {
   ymap.set('transitionDuration', slide.transitionDuration);
   ymap.set('shapes', JSON.stringify(slide.shapes));
   ymap.set('fragments', JSON.stringify(slide.fragments));
+  ymap.set('comments', JSON.stringify(slide.comments || []));
   return ymap;
 }
 
@@ -65,6 +66,7 @@ function ymapToSlide(ymap: Y.Map<any>): Slide {
     transitionDuration: (ymap.get('transitionDuration') as TransitionDuration) || '0.3s',
     shapes: safeJsonParse<SlideShape[]>(ymap.get('shapes') as string, []),
     fragments: safeJsonParse<Fragment[]>(ymap.get('fragments') as string, []),
+    comments: safeJsonParse(ymap.get('comments') as string, []),
   };
 }
 
@@ -113,6 +115,7 @@ export function syncPresentationFromYjs(ydoc: Y.Doc): Presentation {
       transitionDuration: '0.3s',
       fragments: [],
       shapes: [],
+      comments: [],
     });
   }
 

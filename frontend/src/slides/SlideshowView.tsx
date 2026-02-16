@@ -8,15 +8,18 @@ interface Props {
   theme: SlideTheme;
   startIndex?: number;
   onExit: () => void;
+  autoAdvance?: boolean;
 }
 
-export default function SlideshowView({ slides, theme, startIndex = 0, onExit }: Props) {
+export default function SlideshowView({ slides, theme, startIndex = 0, onExit, autoAdvance = false }: Props) {
   const [current, setCurrent] = useState(startIndex);
   const [fragmentIndex, setFragmentIndex] = useState(-1); // -1 = no fragments revealed
   const [transition, setTransition] = useState<TransitionType>('none');
   const [transitionDuration, setTransitionDuration] = useState('0.3s');
   const [animating, setAnimating] = useState(false);
+  const [autoProgress, setAutoProgress] = useState(0); // 0-100 percent
   const containerRef = useRef<HTMLDivElement>(null);
+  const autoTimerRef = useRef<ReturnType<typeof setInterval>>();
 
   const currentSlide = slides[current];
   const totalFragments = currentSlide?.fragments?.length ?? 0;
@@ -72,7 +75,26 @@ export default function SlideshowView({ slides, theme, startIndex = 0, onExit }:
     return () => { document.exitFullscreen?.().catch(() => {}); };
   }, []);
 
+  // Auto-advance
+  useEffect(() => {
+    if (!autoAdvance) return;
+    const timing = slides[current]?.timingMs;
+    if (!timing || timing <= 0) return;
+    const startTime = Date.now();
+    autoTimerRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const pct = Math.min(100, (elapsed / timing) * 100);
+      setAutoProgress(pct);
+      if (elapsed >= timing) {
+        clearInterval(autoTimerRef.current);
+        go(1);
+      }
+    }, 50);
+    return () => { clearInterval(autoTimerRef.current); setAutoProgress(0); };
+  }, [current, autoAdvance, slides, go]);
+
   const transClass = animating ? `slideshow-trans-${transition}` : '';
+  const showProgressBar = autoAdvance && (slides[current]?.timingMs ?? 0) > 0;
 
   return (
     <div ref={containerRef} className="slideshow-view" onClick={() => go(1)}>
@@ -87,6 +109,11 @@ export default function SlideshowView({ slides, theme, startIndex = 0, onExit }:
           fragmentIndex={fragmentIndex}
         />
       </div>
+      {showProgressBar && (
+        <div className="slideshow-progress-bar">
+          <div className="slideshow-progress-fill" style={{ width: `${autoProgress}%` }} />
+        </div>
+      )}
     </div>
   );
 }

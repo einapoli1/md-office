@@ -6,11 +6,33 @@ import type { ConditionalRule, ValidationRule } from './conditionalEval';
 import { DependencyGraph, extractRefs, evaluateFormula, cellId, parseCellRef, indexToCol } from './formulaEngine';
 import type { PivotConfig } from './pivotEngine';
 
+export interface CommentReply {
+  author: string;
+  text: string;
+  timestamp: number;
+}
+
+export interface CellComment {
+  author: string;
+  text: string;
+  timestamp: number;
+  replies: CommentReply[];
+  resolved?: boolean;
+}
+
+export interface ProtectedRange {
+  id: string;
+  range: string;       // e.g. "A1:C5"
+  description: string;
+  locked: boolean;
+}
+
 export interface CellData {
   value: string;
   formula?: string;
   format?: CellFormat;
   computed?: string; // cached computed value for formulas
+  comment?: CellComment;
 }
 
 export type ChartType = 'bar' | 'line' | 'pie' | 'scatter' | 'area';
@@ -53,6 +75,7 @@ export interface SheetData {
   sortState?: { col: number; ascending: boolean };
   conditionalFormats: ConditionalRule[];
   validationRules: ValidationRule[];
+  protectedRanges: ProtectedRange[];
 }
 
 export interface WorkbookData {
@@ -73,7 +96,7 @@ const DEFAULT_COL_WIDTH = 100;
 const DEFAULT_ROW_HEIGHT = 28;
 
 export function createEmptySheet(name: string): SheetData {
-  return { name, cells: {}, merges: [], colWidths: {}, rowHeights: {}, charts: [], filters: [], filtersEnabled: false, freeze: { rows: 0, cols: 0 }, conditionalFormats: [], validationRules: [] };
+  return { name, cells: {}, merges: [], colWidths: {}, rowHeights: {}, charts: [], filters: [], filtersEnabled: false, freeze: { rows: 0, cols: 0 }, conditionalFormats: [], validationRules: [], protectedRanges: [] };
 }
 
 export function createWorkbook(): WorkbookData {

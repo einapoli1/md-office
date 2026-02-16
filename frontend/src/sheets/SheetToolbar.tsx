@@ -23,9 +23,12 @@ interface SheetToolbarProps {
   onDataValidation?: () => void;
   onPivotTable?: () => void;
   onNamedRanges?: () => void;
+  onInsertComment?: () => void;
+  onProtectedRanges?: () => void;
+  onFindReplace?: () => void;
 }
 
-export default function SheetToolbar({ format, onFormatChange, onMergeCells, canUndo, canRedo, onUndo, onRedo, onInsertChart, filtersEnabled, onToggleFilters, freeze, onFreezeChange, onImportCSV, onImportXLSX, onExportCSV, onExportXLSX, onConditionalFormat, onDataValidation, onPivotTable, onNamedRanges }: SheetToolbarProps) {
+export default function SheetToolbar({ format, onFormatChange, onMergeCells, canUndo, canRedo, onUndo, onRedo, onInsertChart, filtersEnabled, onToggleFilters, freeze, onFreezeChange, onImportCSV, onImportXLSX, onExportCSV, onExportXLSX, onConditionalFormat, onDataValidation, onPivotTable, onNamedRanges, onInsertComment, onProtectedRanges, onFindReplace }: SheetToolbarProps) {
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importMode, setImportMode] = useState<'csv' | 'xlsx'>('csv');
@@ -180,6 +183,10 @@ export default function SheetToolbar({ format, onFormatChange, onMergeCells, can
       <span className="sheet-tb-sep" />
       {onPivotTable && <button className="sheet-tb-btn" onClick={onPivotTable} title="Pivot table">📋</button>}
       {onNamedRanges && <button className="sheet-tb-btn" onClick={onNamedRanges} title="Named ranges">📛</button>}
+      <span className="sheet-tb-sep" />
+      {onInsertComment && <button className="sheet-tb-btn" onClick={onInsertComment} title="Insert comment">💬</button>}
+      {onProtectedRanges && <button className="sheet-tb-btn" onClick={onProtectedRanges} title="Protected ranges">🔒</button>}
+      {onFindReplace && <button className="sheet-tb-btn" onClick={onFindReplace} title="Find & Replace">🔍</button>}
     </div>
   );
 }
