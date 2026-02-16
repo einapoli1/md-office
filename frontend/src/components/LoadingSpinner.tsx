@@ -1,4 +1,4 @@
-import React from 'react';
+import type { FC } from 'react';
 
 interface LoadingSpinnerProps {
   /** Optional message below the spinner */
@@ -9,7 +9,7 @@ interface LoadingSpinnerProps {
   inline?: boolean;
 }
 
-const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ message, size = 'medium', inline = false }) => {
+const LoadingSpinner: FC<LoadingSpinnerProps> = ({ message, size = 'medium', inline = false }) => {
   const spinner = (
     <div className={`loading-spinner-container ${inline ? 'loading-spinner-inline' : ''}`}>
       <div className={`loading-spinner-circle loading-spinner-${size}`} role="status" aria-label="Loading">
