@@ -8,6 +8,10 @@ import SheetToolbar from './SheetToolbar';
 import SheetTabs from './SheetTabs';
 import { SheetChartOverlay, InsertChartDialog } from './SheetChart';
 import { exportCSV, importCSV, exportXLSX, importXLSX, downloadBlob, downloadString } from './sheetIO';
+import ConditionalFormatDialog from './ConditionalFormat';
+import DataValidationDialog from './DataValidation';
+import { evaluateConditionalFormats, getNumericValuesInRange, isCellInRange, validateCell } from './conditionalEval';
+import type { ConditionalRule, ValidationRule } from './conditionalEval';
 import './sheets-styles.css';
 
 const NUM_COLS = 26;
@@ -63,6 +67,9 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
   const [showChartDialog, setShowChartDialog] = useState(false);
   const [filterDropdown, setFilterDropdown] = useState<FilterDropdown | null>(null);
   const [hiddenRows, setHiddenRows] = useState<Set<number>>(new Set());
+  const [showCFDialog, setShowCFDialog] = useState(false);
+  const [showDVDialog, setShowDVDialog] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   const graphRef = useRef<DependencyGraph>(new DependencyGraph());
   const undoRef = useRef(new UndoManager());
@@ -76,6 +83,8 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
   if (!sheet.filters) sheet.filters = [];
   if (sheet.filtersEnabled === undefined) sheet.filtersEnabled = false;
   if (!sheet.freeze) sheet.freeze = { rows: 0, cols: 0 };
+  if (!sheet.conditionalFormats) sheet.conditionalFormats = [];
+  if (!sheet.validationRules) sheet.validationRules = [];
 
   // Build dep graph on mount / sheet change
   useEffect(() => {
@@ -171,9 +180,35 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
       }
     }
 
+    // Validate
+    const newErrors = { ...validationErrors };
+    const cellVal = sheet.cells[id] ? (sheet.cells[id].computed ?? sheet.cells[id].value) : '';
+    let hasValidationIssue = false;
+    for (const vr of sheet.conditionalFormats ? sheet.validationRules || [] : sheet.validationRules || []) {
+      if (isCellInRange(activeCell.col, activeCell.row, vr.range)) {
+        const result = validateCell(cellVal, vr.rule);
+        if (!result.valid) {
+          newErrors[id] = result.message || 'Invalid';
+          hasValidationIssue = true;
+          if (vr.rule.onInvalid === 'reject' && val !== '') {
+            // Restore old value
+            if (oldCell) sheet.cells[id] = { ...oldCell };
+            else delete sheet.cells[id];
+            alert(result.message || 'Invalid value');
+            setEditing(false);
+            return;
+          }
+        } else {
+          delete newErrors[id];
+        }
+      }
+    }
+    if (!hasValidationIssue) delete newErrors[id];
+    setValidationErrors(newErrors);
+
     setEditing(false);
     setWorkbook({ ...workbook });
-  }, [editValue, activeCell, sheet, workbook]);
+  }, [editValue, activeCell, sheet, workbook, validationErrors]);
 
   const startEdit = useCallback((initialChar?: string) => {
     const id = cellId(activeCell.col, activeCell.row);
@@ -349,6 +384,10 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
     minCol: Math.min(selection.startCol, selection.endCol),
     maxCol: Math.max(selection.startCol, selection.endCol),
   }), [selection]);
+
+  const selectedRangeStr = useMemo(() => {
+    return `${indexToCol(selRange.minCol)}${selRange.minRow + 1}:${indexToCol(selRange.maxCol)}${selRange.maxRow + 1}`;
+  }, [selRange]);
 
   const currentFormat = useMemo((): CellFormat => {
     const id = cellId(activeCell.col, activeCell.row);
@@ -623,6 +662,8 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
         onImportXLSX={handleImportXLSX}
         onExportCSV={handleExportCSV}
         onExportXLSX={handleExportXLSX}
+        onConditionalFormat={() => setShowCFDialog(true)}
+        onDataValidation={() => setShowDVDialog(true)}
       />
       <FormulaBar
         cellRef={cellId(activeCell.col, activeCell.row)}
@@ -740,6 +781,21 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
                   const isActive = r === activeCell.row && c === activeCell.col;
                   const isFrozenRow = r < sheet.freeze.rows;
                   const isFrozenCol = c < sheet.freeze.cols;
+
+                  // Conditional formatting
+                  const cellValue = cell ? (cell.computed ?? cell.value) : '';
+                  const cfResult = sheet.conditionalFormats.length > 0
+                    ? evaluateConditionalFormats(c, r, cellValue, sheet.conditionalFormats,
+                        getNumericValuesInRange(
+                          sheet.conditionalFormats.find(cf => isCellInRange(c, r, cf.range) && (cf.type === 'colorScale' || cf.type === 'dataBars'))?.range || '',
+                          sheet.cells
+                        ))
+                    : null;
+
+                  // Validation error
+                  const valError = validationErrors[id];
+                  const hasListValidation = sheet.validationRules.some(vr => vr.rule.type === 'list' && isCellInRange(c, r, vr.range));
+
                   const style: React.CSSProperties = {
                     position: 'absolute',
                     top: r * 28,
@@ -747,6 +803,7 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
                     width: getColWidth(sheet, c),
                     height: 28,
                     ...getCellStyle(cell?.format),
+                    ...(cfResult?.style || {}),
                     ...((isFrozenRow || isFrozenCol) ? {
                       position: 'sticky' as const,
                       zIndex: (isFrozenRow && isFrozenCol) ? 4 : 2,
@@ -756,6 +813,30 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
                   };
 
                   if (isActive && editing) {
+                    // Check if this cell has list validation for dropdown
+                    const listRule = sheet.validationRules.find(vr => vr.rule.type === 'list' && isCellInRange(c, r, vr.range));
+                    if (listRule && listRule.rule.listItems) {
+                      return (
+                        <select
+                          key={id}
+                          className="sheet-cell-input sheet-cell-dropdown"
+                          style={style}
+                          value={editValue}
+                          onChange={e => {
+                            setEditValue(e.target.value);
+                            setFormulaBarValue(e.target.value);
+                            commitEdit(e.target.value);
+                          }}
+                          onBlur={() => commitEdit()}
+                          autoFocus
+                        >
+                          <option value="">—</option>
+                          {listRule.rule.listItems.map(item => (
+                            <option key={item} value={item}>{item}</option>
+                          ))}
+                        </select>
+                      );
+                    }
                     return (
                       <input
                         key={id}
@@ -775,12 +856,25 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
                   return (
                     <div
                       key={id}
-                      className="sheet-cell"
+                      className={`sheet-cell ${valError ? 'sheet-cell-invalid' : ''}`}
                       style={style}
                       onClick={e => handleCellClick(r, c, e)}
                       onDoubleClick={() => handleCellDoubleClick()}
+                      title={valError || undefined}
                     >
-                      {display}
+                      {cfResult?.dataBarWidth !== undefined && (
+                        <div
+                          className="sheet-data-bar"
+                          style={{
+                            width: `${cfResult.dataBarWidth}%`,
+                            backgroundColor: sheet.conditionalFormats.find(cf => cf.type === 'dataBars' && isCellInRange(c, r, cf.range))?.dataBarColor || '#4285f4',
+                          }}
+                        />
+                      )}
+                      {cfResult?.icon && <span className="sheet-cf-icon">{cfResult.icon}</span>}
+                      <span className="sheet-cell-text">{display}</span>
+                      {hasListValidation && <span className="sheet-dropdown-arrow">▾</span>}
+                      {valError && <span className="sheet-validation-indicator" />}
                     </div>
                   );
                 });
@@ -852,6 +946,32 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
         <InsertChartDialog
           onInsert={handleInsertChart}
           onClose={() => setShowChartDialog(false)}
+        />
+      )}
+
+      {showCFDialog && (
+        <ConditionalFormatDialog
+          existingRules={sheet.conditionalFormats}
+          selectedRange={selectedRangeStr}
+          onSave={(rules: ConditionalRule[]) => {
+            sheet.conditionalFormats = rules;
+            setShowCFDialog(false);
+            setWorkbook({ ...workbook });
+          }}
+          onClose={() => setShowCFDialog(false)}
+        />
+      )}
+
+      {showDVDialog && (
+        <DataValidationDialog
+          existingRules={sheet.validationRules}
+          selectedRange={selectedRangeStr}
+          onSave={(rules: ValidationRule[]) => {
+            sheet.validationRules = rules;
+            setShowDVDialog(false);
+            setWorkbook({ ...workbook });
+          }}
+          onClose={() => setShowDVDialog(false)}
         />
       )}
     </div>

@@ -157,7 +157,7 @@ function RuleEditor({ rule, onSave, onCancel }: { rule: ConditionalRule; onSave:
         <>
           <div className="cf-field">
             <label>Condition</label>
-            <select value={operator} onChange={e => setOperator(e.target.value)}>
+            <select value={operator} onChange={e => setOperator(e.target.value as typeof operator)}>
               {CELL_VALUE_OPS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
@@ -178,7 +178,7 @@ function RuleEditor({ rule, onSave, onCancel }: { rule: ConditionalRule; onSave:
         <>
           <div className="cf-field">
             <label>Condition</label>
-            <select value={operator} onChange={e => setOperator(e.target.value)}>
+            <select value={operator} onChange={e => setOperator(e.target.value as typeof operator)}>
               {TEXT_OPS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
