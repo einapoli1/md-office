@@ -194,6 +194,10 @@ const MenuBar: React.FC<MenuBarProps> = ({
           editor.commands.insertBookmark(name);
         }
       }},
+      { label: 'divider' },
+      { label: 'Watermark', action: () => {
+        window.dispatchEvent(new CustomEvent('watermark-open'));
+      }},
     ],
     Format: [
       { label: 'Bold', action: () => editor?.chain().focus().toggleBold().run(), shortcut: 'Ctrl+B' },
@@ -243,6 +247,11 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Word count', action: () => {
         window.dispatchEvent(new CustomEvent('word-count-open'));
       }},
+      { label: 'divider' },
+      { label: 'Compare documents', action: () => {
+        window.dispatchEvent(new CustomEvent('compare-open'));
+      }},
+      { label: 'divider' },
       { label: 'Preferences', action: onShowSettings, icon: Settings },
     ],
     ...(accountItems.length > 0 && { Account: accountItems })

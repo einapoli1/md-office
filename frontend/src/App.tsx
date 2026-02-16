@@ -21,6 +21,7 @@ import LinkDialog from './components/LinkDialog';
 import ToastProvider from './components/ToastProvider';
 import ShareDialog from './components/ShareDialog';
 import { toast } from './components/Toast';
+import RecentDocs, { RecentDocEntry, loadRecentDocs, touchRecentDoc, removeRecentDoc } from './components/RecentDocs';
 
 // Lazy load dialogs — only rendered when opened
 const TemplateSelector = lazy(() => import('./components/TemplateSelector'));
@@ -47,6 +48,7 @@ function App() {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [recentFiles, setRecentFiles] = useState<string[]>([]);
+  const [recentDocs, setRecentDocs] = useState<RecentDocEntry[]>(() => loadRecentDocs());
   const [isDarkMode, setIsDarkMode] = useState(() => {
     // Check localStorage first, then system preference
     const saved = localStorage.getItem('darkMode');
@@ -124,6 +126,13 @@ function App() {
     }
   }, [authLoading, isAuthenticated, isGuestMode]);
 
+  // Refresh enriched recent docs when updated (e.g. star toggled)
+  useEffect(() => {
+    const refresh = () => setRecentDocs(loadRecentDocs());
+    window.addEventListener('recent-docs-updated', refresh);
+    return () => window.removeEventListener('recent-docs-updated', refresh);
+  }, []);
+
   // Apply dark mode class to body
   useEffect(() => {
     document.body.className = isDarkMode ? 'dark' : '';
@@ -168,7 +177,7 @@ function App() {
         toast('Document saved', 'success');
         
         // Update recent files
-        updateRecentFiles(activeFile.path);
+        updateRecentFiles(activeFile.path, newContent);
       } catch (error) {
         console.error('Auto-save failed:', error);
         setSaveStatus('error');
@@ -215,13 +224,16 @@ function App() {
     }
   };
 
-  const updateRecentFiles = (filePath: string) => {
+  const updateRecentFiles = (filePath: string, fileContent?: string) => {
     setRecentFiles(prev => {
       const filtered = prev.filter(f => f !== filePath);
-      const updated = [filePath, ...filtered].slice(0, 10); // Keep last 10
+      const updated = [filePath, ...filtered].slice(0, 10);
       localStorage.setItem('recentFiles', JSON.stringify(updated));
       return updated;
     });
+    // Update enriched recent docs
+    const updated = touchRecentDoc(filePath, fileContent ?? '');
+    setRecentDocs(updated);
   };
 
   const handleFileSelect = async (file: FileSystemItem) => {
@@ -237,7 +249,7 @@ function App() {
       setSaveStatus('saved');
       setLastSaved(undefined);
       originalContentRef.current = fileContent.content;
-      updateRecentFiles(file.path);
+      updateRecentFiles(file.path, fileContent.content);
     } catch (error) {
       console.error('Failed to load file:', error);
     } finally {
@@ -329,6 +341,7 @@ function App() {
         localStorage.setItem('recentFiles', JSON.stringify(updated));
         return updated;
       });
+      setRecentDocs(removeRecentDoc(path));
     } catch (error) {
       console.error('Failed to delete item:', error);
     }
@@ -390,6 +403,26 @@ function App() {
         console.error('Failed to revert:', e);
         toast('Failed to restore version', 'error');
       }
+    }
+  };
+
+  const handleOpenByPath = async (filePath: string) => {
+    try {
+      setLoading(true);
+      const currentAPI = isGuestMode ? localFileAPI : fileAPI;
+      const fileContent = await currentAPI.getFile(filePath);
+      setActiveFile(fileContent);
+      setContent(fileContent.content);
+      setRulerMargins(null);
+      setSaveStatus('saved');
+      setLastSaved(undefined);
+      originalContentRef.current = fileContent.content;
+      updateRecentFiles(filePath, fileContent.content);
+    } catch (error) {
+      console.error('Failed to open document:', error);
+      toast('Failed to open document', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -794,6 +827,14 @@ function App() {
         )}
 
         <div className="main-editor">
+          {!activeFile && !loading ? (
+            <RecentDocs
+              recentDocs={recentDocs}
+              onOpenDocument={handleOpenByPath}
+              onNewDocument={handleNewFile}
+              onNewFromTemplate={handleNewFromTemplate}
+            />
+          ) : null}
           {showRuler && !pageless && activeFile && (() => {
             const parsed = parseFrontmatter(content);
             const ps = getPageStyles(parsed.metadata);

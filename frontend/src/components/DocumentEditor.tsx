@@ -4,6 +4,7 @@ import { FileContent } from '../types';
 import Editor from './Editor';
 import CollabPresence from './CollabPresence';
 import PageSetupDialog from './PageSetupDialog';
+import WatermarkDialog, { WatermarkConfig } from './WatermarkDialog';
 // PageBreaks handled by TipTap extension now
 import { 
   parseFrontmatter, 
@@ -34,6 +35,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
 }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showPageSetup, setShowPageSetup] = useState(false);
+  const [showWatermark, setShowWatermark] = useState(false);
   const [parsedDocument, setParsedDocument] = useState(() => parseFrontmatter(content));
   const [collabProvider, setCollabProvider] = useState<any>(null);
 
@@ -74,14 +76,17 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   // Listen for page setup and text direction events
   useEffect(() => {
     const handlePageSetup = () => setShowPageSetup(true);
+    const handleWatermarkOpen = () => setShowWatermark(true);
     const handleTextDirection = (e: Event) => {
       const dir = (e as CustomEvent).detail?.dir as 'ltr' | 'rtl';
       if (dir) handleMetadataUpdate({ textDirection: dir });
     };
     window.addEventListener('page-setup-open', handlePageSetup);
+    window.addEventListener('watermark-open', handleWatermarkOpen);
     window.addEventListener('set-text-direction', handleTextDirection);
     return () => {
       window.removeEventListener('page-setup-open', handlePageSetup);
+      window.removeEventListener('watermark-open', handleWatermarkOpen);
       window.removeEventListener('set-text-direction', handleTextDirection);
     };
   }, [parsedDocument]);
@@ -155,6 +160,32 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Watermark Overlay */}
+      {parsedDocument.metadata.watermark && (
+        <div className="watermark-overlay" aria-hidden="true">
+          <span
+            className="watermark-text"
+            style={{
+              fontSize: { small: 48, medium: 72, large: 120 }[(parsedDocument.metadata.watermark as WatermarkConfig).fontSize] || 72,
+              color: (parsedDocument.metadata.watermark as WatermarkConfig).color || '#cccccc',
+              opacity: (parsedDocument.metadata.watermark as WatermarkConfig).opacity ?? 0.3,
+              transform: `translate(-50%, -50%) rotate(${(parsedDocument.metadata.watermark as WatermarkConfig).rotation ?? -45}deg)`,
+            }}
+          >
+            {(parsedDocument.metadata.watermark as WatermarkConfig).text}
+          </span>
+        </div>
+      )}
+
+      {/* Watermark Dialog */}
+      {showWatermark && (
+        <WatermarkDialog
+          watermark={(parsedDocument.metadata.watermark as WatermarkConfig) || null}
+          onApply={(config) => handleMetadataUpdate({ watermark: config as any })}
+          onClose={() => setShowWatermark(false)}
+        />
+      )}
 
       {/* Page Setup Dialog */}
       {showPageSetup && (
