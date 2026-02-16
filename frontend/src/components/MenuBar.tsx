@@ -418,6 +418,10 @@ const MenuBar: React.FC<MenuBarProps> = ({
         { label: 'divider' },
         { label: 'Present', action: () => window.dispatchEvent(new CustomEvent('slide-present')), shortcut: '⌘⇧P' },
         { label: 'divider' },
+        { label: 'Video', action: () => window.dispatchEvent(new CustomEvent('slide-insert-video')) },
+        { label: 'Audio Narration', action: () => window.dispatchEvent(new CustomEvent('slide-insert-audio')) },
+        { label: 'Interactive Element', action: () => window.dispatchEvent(new CustomEvent('slide-insert-interactive')) },
+        { label: 'divider' },
         { label: 'Chart from Sheets', action: () => {
           window.dispatchEvent(new CustomEvent('embed-picker-open', { detail: { type: 'chart' } }));
         }},

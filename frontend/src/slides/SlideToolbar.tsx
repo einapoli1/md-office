@@ -5,6 +5,7 @@ import { THEMES } from './slideThemes';
 import { ShapePicker } from './ShapeTools';
 import type { ShapeType } from './ShapeTools';
 import { TEMPLATES } from './slideTemplates';
+import { TransitionSelectWithPreview } from './TransitionPreview';
 
 interface Props {
   currentTheme: string;
@@ -28,6 +29,9 @@ interface Props {
   onExportHTML?: () => void;
   onToggleTimeline?: () => void;
   showTimeline?: boolean;
+  onInsertVideo?: () => void;
+  onInsertAudio?: () => void;
+  onInsertInteractive?: () => void;
 }
 
 export default function SlideToolbar({
@@ -39,6 +43,7 @@ export default function SlideToolbar({
   onNewFromTemplate,
   onExportPDF, onExportHTML,
   onToggleTimeline, showTimeline,
+  onInsertVideo, onInsertAudio, onInsertInteractive,
 }: Props) {
   const [templateOpen, setTemplateOpen] = useState(false);
 
@@ -54,22 +59,7 @@ export default function SlideToolbar({
           {LAYOUTS.map(l => <option key={l.name} value={l.name}>{l.icon} {l.label}</option>)}
         </select>
 
-        <select value={currentTransition} onChange={e => onTransitionChange(e.target.value as TransitionType)} title="Transition">
-          <option value="none">No transition</option>
-          <option value="fade">Fade</option>
-          <option value="slide-left">Slide Left</option>
-          <option value="slide-right">Slide Right</option>
-          <option value="slide-up">Slide Up</option>
-          <option value="zoom">Zoom</option>
-          <option value="dissolve">Dissolve</option>
-          <option value="wipe">Wipe</option>
-          <option value="morph">Morph</option>
-          <option value="zoom-rotate">Zoom Rotate</option>
-          <option value="curtain">Curtain</option>
-          <option value="flip">Flip</option>
-          <option value="cube">Cube</option>
-          <option value="swipe">Swipe</option>
-        </select>
+        <TransitionSelectWithPreview value={currentTransition} onChange={onTransitionChange} />
 
         <select value={currentTransitionDuration} onChange={e => onTransitionDurationChange(e.target.value as TransitionDuration)} title="Duration">
           <option value="0.3s">Fast (0.3s)</option>
@@ -109,6 +99,13 @@ export default function SlideToolbar({
       {/* Shapes */}
       <div className="toolbar-group">
         <ShapePicker onSelect={onShapeToolSelect} activeShape={activeShapeTool} />
+      </div>
+
+      {/* Media & Interactive */}
+      <div className="toolbar-group">
+        <button className="toolbar-btn" onClick={onInsertVideo} title="Insert Video">🎬 Video</button>
+        <button className="toolbar-btn" onClick={onInsertAudio} title="Insert Audio Narration">🎙 Audio</button>
+        <button className="toolbar-btn" onClick={onInsertInteractive} title="Insert Interactive Element">🔘 Interactive</button>
       </div>
 
       {/* Add slide + templates */}

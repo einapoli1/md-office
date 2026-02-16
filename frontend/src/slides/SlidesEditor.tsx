@@ -20,6 +20,10 @@ import type { SlideTimings } from './RehearsalMode';
 import SlideMaster from './SlideMaster';
 import SlideShortcuts from './SlideShortcuts';
 import SlideStatusBar from './SlideStatusBar';
+import { InsertVideoDialog, VideoPlaceholder, type VideoEmbedData } from './VideoEmbed';
+import { AudioNarrationDialog, type AudioNarrationData } from './AudioNarration';
+import { InsertInteractiveDialog, InteractiveElementEditor, type InteractiveElement } from './InteractiveElements';
+import SlideNotes from './SlideNotes';
 import {
   initSlideCollab, syncPresentationFromYjs, updateSlideFieldInYjs,
   addSlideInYjs, deleteSlideInYjs, reorderSlideInYjs, updatePresMetaInYjs,
@@ -56,8 +60,14 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
   const [commentMode, setCommentMode] = useState(false);
   const [rehearsalMode, setRehearsalMode] = useState(false);
   const [autoAdvance, setAutoAdvance] = useState(false);
-  const [notesHeight, setNotesHeight] = useState(120);
+  const [notesHeight] = useState(120);
   const notesDragRef = useRef(false);
+  const [showVideoDialog, setShowVideoDialog] = useState(false);
+  const [showAudioDialog, setShowAudioDialog] = useState(false);
+  const [showInteractiveDialog, setShowInteractiveDialog] = useState(false);
+  const [videos, setVideos] = useState<Record<string, VideoEmbedData[]>>({});
+  const [narrations, setNarrations] = useState<Record<string, AudioNarrationData>>({});
+  const [interactiveElements, setInteractiveElements] = useState<Record<string, InteractiveElement[]>>({});
 
   const collabRef = useRef<SlideCollabHandle | null>(null);
   const suppressRemoteRef = useRef(false);
@@ -302,6 +312,66 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
     setCommentMode(false);
   }, [commentMode, collab, currentSlide, handleCommentsChange]);
 
+  // Video/Audio/Interactive handlers
+  const handleInsertVideo = useCallback((video: VideoEmbedData) => {
+    const slideId = currentSlide?.id;
+    if (!slideId) return;
+    setVideos(prev => ({ ...prev, [slideId]: [...(prev[slideId] || []), video] }));
+    setShowVideoDialog(false);
+  }, [currentSlide]);
+
+  const handleRemoveVideo = useCallback((videoId: string) => {
+    const slideId = currentSlide?.id;
+    if (!slideId) return;
+    setVideos(prev => ({ ...prev, [slideId]: (prev[slideId] || []).filter(v => v.id !== videoId) }));
+  }, [currentSlide]);
+
+  const handleUpdateVideo = useCallback((video: VideoEmbedData) => {
+    const slideId = currentSlide?.id;
+    if (!slideId) return;
+    setVideos(prev => ({ ...prev, [slideId]: (prev[slideId] || []).map(v => v.id === video.id ? video : v) }));
+  }, [currentSlide]);
+
+  const handleSaveNarration = useCallback((data: AudioNarrationData) => {
+    setNarrations(prev => ({ ...prev, [data.slideId]: data }));
+    setShowAudioDialog(false);
+  }, []);
+
+  const handleRemoveNarration = useCallback(() => {
+    const slideId = currentSlide?.id;
+    if (!slideId) return;
+    setNarrations(prev => { const n = { ...prev }; delete n[slideId]; return n; });
+    setShowAudioDialog(false);
+  }, [currentSlide]);
+
+  const handleInsertInteractive = useCallback((element: InteractiveElement) => {
+    const slideId = currentSlide?.id;
+    if (!slideId) return;
+    setInteractiveElements(prev => ({ ...prev, [slideId]: [...(prev[slideId] || []), element] }));
+    setShowInteractiveDialog(false);
+  }, [currentSlide]);
+
+  const handleRemoveInteractive = useCallback((elementId: string) => {
+    const slideId = currentSlide?.id;
+    if (!slideId) return;
+    setInteractiveElements(prev => ({ ...prev, [slideId]: (prev[slideId] || []).filter(e => e.id !== elementId) }));
+  }, [currentSlide]);
+
+  // Listen for menu bar events
+  useEffect(() => {
+    const onInsertVideo = () => setShowVideoDialog(true);
+    const onInsertAudio = () => setShowAudioDialog(true);
+    const onInsertInteractive = () => setShowInteractiveDialog(true);
+    window.addEventListener('slide-insert-video', onInsertVideo);
+    window.addEventListener('slide-insert-audio', onInsertAudio);
+    window.addEventListener('slide-insert-interactive', onInsertInteractive);
+    return () => {
+      window.removeEventListener('slide-insert-video', onInsertVideo);
+      window.removeEventListener('slide-insert-audio', onInsertAudio);
+      window.removeEventListener('slide-insert-interactive', onInsertInteractive);
+    };
+  }, []);
+
   const handleSaveTimings = useCallback((timings: SlideTimings) => {
     const newSlides = pres.slides.map((s, i) => ({ ...s, timingMs: timings.perSlide[i] || 0 }));
     update(newSlides);
@@ -309,27 +379,8 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
     setRehearsalMode(false);
   }, [pres.slides, update]);
 
-  const handleNotesResize = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    notesDragRef.current = true;
-    const startY = e.clientY;
-    const startH = notesHeight;
-    const onMove = (ev: MouseEvent) => {
-      if (!notesDragRef.current) return;
-      setNotesHeight(Math.max(40, startH - (ev.clientY - startY)));
-    };
-    const onUp = () => { notesDragRef.current = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  }, [notesHeight]);
-
-  // Simple markdown rendering for notes preview
-  const renderNotesPreview = (text: string) => {
-    return text
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/^- (.+)$/gm, '• $1');
-  };
+  // notesHeight and notesDragRef kept for compatibility
+  void notesHeight; void notesDragRef;
 
   // Undo / redo keyboard
   useEffect(() => {
@@ -410,6 +461,9 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
         onNewFromTemplate={handleNewFromTemplate}
         onExportPDF={handleExportPDF}
         onExportHTML={handleExportHTML}
+        onInsertVideo={() => setShowVideoDialog(true)}
+        onInsertAudio={() => setShowAudioDialog(true)}
+        onInsertInteractive={() => setShowInteractiveDialog(true)}
       />
 
       <div className="slides-collab-bar">
@@ -467,27 +521,23 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
                     showResolved={false}
                   />
                 )}
+                {(videos[currentSlide.id] || []).map(v => (
+                  <VideoPlaceholder key={v.id} video={v} onRemove={handleRemoveVideo} onUpdate={handleUpdateVideo} />
+                ))}
+                {(interactiveElements[currentSlide.id] || []).map(el => (
+                  <InteractiveElementEditor key={el.id} element={el} onRemove={handleRemoveInteractive} />
+                ))}
               </>
             )}
           </div>
 
-          <div className="slide-notes-resize-handle" onMouseDown={handleNotesResize} />
-          <div className="slide-notes-area" style={{ height: notesHeight }}>
-            <div className="slide-notes-header">
-              <label>Speaker Notes</label>
-              <span className="slide-notes-charcount">{(currentSlide?.notes || '').length} chars</span>
-            </div>
-            <textarea
-              className="slide-notes-input"
-              value={currentSlide?.notes || ''}
-              onChange={e => handleNotesChange(e.target.value)}
-              placeholder="Click to add speaker notes… (supports **bold**, *italic*, - lists)"
-              style={{ height: '100%' }}
-            />
-            {currentSlide?.notes && (
-              <div className="slide-notes-preview" dangerouslySetInnerHTML={{ __html: renderNotesPreview(currentSlide.notes) }} />
-            )}
-          </div>
+          <SlideNotes
+            notes={currentSlide?.notes || ''}
+            onChange={handleNotesChange}
+            slideIndex={activeIdx}
+            totalSlides={pres.slides.length}
+            allNotes={pres.slides.map((s, i) => ({ slideIndex: i, notes: s.notes }))}
+          />
         </div>
       </div>
 
@@ -515,6 +565,26 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
         connectedUsers={remoteUsers.length + 1}
       />
       <SlideShortcuts />
+
+      {showVideoDialog && (
+        <InsertVideoDialog onInsert={handleInsertVideo} onClose={() => setShowVideoDialog(false)} />
+      )}
+      {showAudioDialog && currentSlide && (
+        <AudioNarrationDialog
+          slideId={currentSlide.id}
+          existing={narrations[currentSlide.id]}
+          onSave={handleSaveNarration}
+          onRemove={handleRemoveNarration}
+          onClose={() => setShowAudioDialog(false)}
+        />
+      )}
+      {showInteractiveDialog && (
+        <InsertInteractiveDialog
+          onInsert={handleInsertInteractive}
+          onClose={() => setShowInteractiveDialog(false)}
+          totalSlides={pres.slides.length}
+        />
+      )}
     </div>
   );
 }
