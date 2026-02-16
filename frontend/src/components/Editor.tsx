@@ -43,6 +43,8 @@ import { Columns } from '../extensions/Columns';
 import { TabStop } from '../extensions/TabStop';
 import { getUserColor } from '../utils/collabColors';
 import { Title, Subtitle } from '../extensions/ParagraphStyles';
+import MentionExtension from '../extensions/Mention';
+import DateChip from '../extensions/DateChip';
 import TableToolbar from './TableToolbar';
 
 interface EditorProps {
@@ -443,6 +445,8 @@ const Editor: React.FC<EditorProps> = ({
       TabStop,
       Title,
       Subtitle,
+      MentionExtension,
+      DateChip,
       PageBreaks.configure({
         pageHeight: 1056,
         gapHeight: 24,

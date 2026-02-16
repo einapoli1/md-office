@@ -176,6 +176,18 @@ const MenuBar: React.FC<MenuBarProps> = ({
         }
       }},
       { label: 'divider' },
+      { label: 'People (@mention)', action: () => {
+        // Insert @ character to trigger mention suggestion
+        if (editor) {
+          editor.chain().focus().insertContent('@').run();
+        }
+      }},
+      { label: 'Date chip', action: () => {
+        if (editor) {
+          (editor.commands as any).insertDateChip();
+        }
+      }},
+      { label: 'divider' },
       { label: 'Bookmark', action: () => {
         const name = prompt('Bookmark name:');
         if (name && editor) {
