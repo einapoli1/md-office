@@ -45,6 +45,8 @@ import { runMacro, loadSavedMacros, saveMacro, MacroContext } from './lib/macroE
 import SpreadsheetEditor from './sheets/SpreadsheetEditor';
 import SlidesEditor from './slides/SlidesEditor';
 import _DrawingEditor from './draw/DrawingEditor';
+import NotificationCenter from './components/NotificationCenter';
+import UserPreferences from './components/UserPreferences';
 
 export type AppMode = 'docs' | 'sheets' | 'slides' | 'draw';
 
@@ -150,6 +152,7 @@ function App() {
   const [showCoverPage, setShowCoverPage] = useState(false);
   const [showTableOfFigures, setShowTableOfFigures] = useState(false);
   const [showPublish, setShowPublish] = useState(false);
+  const [showPreferences, setShowPreferences] = useState(false);
   const { recording: macroRecording, startRecording: startMacroRecording, stopRecording: stopMacroRecording } = useMacroRecorder();
   const [vhCommits, setVhCommits] = useState<import('./types').GitCommit[]>([]);
   const [vhSelectedCommit, setVhSelectedCommit] = useState<import('./types').GitCommit | null>(null);
@@ -807,6 +810,10 @@ function App() {
         e.preventDefault();
         setShowShortcuts(prev => !prev);
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+        e.preventDefault();
+        setShowPreferences(prev => !prev);
+      }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'h' || e.key === 'H')) {
         e.preventDefault();
         openVersionHistory();
@@ -1053,6 +1060,8 @@ function App() {
     <OfflineIndicator />
     <div className="app">
       <a href="#main-editor" className="skip-to-content">Skip to content</a>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+      <div style={{ flex: 1 }}>
       <MenuBar
         onNewFile={handleNewFile}
         onNewSpreadsheet={handleNewSpreadsheet}
@@ -1080,7 +1089,11 @@ function App() {
         onStartTour={() => setRunTour(true)}
         onShowShortcuts={() => setShowShortcuts(true)}
         onShowAccessibility={() => setShowA11y(true)}
+        onShowPreferences={() => setShowPreferences(true)}
       />
+      </div>
+      <NotificationCenter />
+      </div>
 
       {/* Formatting Toolbar - Google Docs style (only for docs mode) */}
       {appMode === 'docs' && <DocsToolbar editor={editorRef} />}
@@ -1493,6 +1506,11 @@ function App() {
       {/* Macro Recorder */}
       {macroRecording && (
         <MacroRecorder onStop={() => {}} />
+      )}
+
+      {/* User Preferences */}
+      {showPreferences && (
+        <UserPreferences onClose={() => setShowPreferences(false)} />
       )}
 
       {/* Share Dialog */}

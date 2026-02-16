@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import { I18nProvider } from './lib/i18n'
+import { PreferencesProvider } from './lib/preferencesStore'
 import './google-docs-styles.css'
 import './responsive.css'
 
@@ -44,8 +45,10 @@ function showUpdateToast(worker: ServiceWorker) {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
+    <PreferencesProvider>
     <I18nProvider>
       <App />
     </I18nProvider>
+    </PreferencesProvider>
   </React.StrictMode>,
 )

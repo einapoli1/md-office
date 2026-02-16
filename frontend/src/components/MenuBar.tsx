@@ -32,6 +32,7 @@ interface MenuBarProps {
   onStartTour?: () => void;
   onShowShortcuts?: () => void;
   onShowAccessibility?: () => void;
+  onShowPreferences?: () => void;
 }
 
 const MenuBar: React.FC<MenuBarProps> = ({
@@ -61,6 +62,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
   onStartTour,
   onShowShortcuts,
   onShowAccessibility,
+  onShowPreferences,
 }) => {
   const { t } = useI18n();
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -133,6 +135,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Cover Page', action: () => {
         window.dispatchEvent(new CustomEvent('cover-page-open'));
       }},
+      { label: 'Preferences', action: onShowPreferences, shortcut: '⌘,' },
       { label: 'divider' },
       { label: 'Share', action: () => {
         const url = new URL(window.location.href);
