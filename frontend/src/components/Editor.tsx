@@ -52,6 +52,8 @@ import FormMode from './FormMode';
 import { VariableChip } from '../extensions/VariableChip';
 import { TemplateVariable } from '../extensions/TemplateVariable';
 import { EquationEvaluator } from '../extensions/EquationEvaluator';
+import { CitationNode } from '../extensions/Citation';
+import { BibliographyBlock } from '../extensions/Bibliography';
 import TableToolbar from './TableToolbar';
 import TableContextMenu from './TableContextMenu';
 import { importDocx } from '../utils/docxIO';
@@ -461,6 +463,8 @@ const Editor: React.FC<EditorProps> = ({
       VariableChip,
       TemplateVariable,
       EquationEvaluator,
+      CitationNode,
+      BibliographyBlock,
       PageBreaks.configure({
         pageHeight: 1056,
         gapHeight: 24,

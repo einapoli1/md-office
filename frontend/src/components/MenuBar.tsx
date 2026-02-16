@@ -253,6 +253,15 @@ const MenuBar: React.FC<MenuBarProps> = ({
         }
       }},
       { label: 'divider' },
+      { label: 'Citation', action: () => {
+        window.dispatchEvent(new CustomEvent('citation-picker-open'));
+      }, shortcut: '⌘⇧C' },
+      { label: 'Bibliography', action: () => {
+        if (editor) {
+          editor.commands.insertBibliography();
+        }
+      }},
+      { label: 'divider' },
       { label: 'Bookmark', action: () => {
         const name = prompt('Bookmark name:');
         if (name && editor) {
@@ -328,6 +337,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
         window.dispatchEvent(new CustomEvent('mail-merge-toggle'));
       }},
       { label: 'divider' },
+      { label: 'Citation Manager', action: () => {
+        window.dispatchEvent(new CustomEvent('citation-manager-toggle'));
+      }},
       { label: 'AI Assistant', action: () => {
         window.dispatchEvent(new CustomEvent('ai-assistant-toggle'));
       }},

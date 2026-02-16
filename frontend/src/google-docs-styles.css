@@ -6262,3 +6262,56 @@ input:focus-visible {
   margin-left: auto; background: white; border: 1px solid #ccc;
   border-radius: 4px; padding: 3px 10px; cursor: pointer; font-size: 12px;
 }
+
+/* ── Citation chips ────────────────────────── */
+.citation-chip {
+  display: inline;
+  background: #e8f0fe;
+  color: #1a73e8;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.9em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+.citation-chip:hover {
+  background: #d2e3fc;
+  border-color: #1a73e8;
+}
+
+/* ── Bibliography block ────────────────────── */
+.bibliography-block {
+  margin-top: 2em;
+  padding-top: 1em;
+  border-top: 2px solid #dadce0;
+}
+.bibliography-block h3 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin-bottom: 0.75em;
+}
+.bibliography-entries {
+  font-size: 0.95em;
+  line-height: 1.6;
+  color: #555;
+}
+.bibliography-entries em {
+  font-style: italic;
+}
+
+/* Dark mode overrides */
+.dark .citation-chip {
+  background: #1e3a5f;
+  color: #8ab4f8;
+}
+.dark .citation-chip:hover {
+  background: #264a73;
+  border-color: #8ab4f8;
+}
+.dark .bibliography-block {
+  border-top-color: #444;
+}
+.dark .bibliography-entries {
+  color: #aaa;
+}

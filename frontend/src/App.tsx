@@ -34,6 +34,9 @@ import TemplateSidebar from './components/TemplateSidebar';
 import OnboardingTour, { STORAGE_KEY as ONBOARDING_KEY } from './components/OnboardingTour';
 import MacroEditor from './components/MacroEditor';
 import MacroRecorder, { useMacroRecorder } from './components/MacroRecorder';
+import CitationPanel from './components/CitationPanel';
+import CitationPicker from './components/CitationPicker';
+import { Citation, CitationStyle } from './lib/citationEngine';
 import { runMacro, loadSavedMacros, saveMacro, MacroContext } from './lib/macroEngine';
 import SpreadsheetEditor from './sheets/SpreadsheetEditor';
 import SlidesEditor from './slides/SlidesEditor';
@@ -126,6 +129,10 @@ function App() {
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showMailMerge, setShowMailMerge] = useState(false);
   const [showTemplateSidebar, setShowTemplateSidebar] = useState(false);
+  const [showCitationPanel, setShowCitationPanel] = useState(false);
+  const [showCitationPicker, setShowCitationPicker] = useState(false);
+  const [citations, setCitations] = useState<Citation[]>([]);
+  const [citationStyle, setCitationStyle] = useState<CitationStyle>('apa');
   const [showMacroEditor, setShowMacroEditor] = useState(false);
   const { recording: macroRecording, startRecording: startMacroRecording, stopRecording: stopMacroRecording } = useMacroRecorder();
   const [vhCommits, setVhCommits] = useState<import('./types').GitCommit[]>([]);
@@ -761,6 +768,11 @@ function App() {
         e.preventDefault();
         openVersionHistory();
       }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'c' || e.key === 'C')) {
+        // Only trigger citation picker if not copying (Cmd+C without shift is copy)
+        e.preventDefault();
+        setShowCitationPicker(true);
+      }
     };
     const handleEvent = (e: Event) => {
       const { replace } = (e as CustomEvent).detail || {};
@@ -842,9 +854,13 @@ function App() {
     const handleMacroRunPicker = () => window.dispatchEvent(new CustomEvent('macro-run-picker'));
     window.addEventListener('mail-merge-toggle', handleMailMerge);
     window.addEventListener('template-sidebar-toggle', handleTemplateSidebar);
+    const handleCitationPickerOpen = () => setShowCitationPicker(true);
+    const handleCitationManagerToggle = () => setShowCitationPanel(prev => !prev);
     window.addEventListener('macro-editor-toggle', handleMacroEditor);
     window.addEventListener('macro-record-toggle', handleMacroRecord);
     window.addEventListener('macro-run-picker', handleMacroRunPicker);
+    window.addEventListener('citation-picker-open', handleCitationPickerOpen);
+    window.addEventListener('citation-manager-toggle', handleCitationManagerToggle);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('find-replace-open', handleEvent);
@@ -865,6 +881,8 @@ function App() {
       window.removeEventListener('macro-editor-toggle', handleMacroEditor);
       window.removeEventListener('macro-record-toggle', handleMacroRecord);
       window.removeEventListener('macro-run-picker', handleMacroRunPicker);
+      window.removeEventListener('citation-picker-open', handleCitationPickerOpen);
+      window.removeEventListener('citation-manager-toggle', handleCitationManagerToggle);
     };
   }, []);
 
@@ -1135,6 +1153,30 @@ function App() {
               setShowTemplateSidebar(false);
               toast('Template applied', 'success');
             }}
+          />
+        )}
+
+        {showCitationPanel && editorRef && (
+          <CitationPanel
+            editor={editorRef}
+            citations={citations}
+            setCitations={setCitations}
+            citationStyle={citationStyle}
+            setCitationStyle={setCitationStyle}
+            onClose={() => setShowCitationPanel(false)}
+          />
+        )}
+
+        {showCitationPicker && editorRef && (
+          <CitationPicker
+            editor={editorRef}
+            citations={citations}
+            citationStyle={citationStyle}
+            onAddNew={() => {
+              setShowCitationPicker(false);
+              setShowCitationPanel(true);
+            }}
+            onClose={() => setShowCitationPicker(false)}
           />
         )}
 
