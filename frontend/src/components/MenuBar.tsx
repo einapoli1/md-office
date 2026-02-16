@@ -210,6 +210,17 @@ const MenuBar: React.FC<MenuBarProps> = ({
           (editor.commands as any).insertDateChip();
         }
       }},
+      { label: 'Variable', action: () => {
+        const input = prompt('Define variable (e.g. x = 5):');
+        if (input && editor) {
+          const match = input.match(/^\s*([a-zA-Z_]\w*)\s*=\s*(-?\d+(?:\.\d+)?)\s*$/);
+          if (match) {
+            (editor.commands as any).insertVariableChip(match[1], parseFloat(match[2]));
+          } else {
+            alert('Format: name = value (e.g. x = 5)');
+          }
+        }
+      }},
       { label: 'divider' },
       { label: 'Bookmark', action: () => {
         const name = prompt('Bookmark name:');

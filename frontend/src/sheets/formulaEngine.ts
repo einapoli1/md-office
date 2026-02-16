@@ -1,5 +1,7 @@
 // Formula engine with dependency tracking and circular reference detection
 
+import { evaluateLatexFormula } from '../utils/mathSolver';
+
 export type CellGetter = (ref: string) => string;
 
 // Parse column letter(s) to 0-based index
@@ -92,6 +94,8 @@ const ALL_FUNC_NAMES = new Set([
   'AND', 'OR', 'NOT', 'IFERROR', 'ISBLANK', 'ISNA',
   // Stats
   'MEDIAN', 'STDEV', 'VAR', 'LARGE', 'SMALL', 'RANK',
+  // LaTeX
+  'LATEX',
 ]);
 
 // Built-in numeric functions (simple signature)
@@ -683,6 +687,16 @@ function evaluate(tokens: Token[], get: CellGetter): number | string {
       if (fname === 'ISNA') {
         const args = collectArgs();
         return String(args[0]) === '#N/A' ? 1 : 0;
+      }
+
+      // LATEX("expression", val1, val2, ...) — evaluate LaTeX with positional args
+      if (fname === 'LATEX') {
+        const args = collectArgs();
+        if (args.length < 1) return '#VALUE!';
+        const latexStr = String(args[0]);
+        const cellValues = args.slice(1).map(a => typeof a === 'number' ? a : parseFloat(String(a)) || 0);
+        const result = evaluateLatexFormula(latexStr, cellValues);
+        return result.result !== null ? result.result : '#VALUE!';
       }
 
       // Numeric functions (SUM, AVERAGE, etc.)

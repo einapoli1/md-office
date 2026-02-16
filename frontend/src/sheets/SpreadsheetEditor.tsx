@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { CellFormat, getCellStyle, formatCellValue } from './cellFormat';
-import { cellId, indexToCol, extractRefs } from './formulaEngine';
+import { cellId, indexToCol, extractRefs, parseCellRef } from './formulaEngine';
+import { solveEquation, formatResult as formatMathResult, extractVariables } from '../utils/mathSolver';
 import { WorkbookData, CellData, createWorkbook, createEmptySheet, getColWidth, getRowHeight, recalculate, buildDependencyGraph, recalcAll, UndoManager, serializeWorkbook, deserializeWorkbook, ChartConfig, FilterState, FreezePanes } from './sheetModel';
 import { DependencyGraph } from './formulaEngine';
 import { detectPattern, generateFill, adjustFormula, parseFormulaRefs, measureTextWidth, FormulaRef } from './fillLogic';
@@ -124,6 +125,13 @@ export default function SpreadsheetEditor({
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [findReplaceMode, setFindReplaceMode] = useState(false);
   const [findMatches, setFindMatches] = useState<FindMatch[]>([]);
+  const [latexFormulaMode, setLatexFormulaMode] = useState<'equation' | 'result'>('equation');
+  // Listen for latex-formula-mode toggle
+  useEffect(() => {
+    const handler = () => setLatexFormulaMode(m => m === 'equation' ? 'result' : 'equation');
+    window.addEventListener('latex-formula-mode-toggle', handler);
+    return () => window.removeEventListener('latex-formula-mode-toggle', handler);
+  }, []);
 
   // Collaboration state
   const [remoteCursors, setRemoteCursors] = useState<RemoteCursor[]>([]);
@@ -1520,7 +1528,42 @@ export default function SpreadsheetEditor({
                         />
                       )}
                       {cfResult?.icon && <span className="sheet-cf-icon">{cfResult.icon}</span>}
-                      <span className="sheet-cell-text">{display}</span>
+                      {/* LaTeX cell rendering */}
+                      {cell && cell.value && typeof cell.value === 'string' && cell.value.startsWith('$') && cell.value.endsWith('$') && cell.value.length > 2 ? (() => {
+                        const latex = cell.value.slice(1, -1);
+                        // Build variables from cell references in the expression
+                        const vars: Record<string, number> = {};
+                        const exprVars = extractVariables(latex);
+                        for (const v of exprVars) {
+                          // Check if it's a cell ref like A1
+                          const ref = parseCellRef(v.toUpperCase());
+                          if (ref) {
+                            const refId = cellId(ref.col, ref.row);
+                            const refCell = sheet.cells[refId];
+                            if (refCell) {
+                              const n = parseFloat(refCell.computed ?? refCell.value);
+                              if (!isNaN(n)) vars[v] = n;
+                            }
+                          }
+                        }
+                        const result = solveEquation(latex, vars);
+                        if (latexFormulaMode === 'result' && result.result !== null) {
+                          return <span className="sheet-cell-text sheet-latex-result">{formatMathResult(result.result)}</span>;
+                        }
+                        return (
+                          <span className="sheet-cell-text sheet-latex-cell">
+                            <span className="sheet-latex-expr">{display}</span>
+                            {result.result !== null && (
+                              <span className="sheet-latex-eval"> = {formatMathResult(result.result)}</span>
+                            )}
+                            {result.missing.length > 0 && (
+                              <span className="sheet-latex-missing" title={`Missing: ${result.missing.join(', ')}`}> ?</span>
+                            )}
+                          </span>
+                        );
+                      })() : (
+                        <span className="sheet-cell-text">{display}</span>
+                      )}
                       {hasListValidation && <span className="sheet-dropdown-arrow">▾</span>}
                       {valError && <span className="sheet-validation-indicator" />}
                       {hasComment && (

@@ -46,6 +46,8 @@ import { getUserColor } from '../utils/collabColors';
 import { Title, Subtitle } from '../extensions/ParagraphStyles';
 import MentionExtension from '../extensions/Mention';
 import DateChip from '../extensions/DateChip';
+import { VariableChip } from '../extensions/VariableChip';
+import { EquationEvaluator } from '../extensions/EquationEvaluator';
 import TableToolbar from './TableToolbar';
 import { importDocx } from '../utils/docxIO';
 
@@ -450,6 +452,8 @@ const Editor: React.FC<EditorProps> = ({
       Subtitle,
       MentionExtension,
       DateChip,
+      VariableChip,
+      EquationEvaluator,
       PageBreaks.configure({
         pageHeight: 1056,
         gapHeight: 24,

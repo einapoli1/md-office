@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import katex from 'katex';
+import { solveEquation, extractVariables, formatResult } from '../utils/mathSolver';
 
 interface EquationDialogProps {
   open: boolean;
   onClose: () => void;
   onInsert: (latex: string, displayMode: boolean) => void;
   initialLatex?: string;
+  /** Current document variables from VariableChip nodes */
+  variables?: Record<string, number>;
+  /** Callback to insert a new variable chip */
+  onInsertVariable?: (name: string, value: number) => void;
 }
 
 const TEMPLATES = [
@@ -21,11 +26,16 @@ const TEMPLATES = [
   { label: 'Binomial', latex: '\\binom{n}{k}' },
 ];
 
-const EquationDialog: React.FC<EquationDialogProps> = ({ open, onClose, onInsert, initialLatex = '' }) => {
+const EquationDialog: React.FC<EquationDialogProps> = ({
+  open, onClose, onInsert, initialLatex = '',
+  variables = {}, onInsertVariable,
+}) => {
   const [latex, setLatex] = useState(initialLatex);
   const [displayMode, setDisplayMode] = useState(true);
   const [preview, setPreview] = useState('');
   const [error, setError] = useState('');
+  const [newVarName, setNewVarName] = useState('');
+  const [newVarValue, setNewVarValue] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -53,6 +63,20 @@ const EquationDialog: React.FC<EquationDialogProps> = ({ open, onClose, onInsert
     if (latex.trim() && !error) {
       onInsert(latex.trim(), displayMode);
       onClose();
+    }
+  };
+
+  // Evaluate the equation with current variables
+  const evalResult = latex.trim() ? solveEquation(latex, variables) : null;
+  const neededVars = latex.trim() ? extractVariables(latex) : [];
+
+  const handleAddVariable = () => {
+    const name = newVarName.trim();
+    const val = parseFloat(newVarValue);
+    if (name && !isNaN(val) && onInsertVariable) {
+      onInsertVariable(name, val);
+      setNewVarName('');
+      setNewVarValue('');
     }
   };
 
@@ -91,7 +115,20 @@ const EquationDialog: React.FC<EquationDialogProps> = ({ open, onClose, onInsert
             <label>Preview</label>
             <div className="equation-preview-box">
               {preview ? (
-                <div dangerouslySetInnerHTML={{ __html: preview }} />
+                <div>
+                  <div dangerouslySetInnerHTML={{ __html: preview }} />
+                  {evalResult && evalResult.result !== null && (
+                    <div className="equation-eval-result">
+                      <span className="equation-result-indicator solved">✓</span>
+                      {' = '}{formatResult(evalResult.result)}
+                    </div>
+                  )}
+                  {evalResult && evalResult.missing.length > 0 && (
+                    <div className="equation-eval-missing">
+                      Missing: {evalResult.missing.join(', ')}
+                    </div>
+                  )}
+                </div>
               ) : error ? (
                 <div className="equation-error">{error}</div>
               ) : (
@@ -99,6 +136,43 @@ const EquationDialog: React.FC<EquationDialogProps> = ({ open, onClose, onInsert
               )}
             </div>
           </div>
+        </div>
+
+        {/* Variables section */}
+        <div className="equation-variables-section">
+          <label>Variables</label>
+          {Object.keys(variables).length > 0 ? (
+            <div className="equation-variables-list">
+              {Object.entries(variables).map(([k, v]) => (
+                <span key={k} className={`equation-var-pill ${neededVars.includes(k) ? 'used' : ''}`}>
+                  {k} = {v}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="equation-variables-empty">No variables defined in document</div>
+          )}
+          {onInsertVariable && (
+            <div className="equation-add-variable">
+              <input
+                placeholder="name"
+                value={newVarName}
+                onChange={(e) => setNewVarName(e.target.value)}
+                className="equation-var-name-input"
+              />
+              <span>=</span>
+              <input
+                placeholder="value"
+                type="number"
+                step="any"
+                value={newVarValue}
+                onChange={(e) => setNewVarValue(e.target.value)}
+                className="equation-var-value-input"
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAddVariable(); }}
+              />
+              <button className="equation-add-var-btn" onClick={handleAddVariable}>+ Add</button>
+            </div>
+          )}
         </div>
 
         <div className="equation-templates">

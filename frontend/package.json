@@ -54,6 +54,7 @@
     "katex": "^0.16.28",
     "lucide-react": "^0.294.0",
     "mammoth": "^1.11.0",
+    "mathjs": "^15.1.1",
     "mermaid": "^11.12.2",
     "react": "^18.2.0",
     "react-diff-view": "^3.3.2",
