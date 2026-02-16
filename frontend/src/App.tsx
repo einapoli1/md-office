@@ -50,6 +50,7 @@ const ExportDialog = lazy(() => import('./components/ExportDialog'));
 const KeyboardShortcutsDialog = lazy(() => import('./components/KeyboardShortcutsDialog'));
 const SpecialChars = lazy(() => import('./components/SpecialChars'));
 const EquationDialog = lazy(() => import('./components/EquationDialog'));
+const Whiteboard = lazy(() => import('./components/Whiteboard'));
 import TableOfContents from './components/TableOfContents';
 import { HeaderFooterEditor, HeaderFooterContent, defaultContent as defaultHFContent } from './components/HeaderFooter';
 import './comments-styles.css';
@@ -97,6 +98,7 @@ function App() {
   const [showOutline, setShowOutline] = useState(false);
   const [showSpecialChars, setShowSpecialChars] = useState(false);
   const [showEquationDialog, setShowEquationDialog] = useState(false);
+  const [showWhiteboard, setShowWhiteboard] = useState(false);
   const [hfEditType, setHfEditType] = useState<'header' | 'footer' | null>(null);
   const [hfContent, setHfContent] = useState<HeaderFooterContent>(defaultHFContent);
   const [showRuler, setShowRuler] = useState(true);
@@ -779,6 +781,7 @@ function App() {
     };
     const handleSpecialChars = () => setShowSpecialChars(true);
     const handleEquationDialog = () => setShowEquationDialog(true);
+    const handleWhiteboardOpen = () => setShowWhiteboard(true);
     const handleHfEdit = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       setHfEditType(detail?.type || 'footer');
@@ -787,6 +790,7 @@ function App() {
     window.addEventListener('insert-image', handleInsertImage);
     window.addEventListener('special-chars-open', handleSpecialChars);
     window.addEventListener('equation-dialog-open', handleEquationDialog);
+    window.addEventListener('whiteboard-open', handleWhiteboardOpen);
     window.addEventListener('edit-header-footer', handleHfEdit);
     window.addEventListener('find-replace-open', handleEvent);
     window.addEventListener('word-count-open', handleWordCount);
@@ -834,6 +838,7 @@ function App() {
       window.removeEventListener('insert-image', handleInsertImage);
       window.removeEventListener('special-chars-open', handleSpecialChars);
       window.removeEventListener('equation-dialog-open', handleEquationDialog);
+      window.removeEventListener('whiteboard-open', handleWhiteboardOpen);
       window.removeEventListener('edit-header-footer', handleHfEdit);
     };
   }, []);
@@ -1108,6 +1113,22 @@ function App() {
                 }
               }
             }}
+          />
+        </Suspense>
+      )}
+
+      {/* Whiteboard */}
+      {showWhiteboard && (
+        <Suspense fallback={null}>
+          <Whiteboard
+            onClose={() => setShowWhiteboard(false)}
+            onInsert={(dataUrl) => {
+              if (editorRef) {
+                editorRef.chain().focus().setImage({ src: dataUrl }).run();
+              }
+              setShowWhiteboard(false);
+            }}
+            isDarkMode={isDarkMode}
           />
         </Suspense>
       )}

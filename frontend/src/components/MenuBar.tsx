@@ -212,6 +212,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
           (editor.commands as any).insertDateChip();
         }
       }},
+      { label: 'Drawing', action: () => {
+        window.dispatchEvent(new CustomEvent('whiteboard-open'));
+      }},
       { label: 'Variable', action: () => {
         const input = prompt('Define variable (e.g. x = 5):');
         if (input && editor) {
