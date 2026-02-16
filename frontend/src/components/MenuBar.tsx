@@ -163,7 +163,12 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Horizontal rule', action: () => {
         if (editor) editor.chain().focus().setHorizontalRule().run();
       }},
-      { label: 'Equation', action: () => console.log('Insert equation') },
+      { label: 'Equation', action: () => {
+        window.dispatchEvent(new CustomEvent('equation-dialog-open'));
+      }},
+      { label: 'Diagram (Mermaid)', action: () => {
+        if (editor) (editor.commands as any).insertMermaidBlock();
+      }},
       { label: 'divider' },
       { label: 'Special characters', action: () => {
         window.dispatchEvent(new CustomEvent('special-chars-open'));

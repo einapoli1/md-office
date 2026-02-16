@@ -45,6 +45,7 @@ const WordCountDialog = lazy(() => import('./components/WordCountDialog'));
 const ExportDialog = lazy(() => import('./components/ExportDialog'));
 const KeyboardShortcutsDialog = lazy(() => import('./components/KeyboardShortcutsDialog'));
 const SpecialChars = lazy(() => import('./components/SpecialChars'));
+const EquationDialog = lazy(() => import('./components/EquationDialog'));
 import TableOfContents from './components/TableOfContents';
 import { HeaderFooterEditor, HeaderFooterContent, defaultContent as defaultHFContent } from './components/HeaderFooter';
 import './comments-styles.css';
@@ -91,6 +92,7 @@ function App() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showOutline, setShowOutline] = useState(false);
   const [showSpecialChars, setShowSpecialChars] = useState(false);
+  const [showEquationDialog, setShowEquationDialog] = useState(false);
   const [hfEditType, setHfEditType] = useState<'header' | 'footer' | null>(null);
   const [hfContent, setHfContent] = useState<HeaderFooterContent>(defaultHFContent);
   const [showRuler, setShowRuler] = useState(true);
@@ -759,6 +761,7 @@ function App() {
       });
     };
     const handleSpecialChars = () => setShowSpecialChars(true);
+    const handleEquationDialog = () => setShowEquationDialog(true);
     const handleHfEdit = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       setHfEditType(detail?.type || 'footer');
@@ -766,6 +769,7 @@ function App() {
     window.addEventListener('insert-link', handleInsertLink);
     window.addEventListener('insert-image', handleInsertImage);
     window.addEventListener('special-chars-open', handleSpecialChars);
+    window.addEventListener('equation-dialog-open', handleEquationDialog);
     window.addEventListener('edit-header-footer', handleHfEdit);
     window.addEventListener('find-replace-open', handleEvent);
     window.addEventListener('word-count-open', handleWordCount);
@@ -812,6 +816,7 @@ function App() {
       window.removeEventListener('insert-link', handleInsertLink);
       window.removeEventListener('insert-image', handleInsertImage);
       window.removeEventListener('special-chars-open', handleSpecialChars);
+      window.removeEventListener('equation-dialog-open', handleEquationDialog);
       window.removeEventListener('edit-header-footer', handleHfEdit);
     };
   }, []);
@@ -1066,6 +1071,25 @@ function App() {
               onClose={() => setShowSpecialChars(false)}
             />
           </div>
+        </Suspense>
+      )}
+
+      {/* Equation Dialog */}
+      {showEquationDialog && (
+        <Suspense fallback={null}>
+          <EquationDialog
+            open={showEquationDialog}
+            onClose={() => setShowEquationDialog(false)}
+            onInsert={(latex, displayMode) => {
+              if (editorRef) {
+                if (displayMode) {
+                  editorRef.chain().focus().insertContent(`$$${latex}$$`).run();
+                } else {
+                  editorRef.chain().focus().insertContent(`$${latex}$`).run();
+                }
+              }
+            }}
+          />
         </Suspense>
       )}
 

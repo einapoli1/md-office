@@ -3,6 +3,10 @@ import { Slide, SlideShape } from './slideModel';
 import { SlideTheme, applyThemeVars } from './slideThemes';
 import { ShapeOverlay, ShapePropertyEditor } from './ShapeTools';
 import type { ShapeType } from './ShapeTools';
+import mermaid from 'mermaid';
+import katex from 'katex';
+
+mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
 
 /** Simple markdown → HTML (self-contained) */
 function mdToHtml(md: string): string {
@@ -17,6 +21,20 @@ function mdToHtml(md: string): string {
   // Two-column blocks
   html = html.replace(/::::\s*left\s*\n([\s\S]*?)::::/g, '<div class="col-left">$1</div>');
   html = html.replace(/::::\s*right\s*\n([\s\S]*?)::::/g, '<div class="col-right">$1</div>');
+  // Mermaid code blocks (render placeholder, will be replaced in useEffect)
+  html = html.replace(/```mermaid\n([\s\S]*?)```/g, (_m, code) => {
+    const encoded = encodeURIComponent(code.trim());
+    return `<div class="slide-mermaid" data-mermaid-code="${encoded}"></div>`;
+  });
+  // Math: block $$...$$ then inline $...$
+  html = html.replace(/\$\$([\s\S]*?)\$\$/g, (_m, tex) => {
+    try { return `<div class="katex-display">${katex.renderToString(tex.trim(), { displayMode: true, throwOnError: false })}</div>`; }
+    catch { return `<div class="katex-display">${tex}</div>`; }
+  });
+  html = html.replace(/\$([^$\n]+)\$/g, (_m, tex) => {
+    try { return katex.renderToString(tex.trim(), { displayMode: false, throwOnError: false }); }
+    catch { return tex; }
+  });
   // Code blocks
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="lang-$1">$2</code></pre>');
   // Headers
@@ -93,6 +111,22 @@ export default function SlideCanvas({
   useEffect(() => {
     if (containerRef.current) applyThemeVars(containerRef.current, theme);
   }, [theme]);
+
+  // Render mermaid diagrams in slides
+  useEffect(() => {
+    if (!contentRef.current) return;
+    const els = contentRef.current.querySelectorAll('.slide-mermaid[data-mermaid-code]');
+    let counter = 0;
+    els.forEach(async (el) => {
+      const code = decodeURIComponent(el.getAttribute('data-mermaid-code') || '');
+      if (!code) return;
+      try {
+        const id = `slide-mermaid-${Date.now()}-${counter++}`;
+        const { svg } = await mermaid.render(id, code);
+        el.innerHTML = svg;
+      } catch { el.innerHTML = '<em>Mermaid syntax error</em>'; }
+    });
+  }, [slide.content]);
 
   // Apply fragment visibility
   useEffect(() => {

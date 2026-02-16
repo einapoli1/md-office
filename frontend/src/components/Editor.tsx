@@ -33,6 +33,7 @@ import { TableOfContentsBlock } from '../extensions/TableOfContentsBlock';
 import { YouTubeEmbed } from '../extensions/YouTubeEmbed';
 import { LinkCard } from '../extensions/LinkCard';
 import { MermaidDiagram } from '../extensions/Mermaid';
+import { MermaidBlock } from '../extensions/MermaidBlock';
 import { PageBreaks } from '../extensions/PageBreaks';
 import { CommentExtension } from '../extensions/CommentExtension';
 import { LineHeight } from '../extensions/LineHeight';
@@ -429,6 +430,7 @@ const Editor: React.FC<EditorProps> = ({
       YouTubeEmbed,
       LinkCard,
       MermaidDiagram,
+      MermaidBlock,
       SuggestionExtension.configure({
         onSuggestionClick: (suggestionId: string) => {
           window.dispatchEvent(new CustomEvent('suggestion-click', { detail: { suggestionId } }));

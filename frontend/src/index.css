@@ -407,6 +407,233 @@ button.primary:hover {
   background: transparent;
 }
 
+/* Mermaid Block (NodeView) */
+.mermaid-block-wrapper {
+  margin: 16px 0;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  transition: border-color 0.2s;
+}
+.mermaid-block-wrapper.selected,
+.mermaid-block-wrapper:hover {
+  border-color: var(--accent, #4285f4);
+}
+.mermaid-render-panel {
+  text-align: center;
+  background: var(--bg-secondary, #f8f9fa);
+  border-radius: 8px;
+  padding: 16px;
+  min-height: 60px;
+  cursor: pointer;
+}
+.mermaid-render-panel .mermaid-svg svg {
+  max-width: 100%;
+}
+.mermaid-placeholder {
+  color: #999;
+  font-style: italic;
+  padding: 24px;
+}
+.mermaid-edit-panel {
+  background: var(--bg-secondary, #f8f9fa);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.mermaid-edit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-tertiary, #e8eaed);
+  font-size: 12px;
+  font-weight: 600;
+}
+.mermaid-done-btn {
+  background: var(--accent, #4285f4);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.mermaid-code-editor {
+  width: 100%;
+  border: none;
+  padding: 12px;
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 13px;
+  resize: vertical;
+  background: transparent;
+  outline: none;
+  box-sizing: border-box;
+}
+.mermaid-error {
+  color: #d93025;
+  font-size: 12px;
+  padding: 8px 12px;
+}
+
+/* Slide mermaid */
+.slide-mermaid {
+  text-align: center;
+  margin: 12px 0;
+}
+.slide-mermaid svg {
+  max-width: 100%;
+  max-height: 400px;
+}
+
+/* Equation Dialog */
+.equation-dialog-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+.equation-dialog {
+  background: var(--bg-primary, white);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  width: 640px;
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.equation-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border, #e0e0e0);
+}
+.equation-dialog-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.equation-close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text-secondary, #666);
+}
+.equation-dialog-body {
+  display: flex;
+  gap: 16px;
+  padding: 16px 20px;
+}
+.equation-input-section,
+.equation-preview-section {
+  flex: 1;
+}
+.equation-input-section label,
+.equation-preview-section label,
+.equation-templates label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-secondary, #666);
+}
+.equation-latex-input {
+  width: 100%;
+  border: 1px solid var(--border, #dadce0);
+  border-radius: 6px;
+  padding: 10px;
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 14px;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+.equation-latex-input:focus {
+  border-color: var(--accent, #4285f4);
+}
+.equation-mode-toggle {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+.equation-mode-toggle label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: normal;
+}
+.equation-preview-box {
+  border: 1px solid var(--border, #dadce0);
+  border-radius: 6px;
+  padding: 16px;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary, #f8f9fa);
+  overflow: auto;
+}
+.equation-error {
+  color: #d93025;
+  font-size: 12px;
+}
+.equation-placeholder {
+  color: #999;
+  font-style: italic;
+  font-size: 13px;
+}
+.equation-templates {
+  padding: 0 20px 12px;
+}
+.equation-template-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.equation-template-btn {
+  background: var(--bg-secondary, #f1f3f4);
+  border: 1px solid var(--border, #dadce0);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.15s;
+}
+.equation-template-btn:hover {
+  background: var(--bg-tertiary, #e8eaed);
+  border-color: var(--accent, #4285f4);
+}
+.equation-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border, #e0e0e0);
+}
+.equation-cancel-btn {
+  background: none;
+  border: 1px solid var(--border, #dadce0);
+  border-radius: 6px;
+  padding: 8px 20px;
+  cursor: pointer;
+}
+.equation-insert-btn {
+  background: var(--accent, #4285f4);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 20px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.equation-insert-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* Footnote styles */
 .footnote-ref {
   color: var(--accent);
