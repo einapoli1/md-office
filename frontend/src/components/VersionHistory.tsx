@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { GitCommit } from '../types';
-import { X, RotateCcw, Clock, ChevronRight } from 'lucide-react';
+import { X, RotateCcw, Clock, ChevronRight, Tag, Check } from 'lucide-react';
 
 interface VersionHistoryProps {
   commits: GitCommit[];
@@ -11,54 +11,59 @@ interface VersionHistoryProps {
   previewContent: string | null;
   currentContent: string;
   isLoading?: boolean;
+  onNameVersion?: (commit: GitCommit, name: string) => void;
 }
 
-/** Simple line-level diff */
-interface DiffLine {
-  type: 'added' | 'removed' | 'context';
+/* ------------------------------------------------------------------ */
+/*  Word-level diff for Google Docs-style inline highlights            */
+/* ------------------------------------------------------------------ */
+
+interface DiffSegment {
+  type: 'same' | 'added' | 'removed' | 'modified-old' | 'modified-new';
   text: string;
-  lineNum?: number;
 }
 
-function computeDiff(oldText: string, newText: string): DiffLine[] {
-  const oldLines = oldText.split('\n');
-  const newLines = newText.split('\n');
-  const result: DiffLine[] = [];
+function tokenize(text: string): string[] {
+  return text.split(/(\s+)/);
+}
 
-  // Simple LCS-based diff
-  const m = oldLines.length;
-  const n = newLines.length;
+function computeWordDiff(oldText: string, newText: string): DiffSegment[] {
+  const oldTokens = tokenize(oldText);
+  const newTokens = tokenize(newText);
+  const segments: DiffSegment[] = [];
 
-  // For very large files, fall back to a simpler approach
-  if (m * n > 1_000_000) {
-    // Just show removed/added
-    oldLines.forEach(l => result.push({ type: 'removed', text: l }));
-    newLines.forEach(l => result.push({ type: 'added', text: l }));
-    return result;
+  const m = oldTokens.length;
+  const n = newTokens.length;
+
+  // For very large docs, fall back to line-based
+  if (m * n > 2_000_000) {
+    if (oldText) segments.push({ type: 'removed', text: oldText });
+    if (newText) segments.push({ type: 'added', text: newText });
+    return segments;
   }
 
-  // Build LCS table
+  // LCS on tokens
   const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
-      dp[i][j] = oldLines[i - 1] === newLines[j - 1]
+      dp[i][j] = oldTokens[i - 1] === newTokens[j - 1]
         ? dp[i - 1][j - 1] + 1
         : Math.max(dp[i - 1][j], dp[i][j - 1]);
     }
   }
 
   // Backtrack
-  const ops: DiffLine[] = [];
+  const ops: DiffSegment[] = [];
   let i = m, j = n;
   while (i > 0 || j > 0) {
-    if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
-      ops.push({ type: 'context', text: oldLines[i - 1] });
+    if (i > 0 && j > 0 && oldTokens[i - 1] === newTokens[j - 1]) {
+      ops.push({ type: 'same', text: oldTokens[i - 1] });
       i--; j--;
     } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-      ops.push({ type: 'added', text: newLines[j - 1] });
+      ops.push({ type: 'added', text: newTokens[j - 1] });
       j--;
     } else {
-      ops.push({ type: 'removed', text: oldLines[i - 1] });
+      ops.push({ type: 'removed', text: oldTokens[i - 1] });
       i--;
     }
   }
@@ -111,16 +116,36 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({
   previewContent,
   currentContent,
   isLoading,
+  onNameVersion,
 }) => {
-  const [showDiff, setShowDiff] = useState(true);
+  const [viewMode, setViewMode] = useState<'inline' | 'raw'>('inline');
+  const [namingCommit, setNamingCommit] = useState<string | null>(null);
+  const [versionName, setVersionName] = useState('');
   const grouped = useMemo(() => groupByDate(commits), [commits]);
 
-  const diffLines = useMemo(() => {
+  const diffSegments = useMemo(() => {
     if (!selectedCommit || previewContent === null) return null;
-    return computeDiff(previewContent, currentContent);
+    return computeWordDiff(previewContent, currentContent);
   }, [selectedCommit, previewContent, currentContent]);
 
+  const stats = useMemo(() => {
+    if (!diffSegments) return null;
+    let added = 0, removed = 0;
+    for (const seg of diffSegments) {
+      if (seg.type === 'added') added++;
+      if (seg.type === 'removed') removed++;
+    }
+    return { added, removed };
+  }, [diffSegments]);
+
   const isAutoSave = (msg: string) => msg.startsWith('Update ') || msg === 'Auto-save';
+
+  const handleNameVersion = useCallback((commit: GitCommit) => {
+    if (!versionName.trim()) return;
+    onNameVersion?.(commit, versionName.trim());
+    setNamingCommit(null);
+    setVersionName('');
+  }, [versionName, onNameVersion]);
 
   return (
     <div className="vh-sidebar">
@@ -140,12 +165,20 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({
               {selectedCommit.message || 'Auto-save'}
             </span>
             <div className="vh-diff-actions">
-              <button
-                className={`vh-diff-toggle ${showDiff ? 'active' : ''}`}
-                onClick={() => setShowDiff(!showDiff)}
-              >
-                {showDiff ? 'Hide diff' : 'Show diff'}
-              </button>
+              <div className="vh-view-toggle">
+                <button
+                  className={`vh-view-btn ${viewMode === 'inline' ? 'active' : ''}`}
+                  onClick={() => setViewMode('inline')}
+                >
+                  Inline
+                </button>
+                <button
+                  className={`vh-view-btn ${viewMode === 'raw' ? 'active' : ''}`}
+                  onClick={() => setViewMode('raw')}
+                >
+                  Raw
+                </button>
+              </div>
               <button
                 className="vh-restore-btn"
                 onClick={() => {
@@ -159,31 +192,60 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({
               </button>
             </div>
           </div>
-          {showDiff && diffLines && (
+
+          {stats && (
+            <div className="vh-diff-stats">
+              <span className="vh-stat-added">+{stats.added} added</span>
+              <span className="vh-stat-removed">-{stats.removed} removed</span>
+            </div>
+          )}
+
+          {viewMode === 'inline' && diffSegments && (
+            <div className="vh-inline-diff">
+              {diffSegments.length === 0 && (
+                <div className="vh-diff-empty">No changes in this version</div>
+              )}
+              {diffSegments.map((seg, i) => {
+                if (seg.type === 'same') {
+                  return <span key={i} className="vh-diff-same">{seg.text}</span>;
+                }
+                if (seg.type === 'added') {
+                  return <span key={i} className="vh-diff-added">{seg.text}</span>;
+                }
+                if (seg.type === 'removed') {
+                  return <span key={i} className="vh-diff-removed">{seg.text}</span>;
+                }
+                return <span key={i}>{seg.text}</span>;
+              })}
+            </div>
+          )}
+
+          {viewMode === 'raw' && diffSegments && (
             <div className="vh-diff-view">
-              {diffLines.map((line, i) => (
+              {diffSegments.filter(s => s.type !== 'same').map((seg, i) => (
                 <div
                   key={i}
-                  className={`vh-diff-line vh-diff-${line.type}`}
+                  className={`vh-diff-line vh-diff-${seg.type === 'added' ? 'added' : 'removed'}`}
                 >
                   <span className="vh-diff-prefix">
-                    {line.type === 'added' ? '+' : line.type === 'removed' ? '−' : ' '}
+                    {seg.type === 'added' ? '+' : '−'}
                   </span>
-                  <span className="vh-diff-text">{line.text || '\u00a0'}</span>
+                  <span className="vh-diff-text">{seg.text || '\u00a0'}</span>
                 </div>
               ))}
-              {diffLines.length === 0 && (
+              {diffSegments.filter(s => s.type !== 'same').length === 0 && (
                 <div className="vh-diff-empty">No changes in this version</div>
               )}
             </div>
           )}
+
           {isLoading && (
             <div className="vh-diff-loading">Loading version...</div>
           )}
         </div>
       )}
 
-      {/* Version list */}
+      {/* Version list (timeline) */}
       <div className="vh-list">
         {commits.length === 0 ? (
           <div className="vh-empty">
@@ -198,26 +260,57 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({
               {group.commits.map(commit => {
                 const isSelected = selectedCommit?.hash === commit.hash;
                 const auto = isAutoSave(commit.message);
+                const isNaming = namingCommit === commit.hash;
                 return (
-                  <button
-                    key={commit.hash}
-                    className={`vh-item ${isSelected ? 'selected' : ''}`}
-                    onClick={() => onPreview(commit)}
-                  >
-                    <div className="vh-item-left">
-                      <ChevronRight size={14} className={`vh-chevron ${isSelected ? 'open' : ''}`} />
-                      <div className="vh-item-info">
-                        <span className={`vh-item-message ${auto ? 'auto' : 'named'}`}>
-                          {commit.message || 'Auto-save'}
-                        </span>
-                        <span className="vh-item-meta">
-                          {formatRelativeDate(commit.date)}
-                          {commit.author && ` · ${commit.author}`}
-                        </span>
+                  <div key={commit.hash} className="vh-item-wrapper">
+                    <div className="vh-timeline-dot" />
+                    <button
+                      className={`vh-item ${isSelected ? 'selected' : ''}`}
+                      onClick={() => onPreview(commit)}
+                    >
+                      <div className="vh-item-left">
+                        <ChevronRight size={14} className={`vh-chevron ${isSelected ? 'open' : ''}`} />
+                        <div className="vh-item-info">
+                          <span className={`vh-item-message ${auto ? 'auto' : 'named'}`}>
+                            {commit.message || 'Auto-save'}
+                          </span>
+                          <span className="vh-item-meta">
+                            {formatRelativeDate(commit.date)}
+                            {commit.author && ` · ${commit.author}`}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <span className="vh-item-hash">{commit.hash.slice(0, 7)}</span>
-                  </button>
+                      <span className="vh-item-hash">{commit.hash.slice(0, 7)}</span>
+                    </button>
+                    {isSelected && (
+                      <div className="vh-item-actions">
+                        {isNaming ? (
+                          <div className="vh-name-input-row">
+                            <input
+                              className="vh-name-input"
+                              placeholder="Version name..."
+                              value={versionName}
+                              onChange={e => setVersionName(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') handleNameVersion(commit); if (e.key === 'Escape') setNamingCommit(null); }}
+                              autoFocus
+                            />
+                            <button className="vh-name-confirm" onClick={() => handleNameVersion(commit)}>
+                              <Check size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            className="vh-name-btn"
+                            onClick={(e) => { e.stopPropagation(); setNamingCommit(commit.hash); setVersionName(''); }}
+                            title="Name this version"
+                          >
+                            <Tag size={12} />
+                            Name this version
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>

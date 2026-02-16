@@ -203,4 +203,9 @@ export const gitAPI = {
     if (response.data.error) throw new Error(response.data.error);
     return response.data.data?.content || '';
   },
+
+  createTag: async (name: string, hash: string): Promise<void> => {
+    const response = await api.post<APIResponse<void>>('/git/tag', { name, hash });
+    if (response.data.error) throw new Error(response.data.error);
+  },
 };

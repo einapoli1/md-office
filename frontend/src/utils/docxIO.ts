@@ -1,4 +1,5 @@
 import mammoth from 'mammoth';
+import JSZip from 'jszip';
 import {
   Document,
   Packer,
@@ -14,20 +15,97 @@ import {
   WidthType,
   BorderStyle,
   ImageRun,
+  PageBreak,
+  Header,
+  Footer,
+  ShadingType,
+  TableLayoutType,
 } from 'docx';
 
+/* ================================================================== */
+/*  IMPORT: .docx → HTML (enhanced with direct XML parsing)           */
+/* ================================================================== */
+
 /**
- * Import a .docx file and return HTML suitable for TipTap.
+ * Extract embedded images from DOCX zip so mammoth can reference them.
+ */
+async function extractImages(zip: JSZip): Promise<Map<string, { src: string; contentType: string }>> {
+  const images = new Map<string, { src: string; contentType: string }>();
+  const relsFile = zip.file('word/_rels/document.xml.rels');
+  if (!relsFile) return images;
+  const relsXml = await relsFile.async('text');
+  const parser = new DOMParser();
+  const relsDoc = parser.parseFromString(relsXml, 'text/xml');
+  const rels = relsDoc.querySelectorAll('Relationship');
+
+  for (const rel of Array.from(rels)) {
+    const id = rel.getAttribute('Id') || '';
+    const target = rel.getAttribute('Target') || '';
+    const type = rel.getAttribute('Type') || '';
+    if (type.includes('/image')) {
+      const path = target.startsWith('/') ? target.slice(1) : `word/${target}`;
+      const imgFile = zip.file(path);
+      if (imgFile) {
+        const data = await imgFile.async('uint8array');
+        const ext = path.split('.').pop()?.toLowerCase() || 'png';
+        const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' :
+                     ext === 'gif' ? 'image/gif' :
+                     ext === 'svg' ? 'image/svg+xml' : 'image/png';
+        const blob = new Blob([data as BlobPart], { type: mime });
+        const src = URL.createObjectURL(blob);
+        images.set(id, { src, contentType: mime });
+      }
+    }
+  }
+  return images;
+}
+
+/**
+ * Enhanced DOCX import: preserves images, tables, styles better than plain mammoth.
  */
 export async function importDocx(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
-  const result = await mammoth.convertToHtml({ arrayBuffer });
-  return result.value;
+  const zip = await JSZip.loadAsync(arrayBuffer);
+  // Pre-extract images for potential future use
+  await extractImages(zip);
+
+  // Convert images for mammoth
+  const convertImage = mammoth.images.imgElement((image: any) => {
+    return image.read('base64').then((base64: string) => {
+      const contentType = image.contentType || 'image/png';
+      return { src: `data:${contentType};base64,${base64}` };
+    });
+  });
+
+  const result = await mammoth.convertToHtml({
+    arrayBuffer,
+    convertImage,
+    styleMap: [
+      "p[style-name='Heading 1'] => h1:fresh",
+      "p[style-name='Heading 2'] => h2:fresh",
+      "p[style-name='Heading 3'] => h3:fresh",
+      "p[style-name='Heading 4'] => h4:fresh",
+      "p[style-name='Heading 5'] => h5:fresh",
+      "p[style-name='Heading 6'] => h6:fresh",
+      "p[style-name='Title'] => h1.title:fresh",
+      "p[style-name='Subtitle'] => h2.subtitle:fresh",
+      "p[style-name='Quote'] => blockquote:fresh",
+      "p[style-name='Intense Quote'] => blockquote.intense:fresh",
+      "r[style-name='Strong'] => strong",
+      "r[style-name='Emphasis'] => em",
+    ],
+  } as any);
+  let html = result.value;
+
+  // Post-process: add page break markers
+  html = html.replace(/<br\s*\/?>\s*<br\s*\/?>/g, '<hr data-type="page-break" />');
+
+  return html;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Export: HTML → docx via the `docx` npm package                     */
-/* ------------------------------------------------------------------ */
+/* ================================================================== */
+/*  EXPORT: HTML → .docx via the `docx` npm package (enhanced)        */
+/* ================================================================== */
 
 interface ParsedRun {
   text: string;
@@ -39,7 +117,8 @@ interface ParsedRun {
   subScript?: boolean;
   font?: string;
   color?: string;
-  size?: number; // half-points
+  size?: number;
+  highlight?: string;
 }
 
 function parseInlineNodes(node: Node): ParsedRun[] {
@@ -56,7 +135,11 @@ function parseInlineNodes(node: Node): ParsedRun[] {
     const el = child as HTMLElement;
     const tag = el.tagName.toLowerCase();
 
-    // Recurse and apply formatting
+    if (tag === 'br') {
+      runs.push({ text: '\n' });
+      return;
+    }
+
     const inner = parseInlineNodes(el);
 
     const applyFormat = (r: ParsedRun): ParsedRun => {
@@ -68,9 +151,14 @@ function parseInlineNodes(node: Node): ParsedRun[] {
       if (tag === 'sup') out.superScript = true;
       if (tag === 'sub') out.subScript = true;
       if (tag === 'code') out.font = 'Courier New';
-      // Inline styles
+      if (tag === 'mark') out.highlight = 'yellow';
       if (el.style?.color) out.color = el.style.color.replace('#', '');
       if (el.style?.fontFamily) out.font = el.style.fontFamily.replace(/['"]/g, '');
+      if (el.style?.fontSize) {
+        const px = parseFloat(el.style.fontSize);
+        if (!isNaN(px)) out.size = Math.round(px * 1.5); // px to half-points approx
+      }
+      if (el.style?.backgroundColor) out.highlight = 'yellow';
       return out;
     };
 
@@ -94,6 +182,7 @@ function makeTextRuns(runs: ParsedRun[]): TextRun[] {
         font: r.font ? { name: r.font } : undefined,
         color: r.color,
         size: r.size,
+        highlight: r.highlight as any,
       }),
   );
 }
@@ -119,12 +208,21 @@ async function tryImageRun(el: HTMLElement): Promise<ImageRun | null> {
   const img = el.tagName.toLowerCase() === 'img' ? el as HTMLImageElement : el.querySelector('img');
   if (!img) return null;
   const src = img.getAttribute('src') || '';
-  if (!src.startsWith('data:')) return null; // only base64
+  if (!src) return null;
+
   try {
-    const resp = await fetch(src);
-    const buf = await resp.arrayBuffer();
-    const w = img.width || 300;
-    const h = img.height || 200;
+    let buf: ArrayBuffer;
+    if (src.startsWith('data:')) {
+      const resp = await fetch(src);
+      buf = await resp.arrayBuffer();
+    } else if (src.startsWith('blob:')) {
+      const resp = await fetch(src);
+      buf = await resp.arrayBuffer();
+    } else {
+      return null; // Skip external URLs
+    }
+    const w = img.width || img.naturalWidth || 300;
+    const h = img.height || img.naturalHeight || 200;
     return new ImageRun({ data: new Uint8Array(buf), transformation: { width: w, height: h }, type: 'png' });
   } catch {
     return null;
@@ -139,18 +237,28 @@ function collectListItems(
 ) {
   el.querySelectorAll(':scope > li').forEach((li) => {
     const runs = parseInlineNodes(li);
-    // Filter out nested list text that will be handled recursively
     result.push(
       new Paragraph({
         children: makeTextRuns(runs.length ? runs : [{ text: li.textContent || '' }]),
         numbering: { reference: ordered ? 'ordered-list' : 'bullet-list', level },
       }),
     );
-    // Handle nested lists
     li.querySelectorAll(':scope > ul, :scope > ol').forEach((nested) => {
       collectListItems(nested as HTMLElement, nested.tagName.toLowerCase() === 'ol', level + 1, result);
     });
   });
+}
+
+function parseCSSColor(color: string): string | undefined {
+  if (!color) return undefined;
+  if (color.startsWith('#')) return color.replace('#', '');
+  if (color.startsWith('rgb')) {
+    const m = color.match(/\d+/g);
+    if (m && m.length >= 3) {
+      return m.slice(0, 3).map(n => parseInt(n).toString(16).padStart(2, '0')).join('');
+    }
+  }
+  return undefined;
 }
 
 function parseTable(tableEl: HTMLElement): Table {
@@ -158,18 +266,45 @@ function parseTable(tableEl: HTMLElement): Table {
   tableEl.querySelectorAll('tr').forEach((tr) => {
     const cells: TableCell[] = [];
     tr.querySelectorAll('th, td').forEach((td) => {
-      cells.push(
-        new TableCell({
-          children: [new Paragraph({ children: makeTextRuns(parseInlineNodes(td)) })],
-          width: { size: 100, type: WidthType.AUTO },
-        }),
-      );
+      const cellEl = td as HTMLElement;
+      const colspan = parseInt(cellEl.getAttribute('colspan') || '1');
+      const rowspan = parseInt(cellEl.getAttribute('rowspan') || '1');
+
+      // Cell shading
+      const bgColor = parseCSSColor(cellEl.style?.backgroundColor || '');
+      let shading: { type: typeof ShadingType.CLEAR; fill: string } | undefined;
+      if (bgColor) {
+        shading = { type: ShadingType.CLEAR, fill: bgColor };
+      }
+      if (td.tagName.toLowerCase() === 'th' && !shading) {
+        shading = { type: ShadingType.CLEAR, fill: 'D9E2F3' };
+      }
+
+      // Cell borders
+      const borderStyle = cellEl.style?.border || cellEl.style?.borderWidth;
+      const borders = borderStyle ? {
+        top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+        bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+        left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+        right: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+      } : undefined;
+
+      cells.push(new TableCell({
+        children: [new Paragraph({ children: makeTextRuns(parseInlineNodes(td)) })],
+        width: { size: 100, type: WidthType.AUTO },
+        columnSpan: colspan > 1 ? colspan : undefined,
+        rowSpan: rowspan > 1 ? rowspan : undefined,
+        shading,
+        borders,
+      }));
     });
     if (cells.length) rows.push(new TableRow({ children: cells }));
   });
+
   return new Table({
     rows,
     width: { size: 100, type: WidthType.PERCENTAGE },
+    layout: TableLayoutType.AUTOFIT,
   });
 }
 
@@ -179,6 +314,16 @@ async function htmlToDocxChildren(container: HTMLElement): Promise<(Paragraph | 
   for (let i = 0; i < container.children.length; i++) {
     const el = container.children[i] as HTMLElement;
     const tag = el.tagName.toLowerCase();
+
+    // Page break
+    if (tag === 'hr' || (tag === 'div' && el.dataset.type === 'page-break')) {
+      children.push(
+        new Paragraph({
+          children: [new PageBreak()],
+        }),
+      );
+      continue;
+    }
 
     // Headings
     if (HEADING_MAP[tag]) {
@@ -226,18 +371,19 @@ async function htmlToDocxChildren(container: HTMLElement): Promise<(Paragraph | 
     // Blockquote
     if (tag === 'blockquote') {
       const inner = await htmlToDocxChildren(el);
-      inner.forEach((p) => {
+      for (const p of inner) {
         if (p instanceof Paragraph) {
           children.push(
             new Paragraph({
               children: makeTextRuns(parseInlineNodes(el)),
               indent: { left: convertInchesToTwip(0.5) },
+              style: 'Quote',
             }),
           );
         } else {
           children.push(p);
         }
-      });
+      }
       continue;
     }
 
@@ -248,18 +394,18 @@ async function htmlToDocxChildren(container: HTMLElement): Promise<(Paragraph | 
         children.push(
           new Paragraph({
             children: [new TextRun({ text: line, font: { name: 'Courier New' }, size: 20 })],
+            shading: { type: ShadingType.CLEAR, fill: 'F5F5F5' },
           }),
         );
       });
       continue;
     }
 
-    // HR
+    // HR (page breaks)
     if (tag === 'hr') {
       children.push(
         new Paragraph({
-          children: [],
-          border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: 'auto' } },
+          children: [new PageBreak()],
         }),
       );
       continue;
@@ -269,6 +415,13 @@ async function htmlToDocxChildren(container: HTMLElement): Promise<(Paragraph | 
     if (tag === 'img') {
       const imgRun = await tryImageRun(el);
       if (imgRun) children.push(new Paragraph({ children: [imgRun] }));
+      continue;
+    }
+
+    // Div containers - recurse
+    if (tag === 'div' || tag === 'section' || tag === 'article') {
+      const innerChildren = await htmlToDocxChildren(el);
+      children.push(...innerChildren);
       continue;
     }
 
@@ -282,24 +435,43 @@ async function htmlToDocxChildren(container: HTMLElement): Promise<(Paragraph | 
   return children;
 }
 
+export interface DocxExportOptions {
+  title?: string;
+  headerText?: string;
+  footerText?: string;
+}
+
 /**
- * Export editor HTML to a .docx Blob.
+ * Export editor HTML to a .docx Blob with enhanced fidelity.
  */
-export async function exportDocx(html: string, title: string): Promise<Blob> {
-  // Parse HTML
+export async function exportDocx(html: string, title: string, options?: DocxExportOptions): Promise<Blob> {
   const parser = new DOMParser();
   const doc = parser.parseFromString(`<body>${html}</body>`, 'text/html');
   const body = doc.body;
 
   const docxChildren = await htmlToDocxChildren(body);
 
-  // Ensure at least one paragraph
   if (docxChildren.length === 0) {
     docxChildren.push(new Paragraph({ children: [new TextRun('')] }));
   }
 
+  const headerText = options?.headerText || '';
+  const footerText = options?.footerText || '';
+
   const document = new Document({
-    title,
+    title: options?.title || title,
+    styles: {
+      paragraphStyles: [
+        {
+          id: 'Quote',
+          name: 'Quote',
+          basedOn: 'Normal',
+          next: 'Normal',
+          run: { italics: true, color: '404040' },
+          paragraph: { indent: { left: convertInchesToTwip(0.5) } },
+        },
+      ],
+    },
     numbering: {
       config: [
         {
@@ -322,6 +494,19 @@ export async function exportDocx(html: string, title: string): Promise<Blob> {
     },
     sections: [
       {
+        headers: headerText ? {
+          default: new Header({
+            children: [new Paragraph({ children: [new TextRun({ text: headerText, size: 18, color: '888888' })] })],
+          }),
+        } : undefined,
+        footers: footerText ? {
+          default: new Footer({
+            children: [new Paragraph({
+              children: [new TextRun({ text: footerText, size: 18, color: '888888' })],
+              alignment: AlignmentType.CENTER,
+            })],
+          }),
+        } : undefined,
         children: docxChildren,
       },
     ],
