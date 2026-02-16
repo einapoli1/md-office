@@ -146,8 +146,13 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ steps = DEFAULT_STEPS, 
         <rect width="100%" height="100%" fill="rgba(0,0,0,0.5)" mask="url(#tour-mask)" />
       </svg>
 
-      {/* Click-catcher behind tooltip */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 10001 }} onClick={e => e.stopPropagation()} />
+      {/* Click-catcher — clicking outside the tooltip dismisses the tour */}
+      <div
+        className="tour-backdrop"
+        style={{ position: 'fixed', inset: 0, zIndex: 10001, cursor: 'pointer' }}
+        onClick={() => { finish(); }}
+        role="presentation"
+      />
 
       {/* Tooltip */}
       <div className="tour-tooltip" style={tooltipStyle}>
