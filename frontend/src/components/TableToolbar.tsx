@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
-  Trash2, Columns, Rows, Grid3X3,
+  Trash2, Columns, Rows, Grid3X3, Palette, Settings,
 } from 'lucide-react';
+import TableStylePicker from './TableStylePicker';
+import TableProperties from './TableProperties';
 
 interface TableToolbarProps {
   editor: any;
@@ -11,6 +13,8 @@ interface TableToolbarProps {
 const TableToolbar: React.FC<TableToolbarProps> = ({ editor }) => {
   const [visible, setVisible] = useState(false);
   const [position, setPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [showStylePicker, setShowStylePicker] = useState(false);
+  const [showProperties, setShowProperties] = useState(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -97,6 +101,20 @@ const TableToolbar: React.FC<TableToolbarProps> = ({ editor }) => {
       {btn('Toggle header row', <Grid3X3 size={14} />, () => editor.chain().focus().toggleHeaderRow().run(), false, 'Toggle header row')}
       {btn('Merge cells', <span style={{ fontSize: 11, fontWeight: 600 }}>⊞</span>, () => editor.chain().focus().mergeCells().run(), !editor.can().mergeCells(), 'Merge cells')}
       {btn('Split cell', <span style={{ fontSize: 11, fontWeight: 600 }}>⊟</span>, () => editor.chain().focus().splitCell().run(), !editor.can().splitCell(), 'Split cell')}
+
+      <div className="table-toolbar-divider" />
+
+      {btn('Table styles', <Palette size={14} />, () => setShowStylePicker(!showStylePicker), false, 'Table styles')}
+      {btn('Table properties', <Settings size={14} />, () => setShowProperties(true), false, 'Table properties')}
+
+      {showStylePicker && (
+        <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 4 }}>
+          <TableStylePicker editor={editor} onClose={() => setShowStylePicker(false)} />
+        </div>
+      )}
+      {showProperties && (
+        <TableProperties editor={editor} onClose={() => setShowProperties(false)} />
+      )}
     </div>
   );
 };

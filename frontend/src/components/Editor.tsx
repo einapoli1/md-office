@@ -2,7 +2,8 @@ import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table';
+import { TableAdvanced, TableCellAdvanced, TableHeaderAdvanced } from '../extensions/TableAdvanced';
 import { Link } from '@tiptap/extension-link';
 import { ImageResize } from '../extensions/ImageResize';
 import { TaskList } from '@tiptap/extension-task-list';
@@ -50,6 +51,7 @@ import { VariableChip } from '../extensions/VariableChip';
 import { TemplateVariable } from '../extensions/TemplateVariable';
 import { EquationEvaluator } from '../extensions/EquationEvaluator';
 import TableToolbar from './TableToolbar';
+import TableContextMenu from './TableContextMenu';
 import { importDocx } from '../utils/docxIO';
 
 interface EditorProps {
@@ -397,10 +399,10 @@ const Editor: React.FC<EditorProps> = ({
       Placeholder.configure({
         placeholder: 'Start writing your document...',
       }),
-      Table.configure({ resizable: true }),
+      TableAdvanced.configure({ resizable: true }),
       TableRow,
-      TableCell,
-      TableHeader,
+      TableCellAdvanced,
+      TableHeaderAdvanced,
       Link.configure({
         openOnClick: false,
         HTMLAttributes: { class: 'editor-link' },
@@ -765,6 +767,7 @@ const Editor: React.FC<EditorProps> = ({
       
       <div className="editor-content-area" style={{ position: 'relative' }}>
         <TableToolbar editor={editor} />
+        <TableContextMenu editor={editor} />
         <EditorContent 
           editor={editor} 
           className="docs-editor-content"
