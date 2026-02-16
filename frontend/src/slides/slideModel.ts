@@ -1,7 +1,7 @@
 // Slide data model — parse/serialize markdown, undo/redo
 
 export type SlideLayout = 'title' | 'content' | 'two-column' | 'image' | 'blank' | 'section';
-export type TransitionType = 'none' | 'fade' | 'slide-left' | 'slide-right' | 'slide-up' | 'zoom' | 'dissolve' | 'wipe';
+export type TransitionType = 'none' | 'fade' | 'slide-left' | 'slide-right' | 'slide-up' | 'zoom' | 'dissolve' | 'wipe' | 'morph' | 'zoom-rotate' | 'curtain' | 'flip' | 'cube' | 'swipe';
 export type TransitionDuration = '0.3s' | '0.5s' | '1.0s';
 export type FragmentType = 'fade-in' | 'slide-up' | 'slide-left' | 'zoom-in' | 'appear';
 

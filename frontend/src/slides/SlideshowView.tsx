@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Slide, TransitionType } from './slideModel';
 import { SlideTheme } from './slideThemes';
 import SlideCanvas from './SlideCanvas';
+import LaserPointer from './LaserPointer';
+import { getTransitionClass } from './SlideTransitions';
 
 interface Props {
   slides: Slide[];
@@ -11,13 +13,25 @@ interface Props {
   autoAdvance?: boolean;
 }
 
+const SHORTCUTS = [
+  { key: '→ / Space', desc: 'Next slide / fragment' },
+  { key: '←', desc: 'Previous slide / fragment' },
+  { key: 'Escape', desc: 'Exit slideshow' },
+  { key: 'L', desc: 'Toggle laser pointer' },
+  { key: 'P', desc: 'Toggle pen/highlighter' },
+  { key: 'Y', desc: 'Switch pen color (red/yellow)' },
+  { key: 'C', desc: 'Clear annotations' },
+  { key: '?', desc: 'Toggle this shortcuts panel' },
+];
+
 export default function SlideshowView({ slides, theme, startIndex = 0, onExit, autoAdvance = false }: Props) {
   const [current, setCurrent] = useState(startIndex);
-  const [fragmentIndex, setFragmentIndex] = useState(-1); // -1 = no fragments revealed
+  const [fragmentIndex, setFragmentIndex] = useState(-1);
   const [transition, setTransition] = useState<TransitionType>('none');
   const [transitionDuration, setTransitionDuration] = useState('0.3s');
   const [animating, setAnimating] = useState(false);
-  const [autoProgress, setAutoProgress] = useState(0); // 0-100 percent
+  const [autoProgress, setAutoProgress] = useState(0);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const autoTimerRef = useRef<ReturnType<typeof setInterval>>();
 
@@ -26,7 +40,6 @@ export default function SlideshowView({ slides, theme, startIndex = 0, onExit, a
 
   const go = useCallback((dir: number) => {
     if (dir > 0) {
-      // Forward: reveal next fragment first, then advance slide
       if (fragmentIndex < totalFragments - 1) {
         setFragmentIndex(f => f + 1);
         return;
@@ -45,7 +58,6 @@ export default function SlideshowView({ slides, theme, startIndex = 0, onExit, a
         try { new BroadcastChannel('md-slides').postMessage({ type: 'navigate', index: next }); } catch (_e) { /* noop */ }
       }, ms);
     } else {
-      // Backward: hide last fragment first, then go back
       if (fragmentIndex >= 0) {
         setFragmentIndex(f => f - 1);
         return;
@@ -53,7 +65,6 @@ export default function SlideshowView({ slides, theme, startIndex = 0, onExit, a
       const next = current - 1;
       if (next < 0) return;
       setCurrent(next);
-      // Show all fragments on previous slide
       const prevFrags = slides[next]?.fragments?.length ?? 0;
       setFragmentIndex(prevFrags - 1);
       try { new BroadcastChannel('md-slides').postMessage({ type: 'navigate', index: next }); } catch (_e) { /* noop */ }
@@ -65,6 +76,7 @@ export default function SlideshowView({ slides, theme, startIndex = 0, onExit, a
       if (e.key === 'Escape') onExit();
       else if (e.key === 'ArrowRight' || e.key === ' ') go(1);
       else if (e.key === 'ArrowLeft') go(-1);
+      else if (e.key === '?') setShowShortcuts(v => !v);
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -93,7 +105,7 @@ export default function SlideshowView({ slides, theme, startIndex = 0, onExit, a
     return () => { clearInterval(autoTimerRef.current); setAutoProgress(0); };
   }, [current, autoAdvance, slides, go]);
 
-  const transClass = animating ? `slideshow-trans-${transition}` : '';
+  const transClass = animating ? getTransitionClass(transition) || `slideshow-trans-${transition}` : '';
   const showProgressBar = autoAdvance && (slides[current]?.timingMs ?? 0) > 0;
 
   return (
@@ -109,9 +121,33 @@ export default function SlideshowView({ slides, theme, startIndex = 0, onExit, a
           fragmentIndex={fragmentIndex}
         />
       </div>
+
+      {/* Laser pointer & pen annotations */}
+      <LaserPointer containerRef={containerRef} />
+
       {showProgressBar && (
         <div className="slideshow-progress-bar">
           <div className="slideshow-progress-fill" style={{ width: `${autoProgress}%` }} />
+        </div>
+      )}
+
+      {/* Keyboard shortcuts overlay */}
+      {showShortcuts && (
+        <div className="shortcuts-overlay" onClick={e => e.stopPropagation()}>
+          <div className="shortcuts-panel">
+            <h3>⌨️ Keyboard Shortcuts</h3>
+            <table className="shortcuts-table">
+              <tbody>
+                {SHORTCUTS.map(s => (
+                  <tr key={s.key}>
+                    <td className="shortcut-key"><kbd>{s.key}</kbd></td>
+                    <td>{s.desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="shortcuts-dismiss">Press ? to dismiss</p>
+          </div>
         </div>
       )}
     </div>

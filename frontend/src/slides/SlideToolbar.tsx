@@ -26,6 +26,8 @@ interface Props {
   onNewFromTemplate: (templateId: string) => void;
   onExportPDF?: () => void;
   onExportHTML?: () => void;
+  onToggleTimeline?: () => void;
+  showTimeline?: boolean;
 }
 
 export default function SlideToolbar({
@@ -36,6 +38,7 @@ export default function SlideToolbar({
   onInsertFragment, onPreviewAnimation,
   onNewFromTemplate,
   onExportPDF, onExportHTML,
+  onToggleTimeline, showTimeline,
 }: Props) {
   const [templateOpen, setTemplateOpen] = useState(false);
 
@@ -60,6 +63,12 @@ export default function SlideToolbar({
           <option value="zoom">Zoom</option>
           <option value="dissolve">Dissolve</option>
           <option value="wipe">Wipe</option>
+          <option value="morph">Morph</option>
+          <option value="zoom-rotate">Zoom Rotate</option>
+          <option value="curtain">Curtain</option>
+          <option value="flip">Flip</option>
+          <option value="cube">Cube</option>
+          <option value="swipe">Swipe</option>
         </select>
 
         <select value={currentTransitionDuration} onChange={e => onTransitionDurationChange(e.target.value as TransitionDuration)} title="Duration">
@@ -90,6 +99,11 @@ export default function SlideToolbar({
           <option value="appear">Appear</option>
         </select>
         <button onClick={onPreviewAnimation} title="Preview animations">👁 Preview</button>
+        <button
+          onClick={onToggleTimeline}
+          title="Animation Timeline"
+          className={showTimeline ? 'btn-active' : ''}
+        >🎬 Timeline</button>
       </div>
 
       {/* Shapes */}
