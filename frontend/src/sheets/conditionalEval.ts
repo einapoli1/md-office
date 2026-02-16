@@ -2,7 +2,7 @@
 
 import type React from 'react';
 
-export type ConditionalRuleType = 'cellValue' | 'text' | 'colorScale' | 'dataBars' | 'iconSet';
+export type ConditionalRuleType = 'cellValue' | 'text' | 'customFormula' | 'colorScale' | 'dataBars' | 'iconSet';
 
 export type CellValueOperator = 'gt' | 'lt' | 'between' | 'eq' | 'neq' | 'gte' | 'lte';
 export type TextOperator = 'contains' | 'startsWith' | 'endsWith' | 'isExactly';
@@ -23,6 +23,8 @@ export interface ConditionalRule {
   operator?: CellValueOperator | TextOperator;
   values?: string[]; // 1 or 2 values
   style?: ConditionalStyle;
+  // customFormula
+  customFormula?: string;
   // colorScale
   colorScaleColors?: string[]; // 2 or 3 hex colors
   // dataBars
@@ -124,6 +126,19 @@ export function evaluateConditionalFormats(
         if (rule.style.bold) result.fontWeight = 'bold';
         if (rule.style.italic) result.fontStyle = 'italic';
       }
+    }
+
+    if (rule.type === 'customFormula' && rule.customFormula && rule.style) {
+      try {
+        const formula = rule.customFormula.replace(/^=/, '');
+        const fn = new Function('VALUE', 'ROW', 'COL', `return !!(${formula})`);
+        if (fn(isNaN(num) ? value : num, row, col)) {
+          if (rule.style.textColor) result.color = rule.style.textColor;
+          if (rule.style.backgroundColor) result.backgroundColor = rule.style.backgroundColor;
+          if (rule.style.bold) result.fontWeight = 'bold';
+          if (rule.style.italic) result.fontStyle = 'italic';
+        }
+      } catch { /* invalid formula, skip */ }
     }
 
     if (rule.type === 'colorScale' && rule.colorScaleColors && allValues && allValues.length > 0 && !isNaN(num)) {

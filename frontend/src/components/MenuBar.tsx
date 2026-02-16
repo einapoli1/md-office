@@ -9,6 +9,7 @@ interface MenuBarProps {
   onNewSpreadsheet: () => void;
   onNewPresentation: () => void;
   onNewDrawing?: () => void;
+  onNewDatabase?: () => void;
   onTemplateSelect: () => void;
   onPrint: () => void;
   onShowSettings?: () => void;
@@ -40,6 +41,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
   onNewFile,
   onNewSpreadsheet,
   onNewPresentation,
+  onNewDatabase,
   onTemplateSelect,
   onPrint,
   onShowSettings,
@@ -108,6 +110,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'New document', action: onNewFile, shortcut: 'Ctrl+N', icon: FileText },
       { label: 'New spreadsheet', action: onNewSpreadsheet, icon: Table2 },
       { label: 'New presentation', action: onNewPresentation, icon: Presentation },
+      { label: 'New database', action: onNewDatabase ?? (() => {}), icon: Table2 },
       { label: 'From template', action: onTemplateSelect },
       { label: 'Templates library', action: () => {
         window.dispatchEvent(new CustomEvent('template-sidebar-toggle'));
@@ -522,6 +525,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
     sheets: { icon: Table2, name: 'MD Sheets', color: '#0f9d58' },
     slides: { icon: Presentation, name: 'MD Slides', color: '#f4b400' },
     draw: { icon: Pencil, name: 'MD Draw', color: '#db4437' },
+    database: { icon: Table2, name: 'MD Database', color: '#8430ce' },
   };
   const branding = APP_BRANDING[appMode];
 
