@@ -1,5 +1,6 @@
-import React, { useCallback } from 'react';
-import { X, FileText, Code, Printer } from 'lucide-react';
+import React, { useCallback, useState } from 'react';
+import { X, FileText, Code, Printer, FileType } from 'lucide-react';
+import { exportDocx } from '../utils/docxIO';
 
 interface ExportDialogProps {
   content: string;
@@ -64,6 +65,28 @@ ${htmlContent}
     requestAnimationFrame(() => window.print());
   };
 
+  const [exportingDocx, setExportingDocx] = useState(false);
+
+  const exportWord = async () => {
+    setExportingDocx(true);
+    try {
+      const blob = await exportDocx(htmlContent, baseName);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${baseName}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      import('./Toast').then(({ toast }) => toast(`Exported as ${baseName}.docx`, 'success'));
+      onClose();
+    } catch (err) {
+      console.error('DOCX export failed:', err);
+      import('./Toast').then(({ toast }) => toast('Failed to export DOCX', 'error'));
+    } finally {
+      setExportingDocx(false);
+    }
+  };
+
   const exportPlainText = () => {
     const text = content
       .replace(/^---[\s\S]*?---\n/m, '')
@@ -95,6 +118,13 @@ ${htmlContent}
             <div className="export-option-text">
               <span className="export-option-name">HTML (.html)</span>
               <span className="export-option-desc">Styled web page</span>
+            </div>
+          </button>
+          <button className="export-option" onClick={exportWord} disabled={exportingDocx}>
+            <FileType size={20} />
+            <div className="export-option-text">
+              <span className="export-option-name">Word Document (.docx)</span>
+              <span className="export-option-desc">{exportingDocx ? 'Exporting...' : 'Microsoft Word format'}</span>
             </div>
           </button>
           <button className="export-option" onClick={exportPDF}>

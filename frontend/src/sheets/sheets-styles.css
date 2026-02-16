@@ -1,0 +1,62 @@
+/* ── Remote collaboration cursors on cells ─────────────────────────────── */
+
+.sheet-remote-cursor {
+  position: absolute;
+  pointer-events: none;
+  z-index: 6;
+  border: 2px solid var(--cursor-color, #4285F4);
+  box-sizing: border-box;
+}
+
+.sheet-remote-cursor-label {
+  position: absolute;
+  top: -18px;
+  left: -1px;
+  font-size: 10px;
+  line-height: 16px;
+  padding: 0 4px;
+  border-radius: 3px 3px 3px 0;
+  color: #fff;
+  background: var(--cursor-color, #4285F4);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.sheet-remote-range {
+  position: absolute;
+  pointer-events: none;
+  z-index: 5;
+  background: var(--cursor-color-light, rgba(66,133,244,0.10));
+  border: 1px solid var(--cursor-color, #4285F4);
+  opacity: 0.5;
+  box-sizing: border-box;
+}
+
+/* Collab presence bar inside the spreadsheet toolbar area */
+.sheet-collab-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #5f6368;
+}
+
+.sheet-collab-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.sheet-collab-status-dot.connected    { background: #34a853; }
+.sheet-collab-status-dot.connecting   { background: #fa7b17; animation: pulse-dot 1s infinite; }
+.sheet-collab-status-dot.disconnected { background: #ea4335; }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}

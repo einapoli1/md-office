@@ -3,6 +3,7 @@ import { CellFormat, getCellStyle, formatCellValue } from './cellFormat';
 import { cellId, indexToCol, extractRefs } from './formulaEngine';
 import { WorkbookData, CellData, createWorkbook, createEmptySheet, getColWidth, getRowHeight, recalculate, buildDependencyGraph, recalcAll, UndoManager, serializeWorkbook, deserializeWorkbook, ChartConfig, FilterState, FreezePanes } from './sheetModel';
 import { DependencyGraph } from './formulaEngine';
+import { detectPattern, generateFill, adjustFormula, parseFormulaRefs, measureTextWidth, FormulaRef } from './fillLogic';
 import FormulaBar from './FormulaBar';
 import SheetToolbar from './SheetToolbar';
 import SheetTabs from './SheetTabs';
@@ -15,6 +16,18 @@ import type { ConditionalRule, ValidationRule } from './conditionalEval';
 import PivotTableDialog from './PivotTable';
 import NamedRangesDialog from './NamedRanges';
 import { PivotConfig } from './pivotEngine';
+import {
+  initSheetCollab,
+  setCellInYjs,
+  setSheetMetaInYjs,
+  syncWorkbookFromYjs,
+  syncWorkbookToYjs,
+  setLocalCursor,
+  type RemoteCursor,
+  type SheetCollabHandle,
+  type CellChangeCallback,
+} from './sheetCollab';
+import { COLLAB_COLORS } from '../utils/collabColors';
 import './sheets-styles.css';
 
 const NUM_COLS = 26;
@@ -25,6 +38,14 @@ const OVERSCAN = 5;
 interface SpreadsheetEditorProps {
   initialData?: string;
   onSave?: (data: string) => void;
+  /** Enable real-time Yjs collaboration */
+  enableCollaboration?: boolean;
+  /** Document name used as the collab room id */
+  documentName?: string;
+  /** Hocuspocus WebSocket URL */
+  collaborationServerUrl?: string;
+  /** Current user display name */
+  userName?: string;
 }
 
 interface Selection {
@@ -47,7 +68,14 @@ interface FilterDropdown {
   y: number;
 }
 
-export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEditorProps) {
+export default function SpreadsheetEditor({
+  initialData,
+  onSave,
+  enableCollaboration = false,
+  documentName,
+  collaborationServerUrl = 'ws://localhost:1234',
+  userName = 'Anonymous',
+}: SpreadsheetEditorProps) {
   const [workbook, setWorkbook] = useState<WorkbookData>(() => {
     if (initialData) {
       try { return deserializeWorkbook(initialData); } catch { /* fallthrough */ }
@@ -75,6 +103,14 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
   const [showPivotDialog, setShowPivotDialog] = useState(false);
   const [showNamedRangesDialog, setShowNamedRangesDialog] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [fillDrag, setFillDrag] = useState<{ startRow: number; startCol: number; endRow: number; endCol: number; active: boolean } | null>(null);
+  const [formulaHighlights, setFormulaHighlights] = useState<FormulaRef[]>([]);
+
+  // Collaboration state
+  const [remoteCursors, setRemoteCursors] = useState<RemoteCursor[]>([]);
+  const [collabStatus, setCollabStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
+  const collabRef = useRef<SheetCollabHandle | null>(null);
+  const suppressRemoteRef = useRef(false);
 
   const graphRef = useRef<DependencyGraph>(new DependencyGraph());
   const undoRef = useRef(new UndoManager());
@@ -102,6 +138,78 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
 
   const [, setTick] = useState(0);
   const triggerUpdate = useCallback(() => setTick(t => t + 1), []);
+
+  // ── Collaboration setup ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!enableCollaboration || !documentName) return;
+
+    const onCellsChanged: CellChangeCallback = (sheetIndex, changes) => {
+      if (suppressRemoteRef.current) return;
+      const s = workbook.sheets[sheetIndex];
+      if (!s) return;
+      changes.forEach((cell, key) => {
+        if (cell) {
+          s.cells[key] = cell;
+        } else {
+          delete s.cells[key];
+        }
+      });
+      graphRef.current = buildDependencyGraph(s);
+      recalcAll(s, graphRef.current, workbook.namedRanges);
+      setWorkbook(wb => ({ ...wb }));
+    };
+
+    const onMetaChanged = (sheetIndex: number) => {
+      if (suppressRemoteRef.current) return;
+      // Re-read meta from Yjs
+      const handle = collabRef.current;
+      if (!handle) return;
+      const freshWb = syncWorkbookFromYjs(handle.ydoc);
+      const freshSheet = freshWb.sheets[sheetIndex];
+      if (freshSheet && workbook.sheets[sheetIndex]) {
+        const s = workbook.sheets[sheetIndex];
+        s.name = freshSheet.name;
+        s.colWidths = freshSheet.colWidths;
+        s.rowHeights = freshSheet.rowHeights;
+        s.merges = freshSheet.merges;
+        s.freeze = freshSheet.freeze;
+        setWorkbook(wb => ({ ...wb }));
+      }
+    };
+
+    const handle = initSheetCollab(
+      documentName,
+      collaborationServerUrl,
+      userName,
+      workbook,
+      onCellsChanged,
+      onMetaChanged,
+      setRemoteCursors,
+    );
+    collabRef.current = handle;
+
+    // Track connection status
+    handle.provider.on('status', ({ status }: { status: string }) => {
+      setCollabStatus(status as any);
+    });
+
+    return () => {
+      handle.destroy();
+      collabRef.current = null;
+      setCollabStatus('disconnected');
+      setRemoteCursors([]);
+    };
+  }, [enableCollaboration, documentName, collaborationServerUrl, userName]);
+
+  // Broadcast local cursor position via awareness
+  useEffect(() => {
+    if (!enableCollaboration || !collabRef.current) return;
+    const cellRef = cellId(activeCell.col, activeCell.row);
+    const rangeStr = selection.startRow !== selection.endRow || selection.startCol !== selection.endCol
+      ? `${cellId(Math.min(selection.startCol, selection.endCol), Math.min(selection.startRow, selection.endRow))}:${cellId(Math.max(selection.startCol, selection.endCol), Math.max(selection.startRow, selection.endRow))}`
+      : null;
+    setLocalCursor(collabRef.current.provider, userName, cellRef, rangeStr, workbook.activeSheet);
+  }, [activeCell, selection, workbook.activeSheet, enableCollaboration, userName]);
 
   // Auto-save
   useEffect(() => {
@@ -214,8 +322,16 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
     setValidationErrors(newErrors);
 
     setEditing(false);
+
+    // Broadcast cell change to Yjs
+    if (enableCollaboration && collabRef.current) {
+      suppressRemoteRef.current = true;
+      setCellInYjs(collabRef.current.ydoc, workbook.activeSheet, id, sheet.cells[id] ?? undefined);
+      suppressRemoteRef.current = false;
+    }
+
     setWorkbook({ ...workbook });
-  }, [editValue, activeCell, sheet, workbook, validationErrors]);
+  }, [editValue, activeCell, sheet, workbook, validationErrors, enableCollaboration]);
 
   const startEdit = useCallback((initialChar?: string) => {
     const id = cellId(activeCell.col, activeCell.row);
@@ -231,8 +347,18 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
     if (!editing) {
       const id = cellId(activeCell.col, activeCell.row);
       setFormulaBarValue(getCellRaw(id));
+      setFormulaHighlights([]);
     }
   }, [activeCell, editing, getCellRaw]);
+
+  // Update formula highlights in real-time while editing
+  useEffect(() => {
+    if (editing && editValue.startsWith('=')) {
+      setFormulaHighlights(parseFormulaRefs(editValue));
+    } else {
+      setFormulaHighlights([]);
+    }
+  }, [editing, editValue]);
 
   const handleFormulaBarChange = useCallback((val: string) => {
     setFormulaBarValue(val);
@@ -809,6 +935,37 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
                   height: 28,
                 }}
               />
+
+              {/* Remote collaboration cursors */}
+              {remoteCursors
+                .filter(c => c.activeSheet === workbook.activeSheet && c.cell)
+                .map(cursor => {
+                  const match = cursor.cell!.match(/^([A-Z]+)(\d+)$/);
+                  if (!match) return null;
+                  const col = match[1].split('').reduce((a, ch) => a * 26 + ch.charCodeAt(0) - 64, 0) - 1;
+                  const row = parseInt(match[2]) - 1;
+                  if (col < 0 || col >= NUM_COLS || row < 0 || row >= NUM_ROWS) return null;
+                  const colorEntry = COLLAB_COLORS.find(c => c.color === cursor.color);
+                  const lightColor = colorEntry?.light || `${cursor.color}18`;
+                  return (
+                    <div
+                      key={`rc-${cursor.clientId}`}
+                      className="sheet-remote-cursor"
+                      style={{
+                        top: row * 28,
+                        left: colLefts[col],
+                        width: getColWidth(sheet, col),
+                        height: 28,
+                        ['--cursor-color' as any]: cursor.color,
+                        ['--cursor-color-light' as any]: lightColor,
+                      }}
+                    >
+                      <div className="sheet-remote-cursor-label" style={{ background: cursor.color }}>
+                        {cursor.name}
+                      </div>
+                    </div>
+                  );
+                })}
 
               {/* Cells */}
               {Array.from({ length: visibleRows.endRow - visibleRows.startRow }, (_, ri) => {

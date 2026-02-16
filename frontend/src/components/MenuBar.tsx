@@ -90,6 +90,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'New spreadsheet', action: onNewSpreadsheet, icon: Table2 },
       { label: 'New presentation', action: onNewPresentation, icon: Presentation },
       { label: 'From template', action: onTemplateSelect },
+      { label: 'Import Word document (.docx)', action: () => {
+        window.dispatchEvent(new CustomEvent('import-docx'));
+      }},
       { label: 'divider' },
       { label: 'Download', action: () => {
         window.dispatchEvent(new CustomEvent('export-open'));

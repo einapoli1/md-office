@@ -46,6 +46,7 @@ import { Title, Subtitle } from '../extensions/ParagraphStyles';
 import MentionExtension from '../extensions/Mention';
 import DateChip from '../extensions/DateChip';
 import TableToolbar from './TableToolbar';
+import { importDocx } from '../utils/docxIO';
 
 interface EditorProps {
   content: string;
@@ -692,6 +693,35 @@ const Editor: React.FC<EditorProps> = ({
       }
     }
   }, [pageless, editor]);
+
+  // Drag-and-drop .docx import
+  useEffect(() => {
+    if (!editor) return;
+    const dom = editor.view.dom;
+    const handleDragOver = (e: DragEvent) => {
+      if (e.dataTransfer?.types.includes('Files')) {
+        e.preventDefault();
+      }
+    };
+    const handleDrop = async (e: DragEvent) => {
+      const file = e.dataTransfer?.files?.[0];
+      if (!file || !file.name.endsWith('.docx')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        const html = await importDocx(file);
+        editor.commands.setContent(html);
+      } catch (err) {
+        console.error('DOCX drop import failed:', err);
+      }
+    };
+    dom.addEventListener('dragover', handleDragOver);
+    dom.addEventListener('drop', handleDrop as unknown as EventListener);
+    return () => {
+      dom.removeEventListener('dragover', handleDragOver);
+      dom.removeEventListener('drop', handleDrop as unknown as EventListener);
+    };
+  }, [editor]);
 
   if (!editor) {
     return <div className="editor-loading">Loading editor...</div>;

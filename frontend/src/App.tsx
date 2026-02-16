@@ -21,6 +21,7 @@ import LinkDialog from './components/LinkDialog';
 import ToastProvider from './components/ToastProvider';
 import ShareDialog from './components/ShareDialog';
 import { toast } from './components/Toast';
+import { importDocx } from './utils/docxIO';
 import RecentDocs, { RecentDocEntry, loadRecentDocs, touchRecentDoc, removeRecentDoc } from './components/RecentDocs';
 import SpreadsheetEditor from './sheets/SpreadsheetEditor';
 import SlidesEditor from './slides/SlidesEditor';
@@ -771,6 +772,27 @@ function App() {
     });
     window.addEventListener('outline-toggle', handleOutline);
     window.addEventListener('ruler-toggle', handleRulerToggle);
+    const handleImportDocx = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        try {
+          const html = await importDocx(file);
+          if (editorRef) {
+            editorRef.commands.setContent(html);
+            toast('Word document imported', 'success');
+          }
+        } catch (err) {
+          console.error('DOCX import failed:', err);
+          toast('Failed to import Word document', 'error');
+        }
+      };
+      input.click();
+    };
+    window.addEventListener('import-docx', handleImportDocx);
     window.addEventListener('pageless-toggle', handlePagelessToggle);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
@@ -780,6 +802,7 @@ function App() {
       window.removeEventListener('outline-toggle', handleOutline);
       window.removeEventListener('ruler-toggle', handleRulerToggle);
       window.removeEventListener('pageless-toggle', handlePagelessToggle);
+      window.removeEventListener('import-docx', handleImportDocx);
       window.removeEventListener('insert-link', handleInsertLink);
       window.removeEventListener('insert-image', handleInsertImage);
       window.removeEventListener('special-chars-open', handleSpecialChars);
