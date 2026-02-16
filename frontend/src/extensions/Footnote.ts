@@ -2,8 +2,13 @@ import { Node, mergeAttributes } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 
+export type FootnoteNumberingStyle = 'numeric' | 'roman' | 'alpha' | 'symbol';
+export type FootnoteDisplayMode = 'endnotes' | 'sidenotes';
+
 export interface FootnoteOptions {
   HTMLAttributes: Record<string, any>;
+  numberingStyle: FootnoteNumberingStyle;
+  displayMode: FootnoteDisplayMode;
 }
 
 declare module '@tiptap/core' {
@@ -12,6 +17,8 @@ declare module '@tiptap/core' {
       setFootnote: (content: string) => ReturnType;
       insertFootnote: (content: string) => ReturnType;
       unsetFootnote: () => ReturnType;
+      setFootnoteNumberingStyle: (style: FootnoteNumberingStyle) => ReturnType;
+      setFootnoteDisplayMode: (mode: FootnoteDisplayMode) => ReturnType;
     };
   }
 }
@@ -30,6 +37,15 @@ export const Footnote = Node.create<FootnoteOptions>({
   addOptions() {
     return {
       HTMLAttributes: {},
+      numberingStyle: 'numeric' as FootnoteNumberingStyle,
+      displayMode: 'endnotes' as FootnoteDisplayMode,
+    };
+  },
+
+  addStorage() {
+    return {
+      numberingStyle: 'numeric' as FootnoteNumberingStyle,
+      displayMode: 'endnotes' as FootnoteDisplayMode,
     };
   },
 
@@ -92,6 +108,27 @@ export const Footnote = Node.create<FootnoteOptions>({
         ({ commands }) => {
           return commands.deleteSelection();
         },
+
+      setFootnoteNumberingStyle:
+        (style: FootnoteNumberingStyle) =>
+        ({ editor: _editor }) => {
+          this.storage.numberingStyle = style;
+          // Force re-render by dispatching an empty transaction
+          const { tr } = _editor.state;
+          tr.setMeta('footnoteStyleChange', true);
+          _editor.view.dispatch(tr);
+          return true;
+        },
+
+      setFootnoteDisplayMode:
+        (mode: FootnoteDisplayMode) =>
+        ({ editor: _editor }) => {
+          this.storage.displayMode = mode;
+          const { tr } = _editor.state;
+          tr.setMeta('footnoteStyleChange', true);
+          _editor.view.dispatch(tr);
+          return true;
+        },
     };
   },
 
@@ -108,16 +145,17 @@ export const Footnote = Node.create<FootnoteOptions>({
   },
 
   addProseMirrorPlugins() {
+    const storage = this.storage;
     return [
       new Plugin({
         key: footnotePluginKey,
         state: {
           init(_, state) {
-            return buildDecorations(state);
+            return buildDecorations(state, storage.numberingStyle, storage.displayMode);
           },
           apply(tr, old, _oldState, newState) {
-            if (tr.docChanged) {
-              return buildDecorations(newState);
+            if (tr.docChanged || tr.getMeta('footnoteStyleChange')) {
+              return buildDecorations(newState, storage.numberingStyle, storage.displayMode);
             }
             return old;
           },
@@ -132,7 +170,36 @@ export const Footnote = Node.create<FootnoteOptions>({
   },
 });
 
-function buildDecorations(state: any): DecorationSet {
+function formatNumber(n: number, style: FootnoteNumberingStyle): string {
+  switch (style) {
+    case 'roman': {
+      const vals = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+      const syms = ['m', 'cm', 'd', 'cd', 'c', 'xc', 'l', 'xl', 'x', 'ix', 'v', 'iv', 'i'];
+      let result = '';
+      let num = n;
+      for (let i = 0; i < vals.length; i++) {
+        while (num >= vals[i]) { result += syms[i]; num -= vals[i]; }
+      }
+      return result;
+    }
+    case 'alpha': {
+      let result = '';
+      let num = n;
+      while (num > 0) { num--; result = String.fromCharCode(97 + (num % 26)) + result; num = Math.floor(num / 26); }
+      return result;
+    }
+    case 'symbol': {
+      const symbols = ['*', '†', '‡', '§', '‖', '¶'];
+      const idx = (n - 1) % symbols.length;
+      const repeat = Math.floor((n - 1) / symbols.length) + 1;
+      return symbols[idx].repeat(repeat);
+    }
+    default:
+      return String(n);
+  }
+}
+
+function buildDecorations(state: any, numberingStyle: FootnoteNumberingStyle = 'numeric', displayMode: FootnoteDisplayMode = 'endnotes'): DecorationSet {
   const decorations: Decoration[] = [];
   const footnotes: { pos: number; id: string; content: string }[] = [];
   let counter = 0;
@@ -155,17 +222,38 @@ function buildDecorations(state: any): DecorationSet {
   state.doc.descendants((node: any, pos: number) => {
     if (node.type.name === 'footnote') {
       counter++;
+      const label = formatNumber(counter, numberingStyle);
       decorations.push(
         Decoration.node(pos, pos + node.nodeSize, {
-          'data-footnote-number': String(counter),
+          'data-footnote-number': label,
+          'data-footnote-label': label,
           class: 'footnote-ref footnote-numbered',
+          title: node.attrs.content || '',
         })
       );
     }
   });
 
-  // Add endnotes section at end of document if there are footnotes
-  if (footnotes.length > 0) {
+  if (footnotes.length > 0 && displayMode === 'sidenotes') {
+    // Sidenote mode: render footnotes as margin notes near their reference
+    footnotes.forEach((fn, i) => {
+      const label = formatNumber(i + 1, numberingStyle);
+      const widget = Decoration.widget(fn.pos + 1, () => {
+        const note = document.createElement('span');
+        note.className = 'footnote-sidenote';
+        note.contentEditable = 'false';
+        note.innerHTML = `<sup class="sidenote-num">${escapeHtml(label)}</sup> ${escapeHtml(fn.content)}`;
+        note.style.cssText = 'position:absolute;right:-220px;width:200px;font-size:12px;color:#666;line-height:1.4;padding:4px 0;cursor:pointer;';
+        note.addEventListener('click', () => {
+          const ref = document.querySelector(`[data-footnote-id="${fn.id}"]`);
+          if (ref) ref.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+        return note;
+      }, { side: 1 });
+      decorations.push(widget);
+    });
+  } else if (footnotes.length > 0) {
+    // Endnotes mode (default)
     const endWidget = Decoration.widget(state.doc.content.size, () => {
       const container = document.createElement('div');
       container.className = 'footnotes-endnotes';
@@ -181,11 +269,11 @@ function buildDecorations(state: any): DecorationSet {
       container.appendChild(title);
 
       footnotes.forEach((fn, i) => {
+        const label = formatNumber(i + 1, numberingStyle);
         const entry = document.createElement('div');
         entry.className = 'footnote-entry';
-        entry.innerHTML = `<span class="footnote-entry-num">${i + 1}.</span> <span class="footnote-entry-text">${escapeHtml(fn.content)}</span>`;
+        entry.innerHTML = `<span class="footnote-entry-num">${escapeHtml(label)}.</span> <span class="footnote-entry-text">${escapeHtml(fn.content)}</span>`;
         entry.addEventListener('click', () => {
-          // Scroll to the footnote reference in the document
           const ref = document.querySelector(`[data-footnote-id="${fn.id}"]`);
           if (ref) ref.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });

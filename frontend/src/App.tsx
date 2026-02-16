@@ -73,7 +73,11 @@ const PageColumns = lazy(() => import('./components/PageColumns'));
 const CoverPage = lazy(() => import('./components/CoverPage'));
 const TableOfFigures = lazy(() => import('./components/TableOfFigures'));
 const PublishDialog = lazy(() => import('./components/PublishDialog'));
-import TableOfContents from './components/TableOfContents';
+import _TableOfContents from './components/TableOfContents';
+import OutlineView from './components/OutlineView';
+import WritingPrompts from './components/WritingPrompts';
+import DocumentMap from './components/DocumentMap';
+import SnippetManager from './components/SnippetManager';
 import { HeaderFooterEditor, HeaderFooterContent, defaultContent as defaultHFContent } from './components/HeaderFooter';
 import './comments-styles.css';
 
@@ -159,6 +163,9 @@ function App() {
   const [showFocusMode, setShowFocusMode] = useState(false);
   const [showReadingMode, setShowReadingMode] = useState(false);
   const [showDocStats, setShowDocStats] = useState(false);
+  const [showWritingPrompts, setShowWritingPrompts] = useState(false);
+  const [showDocumentMap, setShowDocumentMap] = useState(false);
+  const [showSnippetManager, setShowSnippetManager] = useState(false);
   const { recording: macroRecording, startRecording: startMacroRecording, stopRecording: stopMacroRecording } = useMacroRecorder();
   const [vhCommits, setVhCommits] = useState<import('./types').GitCommit[]>([]);
   const [vhSelectedCommit, setVhSelectedCommit] = useState<import('./types').GitCommit | null>(null);
@@ -939,6 +946,12 @@ function App() {
     window.addEventListener('cover-page-open', handleCoverPageOpen);
     window.addEventListener('table-of-figures-open', handleTableOfFiguresOpen);
     window.addEventListener('publish-open', handlePublishOpen);
+    const handleWritingAssistant = () => setShowWritingPrompts(prev => !prev);
+    const handleDocumentMap = () => setShowDocumentMap(prev => !prev);
+    const handleSnippetManager = () => setShowSnippetManager(prev => !prev);
+    window.addEventListener('writing-assistant-toggle', handleWritingAssistant);
+    window.addEventListener('document-map-toggle', handleDocumentMap);
+    window.addEventListener('snippet-manager-toggle', handleSnippetManager);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('find-replace-open', handleEvent);
@@ -968,6 +981,9 @@ function App() {
       window.removeEventListener('cover-page-open', handleCoverPageOpen);
       window.removeEventListener('table-of-figures-open', handleTableOfFiguresOpen);
       window.removeEventListener('publish-open', handlePublishOpen);
+      window.removeEventListener('writing-assistant-toggle', handleWritingAssistant);
+      window.removeEventListener('document-map-toggle', handleDocumentMap);
+      window.removeEventListener('snippet-manager-toggle', handleSnippetManager);
     };
   }, []);
 
@@ -1134,7 +1150,7 @@ function App() {
         />
 
         {showOutline && editorRef && (
-          <TableOfContents editor={editorRef} onClose={() => setShowOutline(false)} />
+          <OutlineView editor={editorRef} onClose={() => setShowOutline(false)} />
         )}
 
         <div className="main-editor" id="main-editor">
@@ -1557,6 +1573,21 @@ function App() {
         onClose={() => setShowShareDialog(false)}
         documentName={activeFile?.path?.split('/').pop()?.replace(/\.\w+$/, '') || 'Untitled Document'}
       />
+
+      {/* Writing Prompts */}
+      {showWritingPrompts && editorRef && (
+        <WritingPrompts editor={editorRef} onClose={() => setShowWritingPrompts(false)} />
+      )}
+
+      {/* Document Map */}
+      {showDocumentMap && editorRef && (
+        <DocumentMap editor={editorRef} onClose={() => setShowDocumentMap(false)} />
+      )}
+
+      {/* Snippet Manager */}
+      {showSnippetManager && editorRef && (
+        <SnippetManager editor={editorRef} onClose={() => setShowSnippetManager(false)} />
+      )}
     </div>
     </ToastProvider>
     </ErrorBoundary>

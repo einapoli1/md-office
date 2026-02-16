@@ -186,6 +186,10 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Reading Mode', action: () => {
         window.dispatchEvent(new CustomEvent('reading-mode-toggle'));
       }, shortcut: '⌘⇧R' },
+      { label: 'divider' },
+      { label: 'Document Map', action: () => {
+        window.dispatchEvent(new CustomEvent('document-map-toggle'));
+      }},
     ],
     [t('menu.insert._label')]: [
       { label: 'Image', action: () => {
@@ -288,6 +292,10 @@ const MenuBar: React.FC<MenuBarProps> = ({
         }
       }},
       { label: 'divider' },
+      { label: 'Snippets', action: () => {
+        window.dispatchEvent(new CustomEvent('snippet-manager-toggle'));
+      }},
+      { label: 'divider' },
       { label: 'Bookmark', action: () => {
         const name = prompt('Bookmark name:');
         if (name && editor) {
@@ -387,6 +395,12 @@ const MenuBar: React.FC<MenuBarProps> = ({
       }},
       { label: 'AI Assistant', action: () => {
         window.dispatchEvent(new CustomEvent('ai-assistant-toggle'));
+      }},
+      { label: 'Writing Assistant', action: () => {
+        window.dispatchEvent(new CustomEvent('writing-assistant-toggle'));
+      }},
+      { label: 'Snippet Manager', action: () => {
+        window.dispatchEvent(new CustomEvent('snippet-manager-toggle'));
       }},
       { label: 'divider' },
       { label: 'divider' },
