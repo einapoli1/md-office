@@ -3,6 +3,7 @@ import { Settings, X } from 'lucide-react';
 import { FileContent } from '../types';
 import Editor from './Editor';
 import CollabPresence from './CollabPresence';
+import PageSetupDialog from './PageSetupDialog';
 // PageBreaks handled by TipTap extension now
 import { 
   parseFrontmatter, 
@@ -30,6 +31,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   marginOverride
 }) => {
   const [showSettings, setShowSettings] = useState(false);
+  const [showPageSetup, setShowPageSetup] = useState(false);
   const [parsedDocument, setParsedDocument] = useState(() => parseFrontmatter(content));
   const [collabProvider, setCollabProvider] = useState<any>(null);
 
@@ -67,9 +69,25 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     onChange(newContent);
   };
 
+  // Listen for page setup and text direction events
+  useEffect(() => {
+    const handlePageSetup = () => setShowPageSetup(true);
+    const handleTextDirection = (e: Event) => {
+      const dir = (e as CustomEvent).detail?.dir as 'ltr' | 'rtl';
+      if (dir) handleMetadataUpdate({ textDirection: dir });
+    };
+    window.addEventListener('page-setup-open', handlePageSetup);
+    window.addEventListener('set-text-direction', handleTextDirection);
+    return () => {
+      window.removeEventListener('page-setup-open', handlePageSetup);
+      window.removeEventListener('set-text-direction', handleTextDirection);
+    };
+  }, [parsedDocument]);
+
   // Get styles from metadata
   const documentStyles = getDocumentStyles(parsedDocument.metadata);
   const pageStyles = getPageStyles(parsedDocument.metadata);
+  const textDirection = parsedDocument.metadata.textDirection || 'ltr';
 
   if (!activeFile) {
     return (
@@ -87,6 +105,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     <div className="document-editor">
       <div 
         className="document-page" 
+        dir={textDirection}
         style={{ 
           maxWidth: pageStyles.maxWidth,
           minHeight: pageStyles.minHeight,
@@ -133,6 +152,15 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Page Setup Dialog */}
+      {showPageSetup && (
+        <PageSetupDialog
+          metadata={parsedDocument.metadata}
+          onUpdate={handleMetadataUpdate}
+          onClose={() => setShowPageSetup(false)}
+        />
+      )}
 
       {/* Document Settings Panel */}
       {showSettings && (
@@ -209,7 +237,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
                 >
                   <option value="narrow">Narrow (0.5")</option>
                   <option value="normal">Normal (1")</option>
-                  <option value="wide">Wide (1.33")</option>
+                  <option value="wide">Wide (1.5")</option>
                 </select>
               </div>
 

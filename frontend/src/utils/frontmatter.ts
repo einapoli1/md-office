@@ -5,11 +5,14 @@ export interface DocumentMetadata {
   font?: 'Inter' | 'Lora' | 'Georgia' | 'Times' | 'Arial' | 'Helvetica';
   fontSize?: number;
   lineHeight?: number;
-  pageMargins?: 'narrow' | 'normal' | 'wide';
+  pageMargins?: 'narrow' | 'normal' | 'wide' | 'custom';
+  customMargins?: { top: number; bottom: number; left: number; right: number }; // inches
   theme?: 'light' | 'dark';
   textAlign?: 'left' | 'center' | 'right' | 'justify';
   pageWidth?: 'narrow' | 'normal' | 'wide';
   pageSize?: 'letter' | 'a4' | 'legal' | 'tabloid';
+  orientation?: 'portrait' | 'landscape';
+  textDirection?: 'ltr' | 'rtl';
   author?: string;
   date?: string;
   tags?: string[];
@@ -204,8 +207,10 @@ export function getPageStyles(metadata: DocumentMetadata): {
   const pageSize = metadata.pageSize || 'letter';
   const selectedSize = pageSizes[pageSize] || pageSizes.letter;
   
-  let maxWidth = selectedSize.width;
-  let minHeight = selectedSize.height;
+  // Swap width/height for landscape orientation
+  const isLandscape = metadata.orientation === 'landscape';
+  let maxWidth = isLandscape ? selectedSize.height : selectedSize.width;
+  let minHeight = isLandscape ? selectedSize.width : selectedSize.height;
   let padding = '72px'; // Default 1 inch margins
   
   // Override with legacy pageWidth for backward compatibility
@@ -222,9 +227,15 @@ export function getPageStyles(metadata: DocumentMetadata): {
     const marginMap = {
       'narrow': '48px',  // 0.5 inch
       'normal': '72px',  // 1 inch (default)
-      'wide': '96px'     // 1.33 inch
+      'wide': '144px'    // 1.5 inch
     };
-    padding = marginMap[metadata.pageMargins] || padding;
+    padding = marginMap[metadata.pageMargins as keyof typeof marginMap] || padding;
+  }
+
+  // Custom margins override (stored in inches, converted to px at 96 DPI)
+  if (metadata.pageMargins === 'custom' && metadata.customMargins) {
+    const cm = metadata.customMargins;
+    padding = `${cm.top * 96}px ${cm.right * 96}px ${cm.bottom * 96}px ${cm.left * 96}px`;
   }
 
   return { maxWidth, minHeight, padding };
