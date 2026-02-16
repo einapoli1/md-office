@@ -11,12 +11,44 @@ export interface CellData {
   computed?: string; // cached computed value for formulas
 }
 
+export type ChartType = 'bar' | 'line' | 'pie' | 'scatter' | 'area';
+
+export interface ChartConfig {
+  id: string;
+  type: ChartType;
+  dataRange: string;   // e.g. "B1:B10"
+  labelRange: string;  // e.g. "A1:A10"
+  title: string;
+  colors?: string[];
+  x: number;  // pixel position
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface FilterState {
+  column: number;
+  mode: 'all' | 'values' | 'contains' | 'equals' | 'gt' | 'lt';
+  value?: string;
+  selectedValues?: Set<string>;
+}
+
+export interface FreezePanes {
+  rows: number;  // number of frozen rows (0 = none)
+  cols: number;  // number of frozen columns (0 = none)
+}
+
 export interface SheetData {
   name: string;
   cells: Record<string, CellData>;
   merges: MergeRange[];
   colWidths: Record<number, number>;
   rowHeights: Record<number, number>;
+  charts: ChartConfig[];
+  filters: FilterState[];
+  filtersEnabled: boolean;
+  freeze: FreezePanes;
+  sortState?: { col: number; ascending: boolean };
 }
 
 export interface WorkbookData {
@@ -35,7 +67,7 @@ const DEFAULT_COL_WIDTH = 100;
 const DEFAULT_ROW_HEIGHT = 28;
 
 export function createEmptySheet(name: string): SheetData {
-  return { name, cells: {}, merges: [], colWidths: {}, rowHeights: {} };
+  return { name, cells: {}, merges: [], colWidths: {}, rowHeights: {}, charts: [], filters: [], filtersEnabled: false, freeze: { rows: 0, cols: 0 } };
 }
 
 export function createWorkbook(): WorkbookData {

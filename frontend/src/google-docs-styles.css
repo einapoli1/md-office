@@ -4973,6 +4973,96 @@ input:focus-visible {
   margin-top: 4px;
 }
 
+/* App Switcher */
+.app-switcher {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.app-switcher-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--border-medium);
+  border-radius: 20px;
+  background: var(--primary-bg);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-ui);
+}
+
+.app-switcher-btn:hover {
+  background: var(--tertiary-bg);
+}
+
+.app-switcher-btn.active {
+  background: var(--switcher-color, var(--accent-primary));
+  color: #fff;
+  border-color: transparent;
+}
+
+/* New doc type buttons */
+.recent-docs-action-btn.doc-btn {
+  background: #4285f4;
+  color: #fff;
+}
+.recent-docs-action-btn.doc-btn:hover {
+  background: #3367d6;
+  box-shadow: var(--shadow-2);
+}
+
+.recent-docs-action-btn.sheet-btn {
+  background: #0f9d58;
+  color: #fff;
+}
+.recent-docs-action-btn.sheet-btn:hover {
+  background: #0b8043;
+  box-shadow: var(--shadow-2);
+}
+
+.recent-docs-action-btn.slide-btn {
+  background: #f4b400;
+  color: #fff;
+}
+.recent-docs-action-btn.slide-btn:hover {
+  background: #f09800;
+  box-shadow: var(--shadow-2);
+}
+
+/* Filter tabs */
+.recent-docs-filter-tabs {
+  display: flex;
+  gap: 2px;
+  margin-left: 16px;
+}
+
+.filter-tab {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-ui);
+}
+
+.filter-tab:hover {
+  background: var(--tertiary-bg);
+}
+
+.filter-tab.active {
+  background: var(--accent-light);
+  color: var(--accent-primary);
+}
+
 @media (max-width: 768px) {
   .recent-docs-hero {
     padding: 32px 16px 28px;
@@ -4982,5 +5072,12 @@ input:focus-visible {
   }
   .recent-docs-search-input {
     width: 160px;
+  }
+  .app-switcher {
+    flex-wrap: wrap;
+  }
+  .recent-docs-filter-tabs {
+    margin-left: 0;
+    margin-top: 8px;
   }
 }

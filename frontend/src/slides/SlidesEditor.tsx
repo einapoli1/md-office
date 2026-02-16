@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
-  Presentation, Slide, SlideLayout, TransitionType,
+  Presentation, Slide, SlideLayout, TransitionType, TransitionDuration, FragmentType, SlideShape,
   parsePresentation, serializePresentation, createSlide,
-  UndoStack, pushUndo, undo, redo,
+  UndoStack, pushUndo, undo, redo, parseFragments,
 } from './slideModel';
 import { getTheme } from './slideThemes';
 import SlideCanvas from './SlideCanvas';
@@ -10,6 +10,8 @@ import SlideThumbnails from './SlideThumbnails';
 import SlideToolbar from './SlideToolbar';
 import SlideshowView from './SlideshowView';
 import { openPresenterWindow } from './PresenterView';
+import { TEMPLATES, createFromTemplate } from './slideTemplates';
+import type { ShapeType } from './ShapeTools';
 import './slides-styles.css';
 
 interface Props {
@@ -23,8 +25,8 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath }:
   const [activeIdx, setActiveIdx] = useState(0);
   const [undoStack, setUndoStack] = useState<UndoStack>({ past: [], future: [] });
   const [slideshow, setSlideshow] = useState(false);
+  const [activeShapeTool, setActiveShapeTool] = useState<ShapeType | null>(null);
 
-  // Sync from external content changes
   useEffect(() => {
     const parsed = parsePresentation(content);
     setPres(parsed);
@@ -45,16 +47,14 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath }:
     update(fn(pres.slides));
   }, [pres.slides, update]);
 
-  // Slide content editing
   const handleContentChange = useCallback((newContent: string) => {
-    withUndo(slides => slides.map((s, i) => i === activeIdx ? { ...s, content: newContent } : s));
+    withUndo(slides => slides.map((s, i) => i === activeIdx ? { ...s, content: newContent, fragments: parseFragments(newContent) } : s));
   }, [activeIdx, withUndo]);
 
   const handleNotesChange = useCallback((notes: string) => {
     withUndo(slides => slides.map((s, i) => i === activeIdx ? { ...s, notes } : s));
   }, [activeIdx, withUndo]);
 
-  // Reorder
   const handleReorder = useCallback((from: number, to: number) => {
     withUndo(slides => {
       const arr = [...slides];
@@ -65,7 +65,6 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath }:
     setActiveIdx(to);
   }, [withUndo]);
 
-  // Add / duplicate / delete
   const handleAddSlide = useCallback((atIndex: number, layout: SlideLayout = 'content') => {
     withUndo(slides => {
       const arr = [...slides];
@@ -90,7 +89,6 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath }:
     setActiveIdx(i => Math.min(i, pres.slides.length - 2));
   }, [pres.slides.length, withUndo]);
 
-  // Layout / theme / transition
   const handleLayoutChange = useCallback((layout: SlideLayout) => {
     withUndo(slides => slides.map((s, i) => i === activeIdx ? { ...s, layout } : s));
   }, [activeIdx, withUndo]);
@@ -103,6 +101,33 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath }:
   const handleTransitionChange = useCallback((t: TransitionType) => {
     withUndo(slides => slides.map((s, i) => i === activeIdx ? { ...s, transition: t } : s));
   }, [activeIdx, withUndo]);
+
+  const handleTransitionDurationChange = useCallback((d: TransitionDuration) => {
+    withUndo(slides => slides.map((s, i) => i === activeIdx ? { ...s, transitionDuration: d } : s));
+  }, [activeIdx, withUndo]);
+
+  const handleShapesChange = useCallback((shapes: SlideShape[]) => {
+    withUndo(slides => slides.map((s, i) => i === activeIdx ? { ...s, shapes } : s));
+  }, [activeIdx, withUndo]);
+
+  const handleInsertFragment = useCallback((type: FragmentType) => {
+    const newContent = currentSlide.content + `\n<!-- fragment: ${type} -->\n`;
+    handleContentChange(newContent);
+  }, [currentSlide, handleContentChange]);
+
+  const handlePreviewAnimation = useCallback(() => {
+    setSlideshow(true);
+  }, []);
+
+  const handleNewFromTemplate = useCallback((templateId: string) => {
+    const template = TEMPLATES.find(t => t.id === templateId);
+    if (!template) return;
+    const newPres = createFromTemplate(template);
+    setPres(newPres);
+    setActiveIdx(0);
+    onChange(serializePresentation(newPres));
+    setUndoStack({ past: [], future: [] });
+  }, [onChange]);
 
   // Undo / redo keyboard
   useEffect(() => {
@@ -122,15 +147,12 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath }:
     return () => window.removeEventListener('keydown', handler);
   }, [undoStack, pres.slides, update]);
 
-  // Text formatting helpers (insert into content)
   const wrapSelection = useCallback((wrapper: string) => {
-    // Simple approach: wrap entire first line or add to content
     handleContentChange(currentSlide.content + `\n${wrapper}text${wrapper}`);
   }, [currentSlide, handleContentChange]);
 
-  // Slideshow
   // @ts-ignore
-const startPresentation = useCallback(() => setSlideshow(true), []);
+  const startPresentation = useCallback(() => setSlideshow(true), []);
   const openPresenter = useCallback(() => {
     openPresenterWindow(pres.slides, theme, activeIdx);
     setSlideshow(true);
@@ -146,13 +168,20 @@ const startPresentation = useCallback(() => setSlideshow(true), []);
         currentTheme={pres.meta.theme}
         currentLayout={currentSlide?.layout || 'content'}
         currentTransition={currentSlide?.transition || 'none'}
+        currentTransitionDuration={currentSlide?.transitionDuration || '0.3s'}
         onThemeChange={handleThemeChange}
         onLayoutChange={handleLayoutChange}
         onTransitionChange={handleTransitionChange}
+        onTransitionDurationChange={handleTransitionDurationChange}
         onAddSlide={(layout) => handleAddSlide(activeIdx + 1, layout)}
         onPresent={openPresenter}
         onBold={() => wrapSelection('**')}
         onItalic={() => wrapSelection('*')}
+        onShapeToolSelect={setActiveShapeTool}
+        activeShapeTool={activeShapeTool}
+        onInsertFragment={handleInsertFragment}
+        onPreviewAnimation={handlePreviewAnimation}
+        onNewFromTemplate={handleNewFromTemplate}
       />
 
       <div className="slides-main">
@@ -175,6 +204,9 @@ const startPresentation = useCallback(() => setSlideshow(true), []);
                 theme={theme}
                 editable
                 onContentChange={handleContentChange}
+                drawingTool={activeShapeTool}
+                onShapesChange={handleShapesChange}
+                onDrawEnd={() => setActiveShapeTool(null)}
               />
             )}
           </div>

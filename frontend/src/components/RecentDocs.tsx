@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, FileText, Search, LayoutTemplate, Clock, Star, StarOff } from 'lucide-react';
+import { Plus, FileText, Search, LayoutTemplate, Clock, Star, StarOff, Table2, Presentation } from 'lucide-react';
+import type { AppMode } from '../App';
+
+export type DocType = 'doc' | 'sheet' | 'slide';
 
 export interface RecentDocEntry {
   path: string;
@@ -7,16 +10,27 @@ export interface RecentDocEntry {
   lastModified: string;
   preview: string;
   starred?: boolean;
+  docType?: DocType;
 }
 
 interface RecentDocsProps {
   onOpenDocument: (path: string) => void;
   onNewDocument: () => void;
+  onNewSpreadsheet: () => void;
+  onNewPresentation: () => void;
   onNewFromTemplate: () => void;
   recentDocs: RecentDocEntry[];
+  landingMode: AppMode;
+  onLandingModeChange: (mode: AppMode) => void;
 }
 
 const STORAGE_KEY = 'md-office-recent-docs';
+
+function detectDocType(path: string): DocType {
+  if (/\.slides\.md$/i.test(path)) return 'slide';
+  if (/\.(sheet\.md|mds|tsv)$/i.test(path)) return 'sheet';
+  return 'doc';
+}
 
 /** Read the enriched recent-docs list from localStorage */
 export function loadRecentDocs(): RecentDocEntry[] {
@@ -37,10 +51,10 @@ export function saveRecentDocs(docs: RecentDocEntry[]) {
 /** Upsert a document into the recent list (max 20) */
 export function touchRecentDoc(path: string, content: string) {
   const docs = loadRecentDocs();
-  const title = path.replace(/\.md$/i, '').replace(/.*\//, '') || 'Untitled';
+  const title = path.replace(/\.(slides|sheet)?\.md$/i, '').replace(/\.(mds|tsv)$/i, '').replace(/.*\//, '') || 'Untitled';
   const preview = content
-    .replace(/^---[\s\S]*?---\s*/, '') // strip frontmatter
-    .replace(/[#*_`>\-\[\]()!|]/g, '') // strip markdown
+    .replace(/^---[\s\S]*?---\s*/, '')
+    .replace(/[#*_`>\-\[\]()!|]/g, '')
     .trim()
     .slice(0, 120);
 
@@ -51,6 +65,7 @@ export function touchRecentDoc(path: string, content: string) {
     lastModified: new Date().toISOString(),
     preview,
     starred: existing?.starred ?? false,
+    docType: detectDocType(path),
   };
 
   const filtered = docs.filter(d => d.path !== path);
@@ -80,19 +95,41 @@ function formatRelativeDate(iso: string): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
 }
 
-const RecentDocs: React.FC<RecentDocsProps> = ({ onOpenDocument, onNewDocument, onNewFromTemplate, recentDocs }) => {
+const TYPE_ICON: Record<DocType, { icon: React.FC<any>; color: string; label: string }> = {
+  doc: { icon: FileText, color: '#4285f4', label: 'Document' },
+  sheet: { icon: Table2, color: '#0f9d58', label: 'Spreadsheet' },
+  slide: { icon: Presentation, color: '#f4b400', label: 'Presentation' },
+};
+
+type FilterTab = 'all' | 'doc' | 'sheet' | 'slide';
+
+const HERO_CONFIG: Record<AppMode, { icon: React.FC<any>; color: string; name: string }> = {
+  docs: { icon: FileText, color: '#4285f4', name: 'MD Docs' },
+  sheets: { icon: Table2, color: '#0f9d58', name: 'MD Sheets' },
+  slides: { icon: Presentation, color: '#f4b400', name: 'MD Slides' },
+};
+
+const RecentDocs: React.FC<RecentDocsProps> = ({
+  onOpenDocument, onNewDocument, onNewSpreadsheet, onNewPresentation, onNewFromTemplate,
+  recentDocs, landingMode, onLandingModeChange,
+}) => {
   const [query, setQuery] = useState('');
   const [showStarredOnly, setShowStarredOnly] = useState(false);
+  const [filterTab, setFilterTab] = useState<FilterTab>('all');
+
+  const hero = HERO_CONFIG[landingMode];
+  const HeroIcon = hero.icon;
 
   const filtered = useMemo(() => {
-    let list = recentDocs;
+    let list = recentDocs.map(d => ({ ...d, docType: d.docType || detectDocType(d.path) }));
     if (showStarredOnly) list = list.filter(d => d.starred);
+    if (filterTab !== 'all') list = list.filter(d => d.docType === filterTab);
     if (query.trim()) {
       const q = query.toLowerCase();
       list = list.filter(d => d.title.toLowerCase().includes(q) || d.preview.toLowerCase().includes(q));
     }
     return list;
-  }, [recentDocs, query, showStarredOnly]);
+  }, [recentDocs, query, showStarredOnly, filterTab]);
 
   const handleToggleStar = (e: React.MouseEvent, path: string) => {
     e.stopPropagation();
@@ -100,7 +137,6 @@ const RecentDocs: React.FC<RecentDocsProps> = ({ onOpenDocument, onNewDocument, 
       d.path === path ? { ...d, starred: !d.starred } : d
     );
     saveRecentDocs(docs);
-    // Force re-render via parent — we dispatch a storage event
     window.dispatchEvent(new Event('recent-docs-updated'));
   };
 
@@ -109,16 +145,43 @@ const RecentDocs: React.FC<RecentDocsProps> = ({ onOpenDocument, onNewDocument, 
       {/* Hero section */}
       <div className="recent-docs-hero">
         <div className="recent-docs-hero-inner">
-          <h1 className="recent-docs-heading">
-            <FileText size={32} strokeWidth={1.5} />
-            MD Office
+          {/* App switcher */}
+          <div className="app-switcher">
+            {(Object.entries(HERO_CONFIG) as [AppMode, typeof hero][]).map(([mode, cfg]) => {
+              const Icon = cfg.icon;
+              return (
+                <button
+                  key={mode}
+                  className={`app-switcher-btn ${landingMode === mode ? 'active' : ''}`}
+                  onClick={() => onLandingModeChange(mode)}
+                  title={cfg.name}
+                  style={{ '--switcher-color': cfg.color } as React.CSSProperties}
+                >
+                  <Icon size={20} />
+                  <span>{cfg.name}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <h1 className="recent-docs-heading" style={{ color: hero.color }}>
+            <HeroIcon size={32} strokeWidth={1.5} />
+            {hero.name}
           </h1>
           <p className="recent-docs-subtitle">Start a new document or pick up where you left off</p>
 
           <div className="recent-docs-actions">
-            <button className="recent-docs-action-btn primary" onClick={onNewDocument}>
+            <button className="recent-docs-action-btn doc-btn" onClick={onNewDocument}>
               <Plus size={20} />
-              <span>Blank document</span>
+              <span>New Document</span>
+            </button>
+            <button className="recent-docs-action-btn sheet-btn" onClick={onNewSpreadsheet}>
+              <Plus size={20} />
+              <span>New Spreadsheet</span>
+            </button>
+            <button className="recent-docs-action-btn slide-btn" onClick={onNewPresentation}>
+              <Plus size={20} />
+              <span>New Presentation</span>
             </button>
             <button className="recent-docs-action-btn secondary" onClick={onNewFromTemplate}>
               <LayoutTemplate size={20} />
@@ -134,6 +197,18 @@ const RecentDocs: React.FC<RecentDocsProps> = ({ onOpenDocument, onNewDocument, 
           <div className="recent-docs-toolbar-left">
             <Clock size={16} />
             <h2 className="recent-docs-section-title">Recent documents</h2>
+            {/* Filter tabs */}
+            <div className="recent-docs-filter-tabs">
+              {([['all', 'All'], ['doc', 'Documents'], ['sheet', 'Spreadsheets'], ['slide', 'Presentations']] as [FilterTab, string][]).map(([key, label]) => (
+                <button
+                  key={key}
+                  className={`filter-tab ${filterTab === key ? 'active' : ''}`}
+                  onClick={() => setFilterTab(key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="recent-docs-toolbar-right">
             <div className="recent-docs-search">
@@ -165,40 +240,42 @@ const RecentDocs: React.FC<RecentDocsProps> = ({ onOpenDocument, onNewDocument, 
                 <p className="recent-docs-empty-hint">Create a new document to get started</p>
               </>
             ) : (
-              <>
-                <p>No documents match your search</p>
-              </>
+              <p>No documents match your filter</p>
             )}
           </div>
         ) : (
           <div className="recent-docs-grid">
-            {filtered.map(doc => (
-              <button
-                key={doc.path}
-                className="recent-doc-card"
-                onClick={() => onOpenDocument(doc.path)}
-              >
-                <div className="recent-doc-card-preview">
-                  <span className="recent-doc-card-preview-text">{doc.preview || 'Empty document'}</span>
-                </div>
-                <div className="recent-doc-card-info">
-                  <div className="recent-doc-card-title-row">
-                    <FileText size={16} className="recent-doc-card-icon" />
-                    <span className="recent-doc-card-title">{doc.title}</span>
+            {filtered.map(doc => {
+              const typeInfo = TYPE_ICON[doc.docType || 'doc'];
+              const TypeIcon = typeInfo.icon;
+              return (
+                <button
+                  key={doc.path}
+                  className="recent-doc-card"
+                  onClick={() => onOpenDocument(doc.path)}
+                >
+                  <div className="recent-doc-card-preview">
+                    <span className="recent-doc-card-preview-text">{doc.preview || 'Empty document'}</span>
                   </div>
-                  <div className="recent-doc-card-meta">
-                    <span className="recent-doc-card-date">{formatRelativeDate(doc.lastModified)}</span>
-                    <button
-                      className={`recent-doc-star-btn ${doc.starred ? 'starred' : ''}`}
-                      onClick={e => handleToggleStar(e, doc.path)}
-                      title={doc.starred ? 'Unstar' : 'Star'}
-                    >
-                      {doc.starred ? <Star size={14} fill="currentColor" /> : <StarOff size={14} />}
-                    </button>
+                  <div className="recent-doc-card-info">
+                    <div className="recent-doc-card-title-row">
+                      <TypeIcon size={16} className="recent-doc-card-icon" style={{ color: typeInfo.color }} />
+                      <span className="recent-doc-card-title">{doc.title}</span>
+                    </div>
+                    <div className="recent-doc-card-meta">
+                      <span className="recent-doc-card-date">{formatRelativeDate(doc.lastModified)}</span>
+                      <button
+                        className={`recent-doc-star-btn ${doc.starred ? 'starred' : ''}`}
+                        onClick={e => handleToggleStar(e, doc.path)}
+                        title={doc.starred ? 'Unstar' : 'Star'}
+                      >
+                        {doc.starred ? <Star size={14} fill="currentColor" /> : <StarOff size={14} />}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Share2, Settings, Moon, Sun, FileText, Plus, LogIn, LogOut, User } from 'lucide-react';
+import { Share2, Settings, Moon, Sun, FileText, Plus, LogIn, LogOut, User, Table2, Presentation } from 'lucide-react';
 import { FileContent } from '../types';
+import type { AppMode } from '../App';
 
 interface MenuBarProps {
   onNewFile: () => void;
+  onNewSpreadsheet: () => void;
+  onNewPresentation: () => void;
   onTemplateSelect: () => void;
   onPrint: () => void;
   onShowSettings?: () => void;
@@ -20,10 +23,13 @@ interface MenuBarProps {
   editor?: any;
   onShareClick?: () => void;
   onVersionHistory?: () => void;
+  appMode?: AppMode;
 }
 
 const MenuBar: React.FC<MenuBarProps> = ({
   onNewFile,
+  onNewSpreadsheet,
+  onNewPresentation,
   onTemplateSelect,
   onPrint,
   onShowSettings,
@@ -40,6 +46,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
   editor,
   onShareClick,
   onVersionHistory,
+  appMode = 'docs',
 }) => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -79,7 +86,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
 
   const menus: Record<string, MenuItem[]> = {
     File: [
-      { label: 'New', action: onNewFile, shortcut: 'Ctrl+N' },
+      { label: 'New document', action: onNewFile, shortcut: 'Ctrl+N', icon: FileText },
+      { label: 'New spreadsheet', action: onNewSpreadsheet, icon: Table2 },
+      { label: 'New presentation', action: onNewPresentation, icon: Presentation },
       { label: 'From template', action: onTemplateSelect },
       { label: 'divider' },
       { label: 'Download', action: () => {
@@ -254,8 +263,37 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'divider' },
       { label: 'Preferences', action: onShowSettings, icon: Settings },
     ],
+    ...(appMode === 'sheets' && {
+      Data: [
+        { label: 'Sort A → Z', action: () => console.log('Sort ascending') },
+        { label: 'Sort Z → A', action: () => console.log('Sort descending') },
+        { label: 'divider' },
+        { label: 'Create filter', action: () => console.log('Create filter') },
+        { label: 'divider' },
+        { label: 'Data validation', action: () => console.log('Data validation') },
+      ],
+    }),
+    ...(appMode === 'slides' && {
+      Slide: [
+        { label: 'New slide', action: () => console.log('New slide') },
+        { label: 'Duplicate slide', action: () => console.log('Duplicate slide') },
+        { label: 'Delete slide', action: () => console.log('Delete slide') },
+        { label: 'divider' },
+        { label: 'Change layout', action: () => console.log('Change layout') },
+        { label: 'Change theme', action: () => console.log('Change theme') },
+        { label: 'divider' },
+        { label: 'Present', action: () => console.log('Present'), shortcut: '⌘⇧P' },
+      ],
+    }),
     ...(accountItems.length > 0 && { Account: accountItems })
   };
+
+  const APP_BRANDING: Record<AppMode, { icon: React.FC<any>; name: string; color: string }> = {
+    docs: { icon: FileText, name: 'MD Docs', color: '#4285f4' },
+    sheets: { icon: Table2, name: 'MD Sheets', color: '#0f9d58' },
+    slides: { icon: Presentation, name: 'MD Slides', color: '#f4b400' },
+  };
+  const branding = APP_BRANDING[appMode];
 
   const handleMenuClick = (menuName: string) => {
     setActiveMenu(activeMenu === menuName ? null : menuName);
@@ -329,9 +367,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
   return (
     <div className="menu-bar">
       <div className="menu-bar-left">
-        <div className="app-title">
-          <FileText size={20} />
-          <span>MD Office</span>
+        <div className="app-title" style={{ color: branding.color }}>
+          <branding.icon size={20} />
+          <span>{branding.name}</span>
           {isGuestMode && (
             <span className="mode-indicator" title="Guest mode - documents stored locally">
               Guest

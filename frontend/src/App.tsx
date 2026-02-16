@@ -22,6 +22,17 @@ import ToastProvider from './components/ToastProvider';
 import ShareDialog from './components/ShareDialog';
 import { toast } from './components/Toast';
 import RecentDocs, { RecentDocEntry, loadRecentDocs, touchRecentDoc, removeRecentDoc } from './components/RecentDocs';
+import SpreadsheetEditor from './sheets/SpreadsheetEditor';
+import SlidesEditor from './slides/SlidesEditor';
+
+export type AppMode = 'docs' | 'sheets' | 'slides';
+
+/** Detect app mode from file extension */
+function detectAppMode(filePath: string): AppMode {
+  if (/\.slides\.md$/i.test(filePath)) return 'slides';
+  if (/\.(sheet\.md|mds|tsv)$/i.test(filePath)) return 'sheets';
+  return 'docs';
+}
 
 // Lazy load dialogs — only rendered when opened
 const TemplateSelector = lazy(() => import('./components/TemplateSelector'));
@@ -40,6 +51,10 @@ function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   
+  // App mode
+  const [appMode, setAppMode] = useState<AppMode>('docs');
+  const [landingMode, setLandingMode] = useState<AppMode>('docs');
+
   // App state
   const [files, setFiles] = useState<FileSystemItem[]>([]);
   const [activeFile, setActiveFile] = useState<FileContent | null>(null);
@@ -245,6 +260,7 @@ function App() {
       const fileContent = await currentAPI.getFile(file.path);
       setActiveFile(fileContent);
       setContent(fileContent.content);
+      setAppMode(detectAppMode(file.path));
       setRulerMargins(null);
       setSaveStatus('saved');
       setLastSaved(undefined);
@@ -413,6 +429,7 @@ function App() {
       const fileContent = await currentAPI.getFile(filePath);
       setActiveFile(fileContent);
       setContent(fileContent.content);
+      setAppMode(detectAppMode(filePath));
       setRulerMargins(null);
       setSaveStatus('saved');
       setLastSaved(undefined);
@@ -446,6 +463,32 @@ function App() {
     }
     
     handleCreateFile(fileName, false);
+  };
+
+  const handleNewSpreadsheet = () => {
+    const now = new Date();
+    const timestamp = now.toISOString().split('T')[0];
+    let fileName = `Untitled Spreadsheet ${timestamp}.sheet.md`;
+    let counter = 1;
+    while (files.some(f => f.path === fileName)) {
+      fileName = `Untitled Spreadsheet ${timestamp} ${counter}.sheet.md`;
+      counter++;
+    }
+    handleCreateFile(fileName, false);
+    setAppMode('sheets');
+  };
+
+  const handleNewPresentation = () => {
+    const now = new Date();
+    const timestamp = now.toISOString().split('T')[0];
+    let fileName = `Untitled Presentation ${timestamp}.slides.md`;
+    let counter = 1;
+    while (files.some(f => f.path === fileName)) {
+      fileName = `Untitled Presentation ${timestamp} ${counter}.slides.md`;
+      counter++;
+    }
+    handleCreateFile(fileName, false);
+    setAppMode('slides');
   };
 
   const handleNewFromTemplate = () => {
@@ -790,6 +833,8 @@ function App() {
     <div className="app">
       <MenuBar
         onNewFile={handleNewFile}
+        onNewSpreadsheet={handleNewSpreadsheet}
+        onNewPresentation={handleNewPresentation}
         onTemplateSelect={handleNewFromTemplate}
         onPrint={handlePrint}
         isDarkMode={isDarkMode}
@@ -805,10 +850,11 @@ function App() {
         editor={editorRef}
         onShareClick={() => setShowShareDialog(true)}
         onVersionHistory={openVersionHistory}
+        appMode={appMode}
       />
 
-      {/* Formatting Toolbar - Google Docs style */}
-      <DocsToolbar editor={editorRef} />
+      {/* Formatting Toolbar - Google Docs style (only for docs mode) */}
+      {appMode === 'docs' && <DocsToolbar editor={editorRef} />}
 
       <div className="app-content">
         <DocumentSidebar
@@ -832,10 +878,14 @@ function App() {
               recentDocs={recentDocs}
               onOpenDocument={handleOpenByPath}
               onNewDocument={handleNewFile}
+              onNewSpreadsheet={handleNewSpreadsheet}
+              onNewPresentation={handleNewPresentation}
               onNewFromTemplate={handleNewFromTemplate}
+              landingMode={landingMode}
+              onLandingModeChange={setLandingMode}
             />
           ) : null}
-          {showRuler && !pageless && activeFile && (() => {
+          {appMode === 'docs' && showRuler && !pageless && activeFile && (() => {
             const parsed = parseFrontmatter(content);
             const ps = getPageStyles(parsed.metadata);
             const pageW = parseInt(ps.maxWidth) || 816;
@@ -853,6 +903,17 @@ function App() {
           })()}
           {loading ? (
             <div className="editor-loading">Loading document...</div>
+          ) : appMode === 'sheets' && activeFile ? (
+            <SpreadsheetEditor
+              initialData={content}
+              onSave={(data) => handleContentChange(data)}
+            />
+          ) : appMode === 'slides' && activeFile ? (
+            <SlidesEditor
+              content={content}
+              onChange={handleContentChange}
+              filePath={activeFile.path}
+            />
           ) : (
             <DocumentEditor
               activeFile={activeFile}

@@ -1,7 +1,27 @@
 // Slide data model — parse/serialize markdown, undo/redo
 
 export type SlideLayout = 'title' | 'content' | 'two-column' | 'image' | 'blank' | 'section';
-export type TransitionType = 'none' | 'fade' | 'slide' | 'zoom';
+export type TransitionType = 'none' | 'fade' | 'slide-left' | 'slide-right' | 'slide-up' | 'zoom' | 'dissolve' | 'wipe';
+export type TransitionDuration = '0.3s' | '0.5s' | '1.0s';
+export type FragmentType = 'fade-in' | 'slide-up' | 'slide-left' | 'zoom-in' | 'appear';
+
+export interface Fragment {
+  index: number;
+  type: FragmentType;
+}
+
+export interface SlideShape {
+  id: string;
+  type: 'rectangle' | 'rounded-rectangle' | 'circle' | 'ellipse' | 'arrow' | 'line' | 'star' | 'triangle' | 'diamond' | 'callout';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fill: string;
+  stroke: string;
+  strokeWidth: number;
+  text: string;
+}
 
 export interface Slide {
   id: string;
@@ -9,6 +29,9 @@ export interface Slide {
   layout: SlideLayout;
   notes: string;
   transition: TransitionType;
+  transitionDuration: TransitionDuration;
+  fragments: Fragment[];
+  shapes: SlideShape[];
 }
 
 export interface PresentationMeta {
@@ -78,10 +101,13 @@ export function parsePresentation(markdown: string): Presentation {
         layout: detectLayout(content),
         notes,
         transition: 'none' as TransitionType,
+        transitionDuration: '0.3s' as TransitionDuration,
+        fragments: parseFragments(content),
+        shapes: [],
       };
     });
   if (slides.length === 0) {
-    slides.push({ id: genSlideId(), content: '# New Presentation', layout: 'title', notes: '', transition: 'none' });
+    slides.push({ id: genSlideId(), content: '# New Presentation', layout: 'title', notes: '', transition: 'none', transitionDuration: '0.3s', fragments: [], shapes: [] });
   }
   return { meta, slides };
 }
@@ -97,6 +123,24 @@ export function serializePresentation(pres: Presentation): string {
     return out;
   });
   return fm + slideStrs.join('\n\n---\n\n') + '\n';
+}
+
+/** Parse fragment comments from content */
+export function parseFragments(content: string): Fragment[] {
+  const fragments: Fragment[] = [];
+  const re = /<!--\s*fragment(?:\s*:\s*(\S+))?\s*-->/g;
+  let match: RegExpExecArray | null;
+  let idx = 0;
+  while ((match = re.exec(content)) !== null) {
+    const type = (match[1] as FragmentType) || 'fade-in';
+    fragments.push({ index: idx++, type });
+  }
+  return fragments;
+}
+
+/** Generate a shape ID */
+export function genShapeId(): string {
+  return `shape-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
 /** Create a blank slide with given layout */
@@ -115,6 +159,9 @@ export function createSlide(layout: SlideLayout): Slide {
     layout,
     notes: '',
     transition: 'none',
+    transitionDuration: '0.3s',
+    fragments: [],
+    shapes: [],
   };
 }
 

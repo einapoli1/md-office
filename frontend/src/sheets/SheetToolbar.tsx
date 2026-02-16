@@ -1,4 +1,5 @@
 import { CellFormat, NumberFormat, TextAlign } from './cellFormat';
+import { FreezePanes } from './sheetModel';
 
 interface SheetToolbarProps {
   format: CellFormat;
@@ -8,9 +9,14 @@ interface SheetToolbarProps {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  onInsertChart: () => void;
+  filtersEnabled: boolean;
+  onToggleFilters: () => void;
+  freeze: FreezePanes;
+  onFreezeChange: (freeze: FreezePanes) => void;
 }
 
-export default function SheetToolbar({ format, onFormatChange, onMergeCells, canUndo, canRedo, onUndo, onRedo }: SheetToolbarProps) {
+export default function SheetToolbar({ format, onFormatChange, onMergeCells, canUndo, canRedo, onUndo, onRedo, onInsertChart, filtersEnabled, onToggleFilters, freeze, onFreezeChange }: SheetToolbarProps) {
   return (
     <div className="sheet-toolbar">
       {/* Undo/Redo */}
@@ -103,6 +109,30 @@ export default function SheetToolbar({ format, onFormatChange, onMergeCells, can
 
       {/* Wrap */}
       <button className={`sheet-tb-btn ${format.wrap ? 'active' : ''}`} onClick={() => onFormatChange({ wrap: !format.wrap })} title="Text wrap">↩</button>
+      <span className="sheet-tb-sep" />
+
+      {/* Chart */}
+      <button className="sheet-tb-btn" onClick={onInsertChart} title="Insert chart">📊</button>
+
+      {/* Filter toggle */}
+      <button className={`sheet-tb-btn ${filtersEnabled ? 'active' : ''}`} onClick={onToggleFilters} title="Toggle filters">🔽</button>
+
+      {/* Freeze panes */}
+      <select
+        className="sheet-tb-select"
+        value={freeze.rows === 1 && freeze.cols === 0 ? 'row1' : freeze.rows === 0 && freeze.cols === 1 ? 'col1' : freeze.rows === 0 && freeze.cols === 0 ? 'none' : 'custom'}
+        onChange={e => {
+          const v = e.target.value;
+          if (v === 'none') onFreezeChange({ rows: 0, cols: 0 });
+          else if (v === 'row1') onFreezeChange({ rows: 1, cols: 0 });
+          else if (v === 'col1') onFreezeChange({ rows: 0, cols: 1 });
+        }}
+      >
+        <option value="none">No freeze</option>
+        <option value="row1">Freeze first row</option>
+        <option value="col1">Freeze first column</option>
+        {(freeze.rows > 1 || freeze.cols > 1 || (freeze.rows > 0 && freeze.cols > 0)) && <option value="custom">Custom freeze</option>}
+      </select>
     </div>
   );
 }
