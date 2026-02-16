@@ -38,9 +38,11 @@ interface SheetToolbarProps {
   onDashboardToggle?: () => void;
   dashboardEnabled?: boolean;
   pivotChartButton?: React.ReactNode;
+  onPrint?: () => void;
+  onPageSetup?: () => void;
 }
 
-export default function SheetToolbar({ format, onFormatChange, onMergeCells, canUndo, canRedo, onUndo, onRedo, onInsertChart, filtersEnabled, onToggleFilters, freeze, onFreezeChange, onImportCSV, onImportXLSX, onExportCSV, onExportXLSX, onConditionalFormat, onDataValidation, onPivotTable, onNamedRanges, onInsertComment, onProtectedRanges, onFindReplace, onInsertSparkline, onGoalSeek, onDataTable, onSolver, onDataImport, onFrequencyAnalysis, onSlicer, onHeatmap, onTimeline, onDashboardToggle, dashboardEnabled, pivotChartButton }: SheetToolbarProps) {
+export default function SheetToolbar({ format, onFormatChange, onMergeCells, canUndo, canRedo, onUndo, onRedo, onInsertChart, filtersEnabled, onToggleFilters, freeze, onFreezeChange, onImportCSV, onImportXLSX, onExportCSV, onExportXLSX, onConditionalFormat, onDataValidation, onPivotTable, onNamedRanges, onInsertComment, onProtectedRanges, onFindReplace, onInsertSparkline, onGoalSeek, onDataTable, onSolver, onDataImport, onFrequencyAnalysis, onSlicer, onHeatmap, onTimeline, onDashboardToggle, dashboardEnabled, pivotChartButton, onPrint, onPageSetup }: SheetToolbarProps) {
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
   const [dataMenuOpen, setDataMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,6 +59,9 @@ export default function SheetToolbar({ format, onFormatChange, onMergeCells, can
             <div style={{ borderTop: '1px solid #eee', margin: '4px 0' }} />
             <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={() => onExportCSV?.()}>📤 Download as CSV</div>
             <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={() => onExportXLSX?.()}>📤 Download as XLSX</div>
+            <div style={{ borderTop: '1px solid #eee', margin: '4px 0' }} />
+            {onPageSetup && <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={onPageSetup}>📐 Page Setup</div>}
+            {onPrint && <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={onPrint}>🖨️ Print</div>}
           </div>
         )}
         <input
@@ -201,6 +206,7 @@ export default function SheetToolbar({ format, onFormatChange, onMergeCells, can
       {onInsertComment && <button className="sheet-tb-btn" onClick={onInsertComment} title="Insert comment">💬</button>}
       {onProtectedRanges && <button className="sheet-tb-btn" onClick={onProtectedRanges} title="Protected ranges">🔒</button>}
       {onFindReplace && <button className="sheet-tb-btn" onClick={onFindReplace} title="Find & Replace">🔍</button>}
+      {onPrint && <button className="sheet-tb-btn" onClick={onPrint} title="Print">🖨️</button>}
       <span className="sheet-tb-sep" />
       {/* Data menu */}
       <div style={{ position: 'relative' }}>

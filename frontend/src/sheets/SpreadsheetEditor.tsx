@@ -37,6 +37,8 @@ import { SlicerOverlay, InsertSlicerDialog, SlicerConfig } from './Slicer';
 import { DashboardToolbar, DashboardLabelOverlay, DashboardPresentation, DashboardConfig, DashboardLabel, createDashboardConfig } from './Dashboard';
 import { HeatmapLegend, CreateHeatmapDialog, HeatmapConfig, computeHeatmapColors } from './Heatmap';
 import { TimelineOverlay, InsertTimelineDialog, TimelineConfig } from './SheetTimeline';
+import SheetPrintSetup, { defaultPrintSettings } from './SheetPrintSetup';
+import SheetPrintPreview from './SheetPrintPreview';
 import {
   initSheetCollab,
   setCellInYjs,
@@ -154,6 +156,10 @@ export default function SpreadsheetEditor({
   const [showHeatmapDialog, setShowHeatmapDialog] = useState(false);
   const [timelines, setTimelines] = useState<TimelineConfig[]>([]);
   const [showTimelineDialog, setShowTimelineDialog] = useState(false);
+  const [showPrintSetup, setShowPrintSetup] = useState(false);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [printSettings, setPrintSettings] = useState(() => defaultPrintSettings);
+  const [manualPageBreaks, setManualPageBreaks] = useState<number[]>([]);
   // Listen for latex-formula-mode toggle
   useEffect(() => {
     const handler = () => setLatexFormulaMode(m => m === 'equation' ? 'result' : 'equation');
@@ -1348,6 +1354,8 @@ export default function SpreadsheetEditor({
         onDashboardToggle={handleToggleDashboard}
         dashboardEnabled={dashboardConfig.enabled}
         pivotChartButton={<PivotChartButton workbook={workbook} onInsertChart={handleInsertChart} />}
+        onPrint={() => setShowPrintPreview(true)}
+        onPageSetup={() => setShowPrintSetup(true)}
       />
       {enableCollaboration && (
         <div className="sheet-collab-bar">
@@ -2144,6 +2152,25 @@ export default function SpreadsheetEditor({
             onFullscreen={() => setShowPresentation(true)}
           />
         </div>
+      )}
+      {showPrintSetup && (
+        <SheetPrintSetup
+          settings={printSettings}
+          onApply={s => { setPrintSettings(s); setShowPrintSetup(false); }}
+          onClose={() => setShowPrintSetup(false)}
+          onPreview={() => { setShowPrintSetup(false); setShowPrintPreview(true); }}
+          namedRanges={Object.keys(workbook.namedRanges || {})}
+        />
+      )}
+      {showPrintPreview && (
+        <SheetPrintPreview
+          workbook={workbook}
+          sheetIndex={workbook.activeSheet}
+          settings={printSettings}
+          onClose={() => setShowPrintPreview(false)}
+          manualBreaks={manualPageBreaks}
+          onToggleBreak={row => setManualPageBreaks(prev => prev.includes(row) ? prev.filter(r => r !== row) : [...prev, row].sort((a,b) => a-b))}
+        />
       )}
       <SheetStatusBar
         cellRef={cellId(activeCell.col, activeCell.row)}
