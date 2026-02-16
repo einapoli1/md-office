@@ -47,6 +47,9 @@ import SlidesEditor from './slides/SlidesEditor';
 import _DrawingEditor from './draw/DrawingEditor';
 import NotificationCenter from './components/NotificationCenter';
 import UserPreferences from './components/UserPreferences';
+import FocusMode from './components/FocusMode';
+import ReadingMode from './components/ReadingMode';
+import DocumentStats from './components/DocumentStats';
 
 export type AppMode = 'docs' | 'sheets' | 'slides' | 'draw';
 
@@ -153,6 +156,9 @@ function App() {
   const [showTableOfFigures, setShowTableOfFigures] = useState(false);
   const [showPublish, setShowPublish] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
+  const [showFocusMode, setShowFocusMode] = useState(false);
+  const [showReadingMode, setShowReadingMode] = useState(false);
+  const [showDocStats, setShowDocStats] = useState(false);
   const { recording: macroRecording, startRecording: startMacroRecording, stopRecording: stopMacroRecording } = useMacroRecorder();
   const [vhCommits, setVhCommits] = useState<import('./types').GitCommit[]>([]);
   const [vhSelectedCommit, setVhSelectedCommit] = useState<import('./types').GitCommit | null>(null);
@@ -823,6 +829,14 @@ function App() {
         e.preventDefault();
         setShowCitationPicker(true);
       }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault();
+        setShowFocusMode(prev => !prev);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'r' || e.key === 'R')) {
+        e.preventDefault();
+        setShowReadingMode(prev => !prev);
+      }
     };
     const handleEvent = (e: Event) => {
       const { replace } = (e as CustomEvent).detail || {};
@@ -831,6 +845,9 @@ function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     const handleWordCount = () => setShowWordCount(true);
+    const handleDocStats = () => setShowDocStats(true);
+    const handleFocusMode = () => setShowFocusMode(true);
+    const handleReadingMode = () => setShowReadingMode(true);
     const handleExport = () => setShowExport(true);
     const handleOutline = () => setShowOutline(prev => !prev);
     const handleInsertLink = () => {
@@ -866,6 +883,9 @@ function App() {
     window.addEventListener('edit-header-footer', handleHfEdit);
     window.addEventListener('find-replace-open', handleEvent);
     window.addEventListener('word-count-open', handleWordCount);
+    window.addEventListener('doc-stats-open', handleDocStats);
+    window.addEventListener('focus-mode-toggle', handleFocusMode);
+    window.addEventListener('reading-mode-toggle', handleReadingMode);
     window.addEventListener('export-open', handleExport);
     const handleRulerToggle = () => setShowRuler(prev => !prev);
     const handlePagelessToggle = () => setPageless(prev => {
@@ -923,6 +943,9 @@ function App() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('find-replace-open', handleEvent);
       window.removeEventListener('word-count-open', handleWordCount);
+      window.removeEventListener('doc-stats-open', handleDocStats);
+      window.removeEventListener('focus-mode-toggle', handleFocusMode);
+      window.removeEventListener('reading-mode-toggle', handleReadingMode);
       window.removeEventListener('export-open', handleExport);
       window.removeEventListener('outline-toggle', handleOutline);
       window.removeEventListener('ruler-toggle', handleRulerToggle);
@@ -1511,6 +1534,21 @@ function App() {
       {/* User Preferences */}
       {showPreferences && (
         <UserPreferences onClose={() => setShowPreferences(false)} />
+      )}
+
+      {/* Focus Mode */}
+      {showFocusMode && (
+        <FocusMode content={content} editor={editorRef} onExit={() => setShowFocusMode(false)} />
+      )}
+
+      {/* Reading Mode */}
+      {showReadingMode && editorRef && (
+        <ReadingMode content={editorRef.getHTML()} onExit={() => setShowReadingMode(false)} />
+      )}
+
+      {/* Document Statistics */}
+      {showDocStats && (
+        <DocumentStats content={content} onClose={() => setShowDocStats(false)} />
       )}
 
       {/* Share Dialog */}

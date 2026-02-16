@@ -179,6 +179,13 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Form Fill Mode', action: () => {
         window.dispatchEvent(new CustomEvent('form-fill-toggle'));
       }},
+      { label: 'divider' },
+      { label: 'Focus Mode', action: () => {
+        window.dispatchEvent(new CustomEvent('focus-mode-toggle'));
+      }, shortcut: '⌘⇧F' },
+      { label: 'Reading Mode', action: () => {
+        window.dispatchEvent(new CustomEvent('reading-mode-toggle'));
+      }, shortcut: '⌘⇧R' },
     ],
     [t('menu.insert._label')]: [
       { label: 'Image', action: () => {
@@ -362,6 +369,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'divider' },
       { label: 'Word count', action: () => {
         window.dispatchEvent(new CustomEvent('word-count-open'));
+      }},
+      { label: 'Document Statistics', action: () => {
+        window.dispatchEvent(new CustomEvent('doc-stats-open'));
       }},
       { label: 'divider' },
       { label: 'Compare documents', action: () => {
