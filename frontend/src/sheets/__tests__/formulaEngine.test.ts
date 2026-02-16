@@ -192,8 +192,6 @@ describe('Math functions', () => {
 // ─── Text functions ───
 
 describe('Text functions', () => {
-  const get = getter({ A1: 'Hello World' });
-
   it('LEFT', () => {
     expect(evaluateFormula('=LEFT("Hello",3)', getter({}))).toBe('Hel');
   });

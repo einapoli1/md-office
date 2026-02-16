@@ -11,7 +11,7 @@ import {
   getRowHeight,
   UndoManager,
 } from '../sheetModel';
-import { DependencyGraph } from '../formulaEngine';
+import { DependencyGraph as _DependencyGraph } from '../formulaEngine';
 
 describe('Sheet creation', () => {
   it('creates a workbook with one sheet', () => {

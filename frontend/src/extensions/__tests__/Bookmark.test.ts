@@ -22,7 +22,7 @@ function findNode(json: any, type: string): any {
   return null;
 }
 
-function findAllNodes(json: any, type: string): any[] {
+export function findAllNodes(json: any, type: string): any[] {
   const results: any[] = [];
   if (json.type === type) results.push(json);
   if (json.content) {

@@ -1,0 +1,209 @@
+/* MD Draw — Styles */
+
+.draw-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: #f5f5f5;
+}
+
+.dark .draw-editor {
+  background: #1e1e1e;
+}
+
+/* Toolbar */
+.draw-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+  overflow-x: auto;
+  min-height: 44px;
+}
+
+.dark .draw-toolbar {
+  background: #2a2a2a;
+  border-color: #444;
+}
+
+.draw-toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.draw-toolbar-divider {
+  width: 1px;
+  height: 28px;
+  background: #e0e0e0;
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+
+.dark .draw-toolbar-divider {
+  background: #555;
+}
+
+.draw-tool-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #555;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.draw-tool-btn:hover {
+  background: #f0f0f0;
+  color: #222;
+}
+
+.draw-tool-btn.active {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.draw-tool-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.dark .draw-tool-btn {
+  color: #bbb;
+}
+.dark .draw-tool-btn:hover {
+  background: #3a3a3a;
+  color: #eee;
+}
+.dark .draw-tool-btn.active {
+  background: #1e3a5f;
+  color: #90caf9;
+}
+
+/* Color swatches */
+.draw-colors {
+  gap: 3px;
+}
+
+.draw-color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s;
+}
+
+.draw-color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.draw-color-swatch.active {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.3);
+}
+
+.draw-color-custom {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+}
+
+/* Width preview */
+.draw-width-preview {
+  display: block;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Opacity */
+.draw-opacity-section {
+  min-width: 80px;
+}
+
+.draw-opacity-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: #555;
+}
+
+.dark .draw-opacity-label {
+  color: #bbb;
+}
+
+.draw-opacity-slider {
+  width: 60px;
+  cursor: pointer;
+}
+
+/* Background select */
+.draw-bg-select {
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+}
+
+.dark .draw-bg-select {
+  background: #333;
+  color: #ddd;
+  border-color: #555;
+}
+
+/* Canvas container */
+.draw-canvas-container {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.draw-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+/* Status bar */
+.draw-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 16px;
+  font-size: 12px;
+  color: #777;
+  background: #fafafa;
+  border-top: 1px solid #e0e0e0;
+  flex-shrink: 0;
+  min-height: 28px;
+}
+
+.dark .draw-status-bar {
+  background: #252525;
+  border-color: #444;
+  color: #999;
+}
+
+.draw-status-item {
+  white-space: nowrap;
+}

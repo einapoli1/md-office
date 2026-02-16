@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, FileText, Search, LayoutTemplate, Clock, Star, StarOff, Table2, Presentation } from 'lucide-react';
+import { Plus, FileText, Search, LayoutTemplate, Clock, Star, StarOff, Table2, Presentation, Pencil } from 'lucide-react';
 import type { AppMode } from '../App';
 
 export type DocType = 'doc' | 'sheet' | 'slide';
@@ -18,6 +18,7 @@ interface RecentDocsProps {
   onNewDocument: () => void;
   onNewSpreadsheet: () => void;
   onNewPresentation: () => void;
+  onNewDrawing?: () => void;
   onNewFromTemplate: () => void;
   recentDocs: RecentDocEntry[];
   landingMode: AppMode;
@@ -107,10 +108,11 @@ const HERO_CONFIG: Record<AppMode, { icon: React.FC<any>; color: string; name: s
   docs: { icon: FileText, color: '#4285f4', name: 'MD Docs' },
   sheets: { icon: Table2, color: '#0f9d58', name: 'MD Sheets' },
   slides: { icon: Presentation, color: '#f4b400', name: 'MD Slides' },
+  draw: { icon: Pencil, color: '#db4437', name: 'MD Draw' },
 };
 
 const RecentDocs: React.FC<RecentDocsProps> = ({
-  onOpenDocument, onNewDocument, onNewSpreadsheet, onNewPresentation, onNewFromTemplate,
+  onOpenDocument, onNewDocument, onNewSpreadsheet, onNewPresentation, onNewDrawing, onNewFromTemplate,
   recentDocs, landingMode, onLandingModeChange,
 }) => {
   const [query, setQuery] = useState('');
@@ -183,6 +185,12 @@ const RecentDocs: React.FC<RecentDocsProps> = ({
               <Plus size={20} />
               <span>New Presentation</span>
             </button>
+            {onNewDrawing && (
+            <button className="recent-docs-action-btn draw-btn" onClick={onNewDrawing}>
+              <Plus size={20} />
+              <span>New Drawing</span>
+            </button>
+            )}
             <button className="recent-docs-action-btn secondary" onClick={onNewFromTemplate}>
               <LayoutTemplate size={20} />
               <span>From template</span>

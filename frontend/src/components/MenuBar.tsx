@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Share2, Settings, Moon, Sun, FileText, Plus, LogIn, LogOut, User, Table2, Presentation } from 'lucide-react';
+import { Share2, Settings, Moon, Sun, FileText, Plus, LogIn, LogOut, User, Table2, Presentation, Pencil } from 'lucide-react';
 import { FileContent } from '../types';
 import type { AppMode } from '../App';
 
@@ -7,6 +7,7 @@ interface MenuBarProps {
   onNewFile: () => void;
   onNewSpreadsheet: () => void;
   onNewPresentation: () => void;
+  onNewDrawing?: () => void;
   onTemplateSelect: () => void;
   onPrint: () => void;
   onShowSettings?: () => void;
@@ -286,6 +287,10 @@ const MenuBar: React.FC<MenuBarProps> = ({
         window.dispatchEvent(new CustomEvent('compare-open'));
       }},
       { label: 'divider' },
+      { label: 'AI Assistant', action: () => {
+        window.dispatchEvent(new CustomEvent('ai-assistant-toggle'));
+      }},
+      { label: 'divider' },
       { label: 'Preferences', action: onShowSettings, icon: Settings },
     ],
     ...(appMode === 'sheets' && {
@@ -328,6 +333,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
     docs: { icon: FileText, name: 'MD Docs', color: '#4285f4' },
     sheets: { icon: Table2, name: 'MD Sheets', color: '#0f9d58' },
     slides: { icon: Presentation, name: 'MD Slides', color: '#f4b400' },
+    draw: { icon: Pencil, name: 'MD Draw', color: '#db4437' },
   };
   const branding = APP_BRANDING[appMode];
 

@@ -25,15 +25,19 @@ import ShareDialog from './components/ShareDialog';
 import { toast } from './components/Toast';
 import { importDocx } from './utils/docxIO';
 import RecentDocs, { RecentDocEntry, loadRecentDocs, touchRecentDoc, removeRecentDoc } from './components/RecentDocs';
+import _GlobalSearch from './components/GlobalSearch';
+import _AIAssistant from './components/AIAssistant';
 import AboutDialog from './components/AboutDialog';
 import OnboardingTour, { STORAGE_KEY as ONBOARDING_KEY } from './components/OnboardingTour';
 import SpreadsheetEditor from './sheets/SpreadsheetEditor';
 import SlidesEditor from './slides/SlidesEditor';
+import _DrawingEditor from './draw/DrawingEditor';
 
-export type AppMode = 'docs' | 'sheets' | 'slides';
+export type AppMode = 'docs' | 'sheets' | 'slides' | 'draw';
 
 /** Detect app mode from file extension */
 function detectAppMode(filePath: string): AppMode {
+  if (/\.draw\.json$/i.test(filePath)) return 'draw';
   if (/\.slides\.md$/i.test(filePath)) return 'slides';
   if (/\.(sheet\.md|mds|tsv)$/i.test(filePath)) return 'sheets';
   return 'docs';
@@ -500,6 +504,19 @@ function App() {
     setAppMode('slides');
   };
 
+  const handleNewDrawing = () => {
+    const now = new Date();
+    const timestamp = now.toISOString().split('T')[0];
+    let fileName = `Untitled Drawing ${timestamp}.draw.json`;
+    let counter = 1;
+    while (files.some(f => f.path === fileName)) {
+      fileName = `Untitled Drawing ${timestamp} ${counter}.draw.json`;
+      counter++;
+    }
+    handleCreateFile(fileName, false);
+    setAppMode('draw');
+  };
+
   const handleNewFromTemplate = () => {
     setShowTemplateSelector(true);
   };
@@ -868,6 +885,7 @@ function App() {
         onNewFile={handleNewFile}
         onNewSpreadsheet={handleNewSpreadsheet}
         onNewPresentation={handleNewPresentation}
+        onNewDrawing={handleNewDrawing}
         onTemplateSelect={handleNewFromTemplate}
         onPrint={handlePrint}
         isDarkMode={isDarkMode}
@@ -916,6 +934,7 @@ function App() {
               onNewDocument={handleNewFile}
               onNewSpreadsheet={handleNewSpreadsheet}
               onNewPresentation={handleNewPresentation}
+              onNewDrawing={handleNewDrawing}
               onNewFromTemplate={handleNewFromTemplate}
               landingMode={landingMode}
               onLandingModeChange={setLandingMode}

@@ -6,7 +6,7 @@ import {
   Type, Palette, Highlighter, Undo, Redo, CheckSquare,
   ChevronDown, MoreHorizontal, Minus, Quote, Code2,
   RotateCcw, Printer, MessageSquare, PenTool, Smile,
-  Paintbrush
+  Paintbrush, Sparkles, Search
 } from 'lucide-react';
 import EmojiPicker from './EmojiPicker';
 
@@ -703,6 +703,27 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
             />
           )}
         </div>
+
+        {/* Global Search */}
+        <button
+          className="toolbar-btn"
+          onClick={() => window.dispatchEvent(new CustomEvent('global-search-toggle'))}
+          title="Search across all documents (⌘⇧F)" aria-label="Global search"
+        >
+          <Search size={16} />
+        </button>
+
+        {/* AI Assistant */}
+        <button
+          className="toolbar-btn"
+          onClick={() => window.dispatchEvent(new CustomEvent('ai-assistant-toggle'))}
+          title="AI Writing Assistant" aria-label="AI Assistant"
+          style={{ color: '#f4b400' }}
+        >
+          <Sparkles size={16} />
+        </button>
+
+        <div className="toolbar-divider" />
 
         {/* More options */}
         <button 
