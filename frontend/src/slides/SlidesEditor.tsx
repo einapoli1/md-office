@@ -29,6 +29,8 @@ import SlideSorter from './SlideSorter';
 import DesignIdeas from './DesignIdeas';
 import SlideSize from './SlideSize';
 import PhotoAlbum from './PhotoAlbum';
+import SpeakerCoach from './SpeakerCoach';
+import AudienceQA from './AudienceQA';
 import {
   initSlideCollab, syncPresentationFromYjs, updateSlideFieldInYjs,
   addSlideInYjs, deleteSlideInYjs, reorderSlideInYjs, updatePresMetaInYjs,
@@ -78,6 +80,8 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
   const [showDesignIdeas, setShowDesignIdeas] = useState(false);
   const [showSlideSize, setShowSlideSize] = useState(false);
   const [showPhotoAlbum, setShowPhotoAlbum] = useState(false);
+  const [showSpeakerCoach, setShowSpeakerCoach] = useState(false);
+  const [showQASession, setShowQASession] = useState(false);
   const [savedTimings, setSavedTimings] = useState<import('./RehearsalMode').SlideTimings | undefined>(undefined);
 
   const collabRef = useRef<SlideCollabHandle | null>(null);
@@ -538,6 +542,8 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
         onInsertInteractive={() => setShowInteractiveDialog(true)}
         onDesignIdeas={() => setShowDesignIdeas(true)}
         onSlideSorter={() => setShowSlideSorter(true)}
+        onRehearse={() => setShowSpeakerCoach(true)}
+        onQASession={() => setShowQASession(true)}
       />
 
       <div className="slides-collab-bar">
@@ -697,6 +703,20 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
         <PhotoAlbum
           onInsertSlides={handlePhotoAlbumInsert}
           onClose={() => setShowPhotoAlbum(false)}
+        />
+      )}
+      {showSpeakerCoach && (
+        <SpeakerCoach
+          slides={pres.slides}
+          currentSlideIndex={activeIdx}
+          onClose={() => setShowSpeakerCoach(false)}
+        />
+      )}
+      {showQASession && (
+        <AudienceQA
+          slides={pres.slides}
+          currentSlideIndex={activeIdx}
+          onClose={() => setShowQASession(false)}
         />
       )}
     </div>

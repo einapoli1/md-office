@@ -10,7 +10,7 @@ interface Props {
 }
 
 /** Renders inside a new window opened by the editor */
-export default function PresenterView({ slides, theme, startIndex = 0 }: Props) {
+export default function PresenterView({ slides, theme, startIndex = 0, qaSessionCode: _qaSessionCode }: Props & { qaSessionCode?: string }) {
   const [current, setCurrent] = useState(startIndex);
   const timerRef = useRef(0);
   const [elapsed, setElapsed] = useState(0);
