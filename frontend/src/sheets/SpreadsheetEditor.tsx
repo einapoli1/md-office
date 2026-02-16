@@ -19,9 +19,7 @@ import { PivotConfig } from './pivotEngine';
 import {
   initSheetCollab,
   setCellInYjs,
-  setSheetMetaInYjs,
   syncWorkbookFromYjs,
-  syncWorkbookToYjs,
   setLocalCursor,
   type RemoteCursor,
   type SheetCollabHandle,
@@ -539,8 +537,16 @@ export default function SpreadsheetEditor({
       }
     }
     undoRef.current.push(entries);
+    // Broadcast format changes to Yjs
+    if (enableCollaboration && collabRef.current) {
+      suppressRemoteRef.current = true;
+      for (const e of entries) {
+        if (e.after) setCellInYjs(collabRef.current.ydoc, e.sheetIndex, e.cellId, e.after);
+      }
+      suppressRemoteRef.current = false;
+    }
     setWorkbook({ ...workbook });
-  }, [selRange, sheet, workbook]);
+  }, [selRange, sheet, workbook, enableCollaboration]);
 
   const handleMergeCells = useCallback(() => {
     if (selRange.minRow === selRange.maxRow && selRange.minCol === selRange.maxCol) return;
@@ -584,11 +590,157 @@ export default function SpreadsheetEditor({
     for (let r = 0; r < NUM_ROWS; r++) {
       const id = cellId(col, r);
       const display = getCellDisplay(id);
-      if (display) maxW = Math.max(maxW, display.length * 8 + 16);
+      if (display) {
+        const w = measureTextWidth(display) + 20; // padding
+        maxW = Math.max(maxW, w);
+      }
     }
-    sheet.colWidths[col] = Math.min(300, maxW);
+    sheet.colWidths[col] = Math.min(400, Math.ceil(maxW));
     setWorkbook({ ...workbook });
   }, [sheet, workbook, getCellDisplay]);
+
+  // Auto-fit row height on double-click row border
+  const handleRowHeaderDoubleClick = useCallback((row: number) => {
+    let maxH = 28;
+    for (let c = 0; c < NUM_COLS; c++) {
+      const id = cellId(c, row);
+      const display = getCellDisplay(id);
+      if (display) {
+        const colW = getColWidth(sheet, c);
+        const textW = measureTextWidth(display);
+        const lines = Math.max(1, Math.ceil(textW / (colW - 8)));
+        maxH = Math.max(maxH, lines * 20 + 8);
+      }
+    }
+    sheet.rowHeights[row] = Math.ceil(maxH);
+    setWorkbook({ ...workbook });
+  }, [sheet, workbook, getCellDisplay]);
+
+  // Fill handle drag handlers
+  const handleFillMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFillDrag({
+      startRow: selRange.minRow,
+      startCol: selRange.minCol,
+      endRow: selRange.maxRow,
+      endCol: selRange.maxCol,
+      active: true,
+    });
+  }, [selRange]);
+
+  // Listen for mousemove/mouseup during fill drag
+  useEffect(() => {
+    if (!fillDrag?.active) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left + containerRef.current.scrollLeft;
+      const y = e.clientY - rect.top + containerRef.current.scrollTop;
+
+      // Determine which cell the mouse is over
+      let col = 0;
+      let accX = 0;
+      for (let c = 0; c < NUM_COLS; c++) {
+        const w = getColWidth(sheet, c);
+        if (accX + w > x) { col = c; break; }
+        accX += w;
+        col = c;
+      }
+      const row = Math.max(0, Math.min(NUM_ROWS - 1, Math.floor(y / 28)));
+
+      // Only extend in one direction (the dominant axis)
+      const rowDist = Math.abs(row - fillDrag.endRow);
+      const colDist = Math.abs(col - fillDrag.endCol);
+      
+      if (rowDist >= colDist) {
+        // Extend vertically
+        setFillDrag(prev => prev ? { ...prev, endRow: Math.max(row, prev.startRow), endCol: prev.startCol + (selRange.maxCol - selRange.minCol) } : null);
+      } else {
+        // Extend horizontally
+        setFillDrag(prev => prev ? { ...prev, endCol: Math.max(col, prev.startCol), endRow: prev.startRow + (selRange.maxRow - selRange.minRow) } : null);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (!fillDrag) return;
+      // Apply fill
+      const srcMinRow = selRange.minRow;
+      const srcMaxRow = selRange.maxRow;
+      const srcMinCol = selRange.minCol;
+      const srcMaxCol = selRange.maxCol;
+
+      const fillEndRow = fillDrag.endRow;
+      const fillEndCol = fillDrag.endCol;
+
+      // Determine fill direction
+      if (fillEndRow > srcMaxRow) {
+        // Fill down
+        for (let c = srcMinCol; c <= srcMaxCol; c++) {
+          const srcValues: string[] = [];
+          for (let r = srcMinRow; r <= srcMaxRow; r++) {
+            srcValues.push(getCellRaw(cellId(c, r)));
+          }
+          const pattern = detectPattern(srcValues);
+          const count = fillEndRow - srcMaxRow;
+
+          if (pattern.type === 'formula') {
+            for (let i = 1; i <= count; i++) {
+              const srcFormula = srcValues[(i - 1) % srcValues.length];
+              const adjusted = adjustFormula(srcFormula, srcMaxRow - srcMinRow + i, 0);
+              const id = cellId(c, srcMaxRow + i);
+              sheet.cells[id] = { value: '', formula: adjusted };
+            }
+          } else {
+            const filled = generateFill(pattern, count);
+            for (let i = 0; i < filled.length; i++) {
+              const id = cellId(c, srcMaxRow + 1 + i);
+              sheet.cells[id] = { value: filled[i] };
+            }
+          }
+        }
+      } else if (fillEndCol > srcMaxCol) {
+        // Fill right
+        for (let r = srcMinRow; r <= srcMaxRow; r++) {
+          const srcValues: string[] = [];
+          for (let c = srcMinCol; c <= srcMaxCol; c++) {
+            srcValues.push(getCellRaw(cellId(c, r)));
+          }
+          const pattern = detectPattern(srcValues);
+          const count = fillEndCol - srcMaxCol;
+
+          if (pattern.type === 'formula') {
+            for (let i = 1; i <= count; i++) {
+              const srcFormula = srcValues[(i - 1) % srcValues.length];
+              const adjusted = adjustFormula(srcFormula, 0, srcMaxCol - srcMinCol + i);
+              const id = cellId(srcMaxCol + i, r);
+              sheet.cells[id] = { value: '', formula: adjusted };
+            }
+          } else {
+            const filled = generateFill(pattern, count);
+            for (let i = 0; i < filled.length; i++) {
+              const id = cellId(srcMaxCol + 1 + i, r);
+              sheet.cells[id] = { value: filled[i] };
+            }
+          }
+        }
+      }
+
+      // Recalc
+      graphRef.current = buildDependencyGraph(sheet);
+      recalcAll(sheet, graphRef.current, workbook.namedRanges);
+      setWorkbook({ ...workbook });
+      setFillDrag(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [fillDrag, selRange, sheet, workbook, getCellRaw]);
 
   // Context menu handlers
   const handleColHeaderContextMenu = useCallback((col: number, e: React.MouseEvent) => {
@@ -832,6 +984,14 @@ export default function SpreadsheetEditor({
         onPivotTable={() => setShowPivotDialog(true)}
         onNamedRanges={() => setShowNamedRangesDialog(true)}
       />
+      {enableCollaboration && (
+        <div className="sheet-collab-bar">
+          <span className={`sheet-collab-status-dot ${collabStatus}`} />
+          {collabStatus === 'connected'
+            ? `Connected · ${remoteCursors.length + 1} user${remoteCursors.length !== 0 ? 's' : ''}`
+            : collabStatus === 'connecting' ? 'Connecting…' : 'Disconnected'}
+        </div>
+      )}
       <FormulaBar
         cellRef={cellId(activeCell.col, activeCell.row)}
         value={formulaBarValue}
@@ -841,6 +1001,7 @@ export default function SpreadsheetEditor({
           setEditing(false);
           setFormulaBarValue(getCellRaw(cellId(activeCell.col, activeCell.row)));
         }}
+        formulaRefs={formulaHighlights}
       />
       
       <div className="sheet-grid-wrapper">
@@ -892,6 +1053,10 @@ export default function SpreadsheetEditor({
                   onContextMenu={e => handleRowHeaderContextMenu(r, e)}
                 >
                   {r + 1}
+                  <div
+                    className="sheet-row-resize-handle"
+                    onDoubleClick={(e) => { e.stopPropagation(); handleRowHeaderDoubleClick(r); }}
+                  />
                 </div>
               );
             })}
@@ -935,6 +1100,56 @@ export default function SpreadsheetEditor({
                   height: 28,
                 }}
               />
+
+              {/* Fill handle — bottom-right corner of selection */}
+              {!editing && !fillDrag && (
+                <div
+                  className="sheet-fill-handle"
+                  style={{
+                    top: (selRange.maxRow + 1) * 28 - 5,
+                    left: colLefts[selRange.maxCol] + getColWidth(sheet, selRange.maxCol) - 5,
+                  }}
+                  onMouseDown={handleFillMouseDown}
+                />
+              )}
+
+              {/* Fill preview while dragging */}
+              {fillDrag && fillDrag.active && (fillDrag.endRow > selRange.maxRow || fillDrag.endCol > selRange.maxCol) && (
+                <div
+                  className="sheet-fill-preview"
+                  style={{
+                    top: (selRange.maxRow + 1) * 28,
+                    left: fillDrag.endCol > selRange.maxCol
+                      ? colLefts[selRange.maxCol + 1] ?? (colLefts[selRange.maxCol] + getColWidth(sheet, selRange.maxCol))
+                      : colLefts[selRange.minCol],
+                    width: fillDrag.endCol > selRange.maxCol
+                      ? (() => { let w = 0; for (let c = selRange.maxCol + 1; c <= fillDrag.endCol; c++) w += getColWidth(sheet, c); return w; })()
+                      : (() => { let w = 0; for (let c = selRange.minCol; c <= selRange.maxCol; c++) w += getColWidth(sheet, c); return w; })(),
+                    height: fillDrag.endRow > selRange.maxRow
+                      ? (fillDrag.endRow - selRange.maxRow) * 28
+                      : (selRange.maxRow - selRange.minRow + 1) * 28,
+                    ...(fillDrag.endCol > selRange.maxCol ? { top: selRange.minRow * 28 } : {}),
+                  }}
+                />
+              )}
+
+              {/* Formula reference highlights */}
+              {formulaHighlights.map((ref, i) =>
+                ref.cells.map((cell, j) => (
+                  <div
+                    key={`fh-${i}-${j}`}
+                    className="sheet-formula-highlight"
+                    style={{
+                      top: cell.row * 28,
+                      left: colLefts[cell.col] ?? 0,
+                      width: getColWidth(sheet, cell.col),
+                      height: 28,
+                      borderColor: ref.color,
+                      backgroundColor: ref.color + '15',
+                    }}
+                  />
+                ))
+              )}
 
               {/* Remote collaboration cursors */}
               {remoteCursors
