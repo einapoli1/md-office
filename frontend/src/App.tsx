@@ -28,6 +28,7 @@ import OfflineIndicator from './components/OfflineIndicator';
 import ShareDialog from './components/ShareDialog';
 import { toast } from './components/Toast';
 import { importDocx } from './utils/docxIO';
+import { importPdf } from './utils/pdfImport';
 import RecentDocs, { RecentDocEntry, loadRecentDocs, touchRecentDoc, removeRecentDoc } from './components/RecentDocs';
 import _GlobalSearch from './components/GlobalSearch';
 import _AIAssistant from './components/AIAssistant';
@@ -91,6 +92,9 @@ import ReviewPanel from './components/ReviewPanel';
 import DocumentCompare from './components/DocumentCompare';
 import RedlineView from './components/RedlineView';
 import ApprovalWorkflow from './components/ApprovalWorkflow';
+import OnboardingWizard from './components/OnboardingWizard';
+import SyncIndicator from './components/SyncIndicator';
+import { useGitProvider } from './hooks/useGitProvider';
 import './comments-styles.css';
 
 function App() {
@@ -99,7 +103,11 @@ function App() {
   const [isGuestMode, setIsGuestMode] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
-  
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Git provider integration
+  const gitProvider = useGitProvider();
+
   // App mode
   const [appMode, setAppMode] = useState<AppMode>('docs');
   const [landingMode, setLandingMode] = useState<AppMode>('docs');
@@ -221,6 +229,13 @@ function App() {
         initializeLocalStorage();
       }
       setAuthLoading(false);
+
+      // Check if redirected from OAuth callback
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('provider') && params.get('connected')) {
+        setShowOnboarding(true);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
     };
     
     checkAuth();
@@ -956,6 +971,27 @@ function App() {
       input.click();
     };
     window.addEventListener('import-docx', handleImportDocx);
+    const handleImportPdf = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.pdf,application/pdf';
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        try {
+          const html = await importPdf(file);
+          if (editorRef) {
+            editorRef.commands.setContent(html);
+            toast('PDF imported', 'success');
+          }
+        } catch (err) {
+          console.error('PDF import failed:', err);
+          toast('Failed to import PDF', 'error');
+        }
+      };
+      input.click();
+    };
+    window.addEventListener('import-pdf', handleImportPdf);
     window.addEventListener('pageless-toggle', handlePagelessToggle);
     const handleMailMerge = () => setShowMailMerge(prev => !prev);
     const handleTemplateSidebar = () => setShowTemplateSidebar(prev => !prev);
@@ -1013,6 +1049,7 @@ function App() {
       window.removeEventListener('ruler-toggle', handleRulerToggle);
       window.removeEventListener('pageless-toggle', handlePagelessToggle);
       window.removeEventListener('import-docx', handleImportDocx);
+      window.removeEventListener('import-pdf', handleImportPdf);
       window.removeEventListener('insert-link', handleInsertLink);
       window.removeEventListener('insert-image', handleInsertImage);
       window.removeEventListener('special-chars-open', handleSpecialChars);
@@ -1367,6 +1404,23 @@ function App() {
     );
   }
 
+  // Show onboarding wizard
+  if (showOnboarding) {
+    return (
+      <OnboardingWizard
+        onComplete={async (config) => {
+          try {
+            await gitProvider.connectRepo(config);
+            setShowOnboarding(false);
+          } catch (e) {
+            console.error('Failed to connect repo:', e);
+          }
+        }}
+        onSkip={() => setShowOnboarding(false)}
+      />
+    );
+  }
+
   // Main app interface
   return (
     <ErrorBoundary>
@@ -1397,6 +1451,7 @@ function App() {
         onShareClick={() => setShowShareDialog(true)}
         onVersionHistory={openVersionHistory}
         onBranches={() => setShowBranchManager(true)}
+        onConnectGit={() => setShowOnboarding(true)}
         onCommitHistory={() => setShowCommitHistory(true)}
         appMode={appMode}
         onShowAbout={() => setShowAbout(true)}
@@ -1623,6 +1678,14 @@ function App() {
             previewContent={vhPreviewContent}
             currentContent={content}
             isLoading={vhLoading}
+            onNameVersion={async (commit, name) => {
+              try {
+                await gitAPI.createTag(name, commit.hash);
+                toast(`Version named: ${name}`, 'success');
+              } catch {
+                toast('Failed to name version', 'error');
+              }
+            }}
           />
         )}
 
@@ -1670,11 +1733,34 @@ function App() {
           suggestionMode={suggestionMode}
           collaborationStatus={collabStatus}
           connectedUsers={collabUsers}
-          currentBranch={currentBranchName}
+          currentBranch={gitProvider.branch || currentBranchName}
           onBranchClick={() => setShowBranchManager(true)}
           onSave={handleAutoSave}
           isProtected={protectionLevel !== 'none'}
         />
+        {gitProvider.repoConnected && (
+          <div style={{ position: 'fixed', bottom: 28, left: 8, zIndex: 100 }}>
+            <SyncIndicator
+              syncStatus={gitProvider.syncStatus}
+              branch={gitProvider.branch}
+              defaultBranch={gitProvider.defaultBranch}
+              provider={gitProvider.provider}
+              onSync={() => gitProvider.sync()}
+              onCreatePR={() => {
+                if (gitProvider.provider) {
+                  const title = prompt('Pull request title:', `Changes from ${gitProvider.branch}`);
+                  if (title) {
+                    gitProvider.createPR(gitProvider.provider, title, '', gitProvider.giteaUrl || undefined)
+                      .then(pr => {
+                        window.open(pr.htmlUrl, '_blank');
+                      })
+                      .catch(e => alert('Failed to create PR: ' + e.message));
+                  }
+                }
+              }}
+            />
+          </div>
+        )}
         <div style={{ position: 'fixed', bottom: 0, right: 8, zIndex: 100 }}>
           <LanguagePicker />
         </div>
