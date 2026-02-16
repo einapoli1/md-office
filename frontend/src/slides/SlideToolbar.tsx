@@ -32,6 +32,8 @@ interface Props {
   onInsertVideo?: () => void;
   onInsertAudio?: () => void;
   onInsertInteractive?: () => void;
+  onDesignIdeas?: () => void;
+  onSlideSorter?: () => void;
 }
 
 export default function SlideToolbar({
@@ -44,6 +46,7 @@ export default function SlideToolbar({
   onExportPDF, onExportHTML,
   onToggleTimeline, showTimeline,
   onInsertVideo, onInsertAudio, onInsertInteractive,
+  onDesignIdeas, onSlideSorter,
 }: Props) {
   const [templateOpen, setTemplateOpen] = useState(false);
 
@@ -126,6 +129,8 @@ export default function SlideToolbar({
           )}
         </div>
 
+        <button className="toolbar-btn" onClick={onDesignIdeas} title="Design Ideas">🎨 Design</button>
+        <button className="toolbar-btn" onClick={onSlideSorter} title="Slide Sorter">📊 Sorter</button>
         <button className="toolbar-btn present-btn" onClick={onPresent} title="Present">▶ Present</button>
         <button className="toolbar-btn" onClick={onExportPDF} title="Export PDF (Print)">🖨 PDF</button>
         <button className="toolbar-btn" onClick={onExportHTML} title="Export standalone HTML">💾 HTML</button>

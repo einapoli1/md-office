@@ -459,6 +459,13 @@ const MenuBar: React.FC<MenuBarProps> = ({
         { label: 'Table from Sheets', action: () => {
           window.dispatchEvent(new CustomEvent('embed-picker-open', { detail: { type: 'range' } }));
         }},
+        { label: 'Photo Album', action: () => window.dispatchEvent(new CustomEvent('slide-photo-album')) },
+        { label: 'divider' },
+        { label: 'Slide Size', action: () => window.dispatchEvent(new CustomEvent('slide-size')) },
+        { label: 'Slide Sorter', action: () => window.dispatchEvent(new CustomEvent('slide-sorter')) },
+        { label: 'Design Ideas', action: () => window.dispatchEvent(new CustomEvent('slide-design-ideas')) },
+        { label: 'divider' },
+        { label: 'Presenter Coach', action: () => window.dispatchEvent(new CustomEvent('slide-presenter-coach')) },
       ],
     }),
     [t('menu.help._label')]: [

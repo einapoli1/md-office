@@ -24,6 +24,11 @@ import { InsertVideoDialog, VideoPlaceholder, type VideoEmbedData } from './Vide
 import { AudioNarrationDialog, type AudioNarrationData } from './AudioNarration';
 import { InsertInteractiveDialog, InteractiveElementEditor, type InteractiveElement } from './InteractiveElements';
 import SlideNotes from './SlideNotes';
+import PresenterCoach from './PresenterCoach';
+import SlideSorter from './SlideSorter';
+import DesignIdeas from './DesignIdeas';
+import SlideSize from './SlideSize';
+import PhotoAlbum from './PhotoAlbum';
 import {
   initSlideCollab, syncPresentationFromYjs, updateSlideFieldInYjs,
   addSlideInYjs, deleteSlideInYjs, reorderSlideInYjs, updatePresMetaInYjs,
@@ -68,6 +73,12 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
   const [videos, setVideos] = useState<Record<string, VideoEmbedData[]>>({});
   const [narrations, setNarrations] = useState<Record<string, AudioNarrationData>>({});
   const [interactiveElements, setInteractiveElements] = useState<Record<string, InteractiveElement[]>>({});
+  const [showPresenterCoach, setShowPresenterCoach] = useState(false);
+  const [showSlideSorter, setShowSlideSorter] = useState(false);
+  const [showDesignIdeas, setShowDesignIdeas] = useState(false);
+  const [showSlideSize, setShowSlideSize] = useState(false);
+  const [showPhotoAlbum, setShowPhotoAlbum] = useState(false);
+  const [savedTimings, setSavedTimings] = useState<import('./RehearsalMode').SlideTimings | undefined>(undefined);
 
   const collabRef = useRef<SlideCollabHandle | null>(null);
   const suppressRemoteRef = useRef(false);
@@ -362,13 +373,28 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
     const onInsertVideo = () => setShowVideoDialog(true);
     const onInsertAudio = () => setShowAudioDialog(true);
     const onInsertInteractive = () => setShowInteractiveDialog(true);
+    const onPresenterCoach = () => setShowPresenterCoach(true);
+    const onSlideSorter = () => setShowSlideSorter(true);
+    const onDesignIdeas = () => setShowDesignIdeas(true);
+    const onSlideSize = () => setShowSlideSize(true);
+    const onPhotoAlbum = () => setShowPhotoAlbum(true);
     window.addEventListener('slide-insert-video', onInsertVideo);
     window.addEventListener('slide-insert-audio', onInsertAudio);
     window.addEventListener('slide-insert-interactive', onInsertInteractive);
+    window.addEventListener('slide-presenter-coach', onPresenterCoach);
+    window.addEventListener('slide-sorter', onSlideSorter);
+    window.addEventListener('slide-design-ideas', onDesignIdeas);
+    window.addEventListener('slide-size', onSlideSize);
+    window.addEventListener('slide-photo-album', onPhotoAlbum);
     return () => {
       window.removeEventListener('slide-insert-video', onInsertVideo);
       window.removeEventListener('slide-insert-audio', onInsertAudio);
       window.removeEventListener('slide-insert-interactive', onInsertInteractive);
+      window.removeEventListener('slide-presenter-coach', onPresenterCoach);
+      window.removeEventListener('slide-sorter', onSlideSorter);
+      window.removeEventListener('slide-design-ideas', onDesignIdeas);
+      window.removeEventListener('slide-size', onSlideSize);
+      window.removeEventListener('slide-photo-album', onPhotoAlbum);
     };
   }, []);
 
@@ -377,6 +403,7 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
     update(newSlides);
     setAutoAdvance(true);
     setRehearsalMode(false);
+    setSavedTimings(timings);
   }, [pres.slides, update]);
 
   // notesHeight and notesDragRef kept for compatibility
@@ -415,6 +442,26 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
     a.click();
     URL.revokeObjectURL(url);
   }, [pres, theme]);
+
+  const handleDesignApply = useCallback((layout: import('./slideModel').SlideLayout, content: string) => {
+    const newSlides = [...pres.slides];
+    newSlides[activeIdx] = { ...newSlides[activeIdx], layout, content };
+    update(newSlides);
+    setShowDesignIdeas(false);
+  }, [pres.slides, activeIdx, update]);
+
+  const handleSlideSizeApply = useCallback((aspectRatio: string, _width: number, _height: number, _scaleContent: boolean) => {
+    const newPres = { ...pres, meta: { ...pres.meta, aspectRatio } };
+    setPres(newPres);
+    onChange(serializePresentation(newPres));
+    setShowSlideSize(false);
+  }, [pres, onChange]);
+
+  const handlePhotoAlbumInsert = useCallback((newSlides: Slide[]) => {
+    const allSlides = [...pres.slides, ...newSlides];
+    update(allSlides);
+    setShowPhotoAlbum(false);
+  }, [pres.slides, update]);
 
   // @ts-ignore
   const startPresentation = useCallback(() => setSlideshow(true), []);
@@ -464,6 +511,8 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
         onInsertVideo={() => setShowVideoDialog(true)}
         onInsertAudio={() => setShowAudioDialog(true)}
         onInsertInteractive={() => setShowInteractiveDialog(true)}
+        onDesignIdeas={() => setShowDesignIdeas(true)}
+        onSlideSorter={() => setShowSlideSorter(true)}
       />
 
       <div className="slides-collab-bar">
@@ -583,6 +632,46 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
           onInsert={handleInsertInteractive}
           onClose={() => setShowInteractiveDialog(false)}
           totalSlides={pres.slides.length}
+        />
+      )}
+      {showPresenterCoach && (
+        <PresenterCoach
+          presentation={pres}
+          timings={savedTimings}
+          onUpdateSlides={(slides) => { update(slides); }}
+          onClose={() => setShowPresenterCoach(false)}
+        />
+      )}
+      {showSlideSorter && (
+        <SlideSorter
+          slides={pres.slides}
+          theme={theme}
+          activeIndex={activeIdx}
+          onSelect={setActiveIdx}
+          onReorder={handleReorder}
+          onDuplicate={handleDuplicate}
+          onDelete={handleDelete}
+          onClose={() => setShowSlideSorter(false)}
+        />
+      )}
+      {showDesignIdeas && currentSlide && (
+        <DesignIdeas
+          slide={currentSlide}
+          onApply={handleDesignApply}
+          onClose={() => setShowDesignIdeas(false)}
+        />
+      )}
+      {showSlideSize && (
+        <SlideSize
+          currentAspectRatio={pres.meta.aspectRatio}
+          onApply={handleSlideSizeApply}
+          onClose={() => setShowSlideSize(false)}
+        />
+      )}
+      {showPhotoAlbum && (
+        <PhotoAlbum
+          onInsertSlides={handlePhotoAlbumInsert}
+          onClose={() => setShowPhotoAlbum(false)}
         />
       )}
     </div>
