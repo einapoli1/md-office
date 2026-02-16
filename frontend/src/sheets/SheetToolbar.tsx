@@ -32,9 +32,15 @@ interface SheetToolbarProps {
   onSolver?: () => void;
   onDataImport?: () => void;
   onFrequencyAnalysis?: () => void;
+  onSlicer?: () => void;
+  onHeatmap?: () => void;
+  onTimeline?: () => void;
+  onDashboardToggle?: () => void;
+  dashboardEnabled?: boolean;
+  pivotChartButton?: React.ReactNode;
 }
 
-export default function SheetToolbar({ format, onFormatChange, onMergeCells, canUndo, canRedo, onUndo, onRedo, onInsertChart, filtersEnabled, onToggleFilters, freeze, onFreezeChange, onImportCSV, onImportXLSX, onExportCSV, onExportXLSX, onConditionalFormat, onDataValidation, onPivotTable, onNamedRanges, onInsertComment, onProtectedRanges, onFindReplace, onInsertSparkline, onGoalSeek, onDataTable, onSolver, onDataImport, onFrequencyAnalysis }: SheetToolbarProps) {
+export default function SheetToolbar({ format, onFormatChange, onMergeCells, canUndo, canRedo, onUndo, onRedo, onInsertChart, filtersEnabled, onToggleFilters, freeze, onFreezeChange, onImportCSV, onImportXLSX, onExportCSV, onExportXLSX, onConditionalFormat, onDataValidation, onPivotTable, onNamedRanges, onInsertComment, onProtectedRanges, onFindReplace, onInsertSparkline, onGoalSeek, onDataTable, onSolver, onDataImport, onFrequencyAnalysis, onSlicer, onHeatmap, onTimeline, onDashboardToggle, dashboardEnabled, pivotChartButton }: SheetToolbarProps) {
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
   const [dataMenuOpen, setDataMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -208,9 +214,19 @@ export default function SheetToolbar({ format, onFormatChange, onMergeCells, can
             {onDataImport && <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={onDataImport}>📥 Import Data</div>}
             <div style={{ borderTop: '1px solid #eee', margin: '4px 0' }} />
             {onFrequencyAnalysis && <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={onFrequencyAnalysis}>📈 Descriptive Statistics</div>}
+            <div style={{ borderTop: '1px solid #eee', margin: '4px 0' }} />
+            {onSlicer && <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={onSlicer}>🔽 Slicer</div>}
+            {onHeatmap && <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={onHeatmap}>🌡️ Create Heatmap</div>}
+            {onTimeline && <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={onTimeline}>📅 Timeline Chart</div>}
           </div>
         )}
       </div>
+      {pivotChartButton}
+      {onDashboardToggle && (
+        <button className="sheet-tb-btn" onClick={onDashboardToggle} title="Dashboard Mode" style={{ fontSize: 11, background: dashboardEnabled ? '#e8f0fe' : undefined }}>
+          📐 {dashboardEnabled ? 'Exit Dashboard' : 'Dashboard'}
+        </button>
+      )}
     </div>
   );
 }

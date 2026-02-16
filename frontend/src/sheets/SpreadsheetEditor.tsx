@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { CellFormat, getCellStyle, formatCellValue } from './cellFormat';
-import { cellId, indexToCol, extractRefs, parseCellRef } from './formulaEngine';
+import { cellId, indexToCol, extractRefs, parseCellRef, expandRange } from './formulaEngine';
 import { solveEquation, formatResult as formatMathResult, extractVariables } from '../utils/mathSolver';
 import { WorkbookData, CellData, createWorkbook, createEmptySheet, getColWidth, getRowHeight, recalculate, buildDependencyGraph, recalcAll, UndoManager, serializeWorkbook, deserializeWorkbook, ChartConfig, FilterState, FreezePanes } from './sheetModel';
 import { DependencyGraph } from './formulaEngine';
@@ -32,6 +32,11 @@ import type { FindMatch } from './SheetFindReplace';
 import { getFindMatchCellIds } from './SheetFindReplace';
 import type { CellComment, ProtectedRange } from './sheetModel';
 import { PivotConfig } from './pivotEngine';
+import { PivotChartButton } from './PivotChart';
+import { SlicerOverlay, InsertSlicerDialog, SlicerConfig } from './Slicer';
+import { DashboardToolbar, DashboardLabelOverlay, DashboardPresentation, DashboardConfig, DashboardLabel, createDashboardConfig } from './Dashboard';
+import { HeatmapLegend, CreateHeatmapDialog, HeatmapConfig, computeHeatmapColors } from './Heatmap';
+import { TimelineOverlay, InsertTimelineDialog, TimelineConfig } from './SheetTimeline';
 import {
   initSheetCollab,
   setCellInYjs,
@@ -141,6 +146,14 @@ export default function SpreadsheetEditor({
   const [showSolver, setShowSolver] = useState(false);
   const [showDataImport, setShowDataImport] = useState(false);
   const [showFreqAnalysis, setShowFreqAnalysis] = useState(false);
+  const [slicers, setSlicers] = useState<SlicerConfig[]>([]);
+  const [showSlicerDialog, setShowSlicerDialog] = useState(false);
+  const [dashboardConfig, setDashboardConfig] = useState<DashboardConfig>(createDashboardConfig());
+  const [showPresentation, setShowPresentation] = useState(false);
+  const [heatmaps, setHeatmaps] = useState<HeatmapConfig[]>([]);
+  const [showHeatmapDialog, setShowHeatmapDialog] = useState(false);
+  const [timelines, setTimelines] = useState<TimelineConfig[]>([]);
+  const [showTimelineDialog, setShowTimelineDialog] = useState(false);
   // Listen for latex-formula-mode toggle
   useEffect(() => {
     const handler = () => setLatexFormulaMode(m => m === 'equation' ? 'result' : 'equation');
@@ -1130,6 +1143,93 @@ export default function SpreadsheetEditor({
     setWorkbook({ ...workbook });
   }, [workbook]);
 
+  // Slicer handlers
+  const handleInsertSlicer = useCallback((column: string, sourceRange: string) => {
+    const slicer: SlicerConfig = {
+      id: `slicer_${Date.now()}`,
+      column, sourceRange, sourceSheet: workbook.activeSheet,
+      selectedValues: new Set(),
+      x: 500, y: 100, width: 200, height: 250,
+    };
+    setSlicers(s => [...s, slicer]);
+    setShowSlicerDialog(false);
+  }, [workbook.activeSheet]);
+
+  const handleSlicerSelectionChange = useCallback((id: string, selected: Set<string>) => {
+    setSlicers(s => s.map(sl => sl.id === id ? { ...sl, selectedValues: selected } : sl));
+  }, []);
+
+  const handleSlicerMove = useCallback((id: string, x: number, y: number) => {
+    setSlicers(s => s.map(sl => sl.id === id ? { ...sl, x, y } : sl));
+  }, []);
+
+  const handleSlicerResize = useCallback((id: string, w: number, h: number) => {
+    setSlicers(s => s.map(sl => sl.id === id ? { ...sl, width: w, height: h } : sl));
+  }, []);
+
+  const handleSlicerDelete = useCallback((id: string) => {
+    setSlicers(s => s.filter(sl => sl.id !== id));
+  }, []);
+
+  // Dashboard handlers
+  const handleToggleDashboard = useCallback(() => {
+    setDashboardConfig(c => ({ ...c, enabled: !c.enabled }));
+  }, []);
+
+  const handleAddDashboardLabel = useCallback(() => {
+    const label: DashboardLabel = {
+      id: `label_${Date.now()}`, text: 'Title', x: 200, y: 50,
+      fontSize: 18, color: '#333', bold: true,
+    };
+    setDashboardConfig(c => ({ ...c, labels: [...c.labels, label] }));
+  }, []);
+
+  const handleUpdateDashboardLabel = useCallback((id: string, updates: Partial<DashboardLabel>) => {
+    setDashboardConfig(c => ({ ...c, labels: c.labels.map(l => l.id === id ? { ...l, ...updates } : l) }));
+  }, []);
+
+  const handleDeleteDashboardLabel = useCallback((id: string) => {
+    setDashboardConfig(c => ({ ...c, labels: c.labels.filter(l => l.id !== id) }));
+  }, []);
+
+  // Heatmap handlers
+  const handleInsertHeatmap = useCallback((config: Omit<HeatmapConfig, 'id'>) => {
+    setHeatmaps(h => [...h, { ...config, id: `heatmap_${Date.now()}` }]);
+    setShowHeatmapDialog(false);
+  }, []);
+
+  const handleDeleteHeatmap = useCallback((id: string) => {
+    setHeatmaps(h => h.filter(hm => hm.id !== id));
+  }, []);
+
+  // Compute heatmap colors for cell rendering
+  const heatmapColorMap = useMemo(() => {
+    const combined = new Map<string, string>();
+    for (const hm of heatmaps) {
+      const colors = computeHeatmapColors(sheet, hm);
+      colors.forEach((v, k) => combined.set(k, v));
+    }
+    return combined;
+  }, [heatmaps, sheet]);
+
+  // Timeline handlers
+  const handleInsertTimeline = useCallback((config: Omit<TimelineConfig, 'id' | 'x' | 'y' | 'width' | 'height'>) => {
+    setTimelines(t => [...t, { ...config, id: `timeline_${Date.now()}`, x: 50, y: 100, width: 600, height: 300 }]);
+    setShowTimelineDialog(false);
+  }, []);
+
+  const handleTimelineMove = useCallback((id: string, x: number, y: number) => {
+    setTimelines(t => t.map(tl => tl.id === id ? { ...tl, x, y } : tl));
+  }, []);
+
+  const handleTimelineResize = useCallback((id: string, w: number, h: number) => {
+    setTimelines(t => t.map(tl => tl.id === id ? { ...tl, width: w, height: h } : tl));
+  }, []);
+
+  const handleTimelineDelete = useCallback((id: string) => {
+    setTimelines(t => t.filter(tl => tl.id !== id));
+  }, []);
+
   // Named ranges
   const handleSaveNamedRanges = useCallback((ranges: Record<string, string>) => {
     workbook.namedRanges = ranges;
@@ -1242,6 +1342,12 @@ export default function SpreadsheetEditor({
         onSolver={() => setShowSolver(true)}
         onDataImport={() => setShowDataImport(true)}
         onFrequencyAnalysis={() => setShowFreqAnalysis(true)}
+        onSlicer={() => setShowSlicerDialog(true)}
+        onHeatmap={() => setShowHeatmapDialog(true)}
+        onTimeline={() => setShowTimelineDialog(true)}
+        onDashboardToggle={handleToggleDashboard}
+        dashboardEnabled={dashboardConfig.enabled}
+        pivotChartButton={<PivotChartButton workbook={workbook} onInsertChart={handleInsertChart} />}
       />
       {enableCollaboration && (
         <div className="sheet-collab-bar">
@@ -1476,6 +1582,7 @@ export default function SpreadsheetEditor({
                     height: 28,
                     ...getCellStyle(cell?.format),
                     ...(cfResult?.style || {}),
+                    ...(heatmapColorMap.has(id) ? { backgroundColor: heatmapColorMap.get(id) } : {}),
                     ...((isFrozenRow || isFrozenCol) ? {
                       position: 'sticky' as const,
                       zIndex: (isFrozenRow && isFrozenCol) ? 4 : 2,
@@ -1622,6 +1729,52 @@ export default function SpreadsheetEditor({
                   onMove={handleChartMove}
                   onResize={handleChartResize}
                   onDelete={handleChartDelete}
+                />
+              ))}
+              {/* Slicer overlays */}
+              {slicers.filter(s => s.sourceSheet === workbook.activeSheet).map(slicer => (
+                <SlicerOverlay
+                  key={slicer.id}
+                  slicer={slicer}
+                  sheet={sheet}
+                  onSelectionChange={handleSlicerSelectionChange}
+                  onMove={handleSlicerMove}
+                  onResize={handleSlicerResize}
+                  onDelete={handleSlicerDelete}
+                />
+              ))}
+              {/* Timeline overlays */}
+              {timelines.filter(t => t.sourceSheet === workbook.activeSheet).map(tl => (
+                <TimelineOverlay
+                  key={tl.id}
+                  config={tl}
+                  sheet={sheet}
+                  onMove={handleTimelineMove}
+                  onResize={handleTimelineResize}
+                  onDelete={handleTimelineDelete}
+                />
+              ))}
+              {/* Heatmap legends */}
+              {heatmaps.map((hm, i) => {
+                const colors = computeHeatmapColors(sheet, hm);
+                const values = Array.from(colors.values());
+                if (values.length === 0) return null;
+                // Compute min/max from the source data
+                const refs = hm.range ? expandRange(hm.range) : [];
+                const nums = refs.map(r => { const c = sheet.cells[r]; return c ? parseFloat(c.computed ?? c.value) : NaN; }).filter(n => !isNaN(n));
+                const min = nums.length ? Math.min(...nums) : 0;
+                const max = nums.length ? Math.max(...nums) : 1;
+                return hm.showLegend ? (
+                  <HeatmapLegend key={hm.id} config={hm} min={min} max={max} x={10} y={10 + i * 60} onDelete={handleDeleteHeatmap} />
+                ) : null;
+              })}
+              {/* Dashboard labels */}
+              {dashboardConfig.enabled && dashboardConfig.labels.map(label => (
+                <DashboardLabelOverlay
+                  key={label.id}
+                  label={label}
+                  onUpdate={handleUpdateDashboardLabel}
+                  onDelete={handleDeleteDashboardLabel}
                 />
               ))}
             </div>
@@ -1936,6 +2089,61 @@ export default function SpreadsheetEditor({
           }}
           onClose={() => setShowSparklineDialog(false)}
         />
+      )}
+      {/* Slicer dialog */}
+      {showSlicerDialog && (
+        <InsertSlicerDialog
+          sheet={sheet}
+          sourceRange={selectedRangeStr}
+          onInsert={handleInsertSlicer}
+          onClose={() => setShowSlicerDialog(false)}
+        />
+      )}
+      {/* Heatmap dialog */}
+      {showHeatmapDialog && (
+        <CreateHeatmapDialog
+          selectionRange={selectedRangeStr}
+          onInsert={handleInsertHeatmap}
+          onClose={() => setShowHeatmapDialog(false)}
+        />
+      )}
+      {/* Timeline dialog */}
+      {showTimelineDialog && (
+        <InsertTimelineDialog
+          sheet={sheet}
+          sourceRange={selectedRangeStr}
+          onInsert={handleInsertTimeline}
+          onClose={() => setShowTimelineDialog(false)}
+        />
+      )}
+      {/* Dashboard presentation */}
+      {showPresentation && (
+        <DashboardPresentation
+          backgroundColor={dashboardConfig.backgroundColor}
+          onExit={() => setShowPresentation(false)}
+        >
+          {sheet.charts.map(chart => (
+            <SheetChartOverlay key={chart.id} chart={chart} sheet={sheet} onMove={handleChartMove} onResize={handleChartResize} onDelete={handleChartDelete} />
+          ))}
+          {slicers.filter(s => s.sourceSheet === workbook.activeSheet).map(slicer => (
+            <SlicerOverlay key={slicer.id} slicer={slicer} sheet={sheet} onSelectionChange={handleSlicerSelectionChange} onMove={handleSlicerMove} onResize={handleSlicerResize} onDelete={handleSlicerDelete} />
+          ))}
+          {dashboardConfig.labels.map(label => (
+            <DashboardLabelOverlay key={label.id} label={label} onUpdate={handleUpdateDashboardLabel} onDelete={handleDeleteDashboardLabel} />
+          ))}
+        </DashboardPresentation>
+      )}
+      {/* Dashboard toolbar (when enabled) */}
+      {dashboardConfig.enabled && (
+        <div style={{ position: 'fixed', bottom: 40, left: '50%', transform: 'translateX(-50%)', zIndex: 100 }}>
+          <DashboardToolbar
+            config={dashboardConfig}
+            onToggle={handleToggleDashboard}
+            onBackgroundChange={(color) => setDashboardConfig(c => ({ ...c, backgroundColor: color }))}
+            onAddLabel={handleAddDashboardLabel}
+            onFullscreen={() => setShowPresentation(true)}
+          />
+        </div>
       )}
       <SheetStatusBar
         cellRef={cellId(activeCell.col, activeCell.row)}
