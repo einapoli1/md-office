@@ -3,7 +3,10 @@ import { Settings, X } from 'lucide-react';
 import { FileContent } from '../types';
 import Editor from './Editor';
 import CollabPresence from './CollabPresence';
+import CollabChat from './CollabChat';
+import CollabHistory from './CollabHistory';
 import PageSetupDialog from './PageSetupDialog';
+import { getUserColor } from '../utils/collabColors';
 import WatermarkDialog, { WatermarkConfig } from './WatermarkDialog';
 // PageBreaks handled by TipTap extension now
 import { 
@@ -38,10 +41,19 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   const [showWatermark, setShowWatermark] = useState(false);
   const [parsedDocument, setParsedDocument] = useState(() => parseFrontmatter(content));
   const [collabProvider, setCollabProvider] = useState<any>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
+  const [editorInstance, setEditorInstance] = useState<any>(null);
 
   const isCollab = new URLSearchParams(window.location.search).has('collab');
   const collabUserName = new URLSearchParams(window.location.search).get('user') || 'Anonymous User';
+  const collabUserColor = getUserColor(collabUserName);
   const handleProviderReady = useCallback((p: any) => setCollabProvider(p), []);
+  const handleEditorReady = useCallback((e: any) => {
+    setEditorInstance(e);
+    onEditorReady?.(e);
+  }, [onEditorReady]);
 
   // Parse content when it changes
   useEffect(() => {
@@ -121,7 +133,38 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
       >
         <div className="document-header">
           {isCollab && collabProvider && (
-            <CollabPresence provider={collabProvider} currentUser={collabUserName} />
+            <>
+              <CollabPresence provider={collabProvider} currentUser={collabUserName} editor={editorInstance} />
+              <div style={{ display: 'inline-flex', gap: 4, marginLeft: 8 }}>
+                <button
+                  onClick={() => { setChatOpen(o => !o); setHistoryOpen(false); }}
+                  title="Toggle chat"
+                  style={{
+                    position: 'relative', background: 'none', border: '1px solid #ddd',
+                    borderRadius: 4, cursor: 'pointer', fontSize: 14, padding: '2px 8px',
+                  }}
+                >
+                  💬
+                  {chatUnread > 0 && (
+                    <span style={{
+                      position: 'absolute', top: -6, right: -6,
+                      background: '#EA4335', color: '#fff', fontSize: 10,
+                      borderRadius: '50%', width: 16, height: 16,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontWeight: 700,
+                    }}>{chatUnread}</span>
+                  )}
+                </button>
+                <button
+                  onClick={() => { setHistoryOpen(o => !o); setChatOpen(false); }}
+                  title="Activity feed"
+                  style={{
+                    background: 'none', border: '1px solid #ddd',
+                    borderRadius: 4, cursor: 'pointer', fontSize: 14, padding: '2px 8px',
+                  }}
+                >📋</button>
+              </div>
+            </>
           )}
           <button 
             className="document-settings-btn"
@@ -149,7 +192,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
               <Editor
                 content={parsedDocument.content}
                 onChange={handleEditorChange}
-                onEditorReady={onEditorReady}
+                onEditorReady={handleEditorReady}
                 enableCollaboration={isCollab}
                 documentName={activeFile?.path || 'untitled'}
                 userName={collabUserName}
@@ -326,6 +369,30 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Collab Chat Panel */}
+      {isCollab && collabProvider && (
+        <CollabChat
+          provider={collabProvider}
+          currentUser={collabUserName}
+          currentUserColor={collabUserColor}
+          editor={editorInstance}
+          open={chatOpen}
+          onClose={() => setChatOpen(false)}
+          onUnreadChange={setChatUnread}
+        />
+      )}
+
+      {/* Collab Activity Feed */}
+      {isCollab && collabProvider && (
+        <CollabHistory
+          provider={collabProvider}
+          currentUser={collabUserName}
+          editor={editorInstance}
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+        />
       )}
     </div>
   );
