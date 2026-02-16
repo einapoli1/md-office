@@ -50,6 +50,10 @@ import UserPreferences from './components/UserPreferences';
 import FocusMode from './components/FocusMode';
 import ReadingMode from './components/ReadingMode';
 import DocumentStats from './components/DocumentStats';
+import CommandPalette from './components/CommandPalette';
+import ShortcutOverlay from './components/ShortcutOverlay';
+import { commandRegistry } from './lib/commandRegistry';
+import { shortcutManager } from './lib/shortcutManager';
 
 export type AppMode = 'docs' | 'sheets' | 'slides' | 'draw';
 
@@ -121,6 +125,8 @@ function App() {
   const [showWordCount, setShowWordCount] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showShortcutOverlay, setShowShortcutOverlay] = useState(false);
   const [showOutline, setShowOutline] = useState(false);
   const [showSpecialChars, setShowSpecialChars] = useState(false);
   const [showEquationDialog, setShowEquationDialog] = useState(false);
@@ -1055,6 +1061,111 @@ function App() {
     };
   }, [editorRef, content, startMacroRecording, stopMacroRecording]);
 
+  // Register commands and shortcuts
+  useEffect(() => {
+    // Command palette & shortcuts overlay
+    commandRegistry.registerCommand('command-palette.open', 'Command Palette', 'General', () => setShowCommandPalette(true), '⌘⇧P');
+    commandRegistry.registerCommand('shortcuts.show', 'Keyboard Shortcuts', 'General', () => setShowShortcutOverlay(true), '⌘/');
+
+    // File commands
+    commandRegistry.registerCommand('file.new', 'New Document', 'File', () => handleNewFile(), '⌘N');
+    commandRegistry.registerCommand('file.newSpreadsheet', 'New Spreadsheet', 'File', () => { handleNewSpreadsheet(); });
+    commandRegistry.registerCommand('file.newPresentation', 'New Presentation', 'File', () => { handleNewPresentation(); });
+    commandRegistry.registerCommand('file.print', 'Print', 'File', handlePrint, '⌘P');
+    commandRegistry.registerCommand('file.export', 'Export', 'File', () => setShowExport(true));
+    commandRegistry.registerCommand('file.templates', 'Browse Templates', 'File', () => setShowTemplateSelector(true));
+    commandRegistry.registerCommand('file.versionHistory', 'Version History', 'File', () => openVersionHistory(), '⌘⇧H');
+    commandRegistry.registerCommand('file.share', 'Share', 'File', () => setShowShareDialog(true));
+    commandRegistry.registerCommand('file.preferences', 'Preferences', 'File', () => setShowPreferences(true), '⌘,');
+
+    // Edit commands
+    commandRegistry.registerCommand('edit.undo', 'Undo', 'Edit', () => editorRef?.chain().focus().undo().run(), '⌘Z');
+    commandRegistry.registerCommand('edit.redo', 'Redo', 'Edit', () => editorRef?.chain().focus().redo().run(), '⌘Y');
+    commandRegistry.registerCommand('edit.find', 'Find', 'Edit', () => { setShowFindReplace(true); setFindReplaceMode(false); }, '⌘F');
+    commandRegistry.registerCommand('edit.findReplace', 'Find and Replace', 'Edit', () => { setShowFindReplace(true); setFindReplaceMode(true); }, '⌘H');
+
+    // View commands
+    commandRegistry.registerCommand('view.focusMode', 'Focus Mode', 'View', () => setShowFocusMode(v => !v), 'F11');
+    commandRegistry.registerCommand('view.readingMode', 'Reading Mode', 'View', () => setShowReadingMode(v => !v));
+    commandRegistry.registerCommand('view.darkMode', 'Toggle Dark Mode', 'View', () => toggleDarkMode());
+    commandRegistry.registerCommand('view.outline', 'Toggle Outline', 'View', () => setShowOutline(v => !v));
+    commandRegistry.registerCommand('view.ruler', 'Toggle Ruler', 'View', () => setShowRuler(v => !v));
+    commandRegistry.registerCommand('view.wordCount', 'Word Count', 'View', () => setShowWordCount(true));
+    commandRegistry.registerCommand('view.documentStats', 'Document Statistics', 'View', () => setShowDocStats(v => !v));
+    commandRegistry.registerCommand('view.pageless', 'Toggle Pageless Mode', 'View', () => setPageless(v => !v));
+
+    // Format commands (docs)
+    commandRegistry.registerCommand('format.bold', 'Bold', 'Format', () => editorRef?.chain().focus().toggleBold().run(), '⌘B', undefined, ['docs']);
+    commandRegistry.registerCommand('format.italic', 'Italic', 'Format', () => editorRef?.chain().focus().toggleItalic().run(), '⌘I', undefined, ['docs']);
+    commandRegistry.registerCommand('format.underline', 'Underline', 'Format', () => editorRef?.chain().focus().toggleUnderline().run(), '⌘U', undefined, ['docs']);
+    commandRegistry.registerCommand('format.strikethrough', 'Strikethrough', 'Format', () => editorRef?.chain().focus().toggleStrike().run(), '⌘⇧X', undefined, ['docs']);
+    commandRegistry.registerCommand('format.clearFormatting', 'Clear Formatting', 'Format', () => editorRef?.chain().focus().clearNodes().unsetAllMarks().run(), '⌘\\', undefined, ['docs']);
+    commandRegistry.registerCommand('format.alignLeft', 'Align Left', 'Format', () => editorRef?.chain().focus().setTextAlign('left').run(), '⌘L', undefined, ['docs']);
+    commandRegistry.registerCommand('format.alignCenter', 'Align Center', 'Format', () => editorRef?.chain().focus().setTextAlign('center').run(), '⌘E', undefined, ['docs']);
+    commandRegistry.registerCommand('format.alignRight', 'Align Right', 'Format', () => editorRef?.chain().focus().setTextAlign('right').run(), '⌘R', undefined, ['docs']);
+    commandRegistry.registerCommand('format.alignJustify', 'Justify', 'Format', () => editorRef?.chain().focus().setTextAlign('justify').run(), '⌘J', undefined, ['docs']);
+
+    // Insert commands
+    commandRegistry.registerCommand('insert.link', 'Insert Link', 'Insert', () => setShowLinkDialog(true), '⌘K', undefined, ['docs']);
+    commandRegistry.registerCommand('insert.bulletList', 'Bullet List', 'Insert', () => editorRef?.chain().focus().toggleBulletList().run(), '⌘⇧8', undefined, ['docs']);
+    commandRegistry.registerCommand('insert.numberedList', 'Numbered List', 'Insert', () => editorRef?.chain().focus().toggleOrderedList().run(), '⌘⇧7', undefined, ['docs']);
+    commandRegistry.registerCommand('insert.checklist', 'Checklist', 'Insert', () => editorRef?.chain().focus().toggleTaskList().run(), '⌘⇧9', undefined, ['docs']);
+    commandRegistry.registerCommand('insert.specialChars', 'Special Characters', 'Insert', () => setShowSpecialChars(true));
+    commandRegistry.registerCommand('insert.equation', 'Equation', 'Insert', () => setShowEquationDialog(true));
+    commandRegistry.registerCommand('insert.pageBreak', 'Page Break', 'Insert', () => editorRef?.chain().focus().setHardBreak().run(), '⌘⇧Enter', undefined, ['docs']);
+
+    // Heading levels
+    for (let i = 1; i <= 6; i++) {
+      commandRegistry.registerCommand(`format.heading${i}`, `Heading ${i}`, 'Format', () => editorRef?.chain().focus().toggleHeading({ level: i as 1|2|3|4|5|6 }).run(), `⌘⌥${i}`, undefined, ['docs']);
+    }
+    commandRegistry.registerCommand('format.normalText', 'Normal Text', 'Format', () => editorRef?.chain().focus().setParagraph().run(), '⌘⌥0', undefined, ['docs']);
+
+    // Navigate
+    commandRegistry.registerCommand('navigate.goTo', 'Go to Page/Slide/Cell', 'Navigate', () => {
+      const target = window.prompt('Go to (page number, slide number, or cell reference):');
+      if (target) window.dispatchEvent(new CustomEvent('navigate-goto', { detail: { target } }));
+    }, '⌘G');
+
+    // Tools
+    commandRegistry.registerCommand('tools.about', 'About MD Office', 'Tools', () => setShowAbout(true));
+    commandRegistry.registerCommand('tools.tour', 'Start Onboarding Tour', 'Tools', () => setRunTour(true));
+    commandRegistry.registerCommand('tools.accessibility', 'Accessibility Settings', 'Tools', () => setShowA11y(true));
+    commandRegistry.registerCommand('tools.macroEditor', 'Macro Editor', 'Tools', () => setShowMacroEditor(true));
+
+    // Sheets-specific
+    commandRegistry.registerCommand('sheets.insertDate', 'Insert Current Date', 'Sheets', () => {
+      window.dispatchEvent(new CustomEvent('sheets-insert-date'));
+    }, '⌘;', undefined, ['sheets']);
+    commandRegistry.registerCommand('sheets.selectColumn', 'Select Column', 'Sheets', () => {
+      window.dispatchEvent(new CustomEvent('sheets-select-column'));
+    }, 'Ctrl+Space', undefined, ['sheets']);
+    commandRegistry.registerCommand('sheets.selectRow', 'Select Row', 'Sheets', () => {
+      window.dispatchEvent(new CustomEvent('sheets-select-row'));
+    }, 'Shift+Space', undefined, ['sheets']);
+
+    // Slides-specific
+    commandRegistry.registerCommand('slides.present', 'Start Slideshow', 'Slides', () => {
+      window.dispatchEvent(new CustomEvent('slide-present'));
+    }, '⌘Enter', undefined, ['slides']);
+
+    // Register shortcut bindings
+    shortcutManager.registerBinding({ commandId: 'command-palette.open', keys: 'Cmd+Shift+P' });
+    shortcutManager.registerBinding({ commandId: 'shortcuts.show', keys: 'Cmd+/' });
+
+    commandRegistry.loadUsageStats();
+    shortcutManager.install();
+
+    return () => {
+      shortcutManager.uninstall();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Update shortcut manager context when app mode changes
+  useEffect(() => {
+    shortcutManager.setContext(appMode);
+  }, [appMode]);
+
   // Show loading while checking authentication
   if (authLoading) {
     return (
@@ -1477,12 +1588,25 @@ function App() {
         </Suspense>
       )}
 
-      {/* Keyboard Shortcuts */}
+      {/* Keyboard Shortcuts (legacy) */}
       {showShortcuts && (
         <Suspense fallback={null}>
           <KeyboardShortcutsDialog onClose={() => setShowShortcuts(false)} />
         </Suspense>
       )}
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        contextMode={appMode}
+      />
+
+      {/* Shortcut Overlay */}
+      <ShortcutOverlay
+        isOpen={showShortcutOverlay}
+        onClose={() => setShowShortcutOverlay(false)}
+      />
 
       {/* Header/Footer Editor */}
       {hfEditType && (

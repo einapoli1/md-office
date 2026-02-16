@@ -2115,3 +2115,153 @@ button[title] {
   color: #c4a5d8;
   border-color: #4a2d6a;
 }
+
+/* ===== Command Palette ===== */
+.command-palette-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  padding-top: 15vh;
+}
+.command-palette {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  width: 560px;
+  max-height: 440px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  align-self: flex-start;
+}
+.dark-mode .command-palette { background: #1e1e2e; color: #cdd6f4; }
+.command-palette-input-wrap {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e0e0e0;
+  gap: 8px;
+}
+.dark-mode .command-palette-input-wrap { border-color: #45475a; }
+.command-palette-search-icon { color: #888; flex-shrink: 0; }
+.command-palette-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  background: transparent;
+  color: inherit;
+}
+.command-palette-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 4px 0;
+}
+.command-palette-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.command-palette-item.selected { background: #e8f0fe; }
+.dark-mode .command-palette-item.selected { background: #313244; }
+.command-palette-item-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.command-palette-pin {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #bbb;
+  padding: 0;
+  display: flex;
+}
+.command-palette-pin.pinned { color: #f59e0b; }
+.command-palette-category {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.command-palette-sep { color: #bbb; flex-shrink: 0; }
+.command-palette-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.command-palette-shortcut {
+  font-size: 11px;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-left: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dark-mode .command-palette-shortcut { background: #313244; border-color: #45475a; }
+.command-palette-empty {
+  padding: 24px;
+  text-align: center;
+  color: #888;
+  font-size: 13px;
+}
+.command-palette-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 14px;
+  font-size: 11px;
+  color: #999;
+  border-top: 1px solid #e0e0e0;
+}
+.dark-mode .command-palette-footer { border-color: #45475a; }
+
+/* ===== Shortcut Overlay ===== */
+.shortcuts-overlay {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  width: 640px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.dark-mode .shortcuts-overlay { background: #1e1e2e; color: #cdd6f4; }
+.shortcuts-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+.dark-mode .shortcuts-search-bar { border-color: #45475a; }
+.shortcuts-search-bar input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  background: transparent;
+  color: inherit;
+}
+.shortcuts-conflicts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  background: #fff3cd;
+  color: #856404;
+  font-size: 12px;
+}
+.dark-mode .shortcuts-conflicts { background: #4a3f1f; color: #ffd43b; }
+.shortcut-row.conflict { background: rgba(255,193,7,0.1); }
+.shortcuts-empty { padding: 24px; text-align: center; color: #888; }
+
+@media print {
+  .shortcuts-overlay { box-shadow: none; max-height: none; width: 100%; }
+  .shortcuts-search-bar, .dialog-header button, .dialog-footer { display: none; }
+}
