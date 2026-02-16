@@ -58,18 +58,18 @@ type ViewMode = 'unified' | 'side-by-side';
 const CompareDialog: React.FC<CompareDialogProps> = ({ commits, currentContent, onFetchVersion, onClose }) => {
   const [mode, setMode] = useState<CompareMode>('paste');
   const [viewMode, setViewMode] = useState<ViewMode>('unified');
-  const [leftSha, setLeftSha] = useState<string>(commits[1]?.sha || '');
-  const [rightSha, setRightSha] = useState<string>(commits[0]?.sha || '');
+  const [leftHash, setLeftSha] = useState<string>(commits[1]?.hash || '');
+  const [rightHash, setRightSha] = useState<string>(commits[0]?.hash || '');
   const [leftText, setLeftText] = useState('');
   const [rightText, setRightText] = useState('');
   const [pasteText, setPasteText] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleCompareHistory = async () => {
-    if (!leftSha || !rightSha) return;
+    if (!leftHash || !rightHash) return;
     setLoading(true);
     try {
-      const [l, r] = await Promise.all([onFetchVersion(leftSha), onFetchVersion(rightSha)]);
+      const [l, r] = await Promise.all([onFetchVersion(leftHash), onFetchVersion(rightHash)]);
       setLeftText(l);
       setRightText(r);
     } finally {
@@ -143,23 +143,23 @@ const CompareDialog: React.FC<CompareDialogProps> = ({ commits, currentContent, 
           <div className="compare-history-selectors">
             <label>
               Left version
-              <select value={leftSha} onChange={e => setLeftSha(e.target.value)}>
+              <select value={leftHash} onChange={e => setLeftSha(e.target.value)}>
                 <option value="">Select…</option>
                 {commits.map(c => (
-                  <option key={c.sha} value={c.sha}>{c.sha.slice(0, 7)} — {c.message}</option>
+                  <option key={c.hash} value={c.hash}>{c.hash.slice(0, 7)} — {c.message}</option>
                 ))}
               </select>
             </label>
             <label>
               Right version
-              <select value={rightSha} onChange={e => setRightSha(e.target.value)}>
+              <select value={rightHash} onChange={e => setRightSha(e.target.value)}>
                 <option value="">Select…</option>
                 {commits.map(c => (
-                  <option key={c.sha} value={c.sha}>{c.sha.slice(0, 7)} — {c.message}</option>
+                  <option key={c.hash} value={c.hash}>{c.hash.slice(0, 7)} — {c.message}</option>
                 ))}
               </select>
             </label>
-            <button className="compare-run-btn" onClick={handleCompareHistory} disabled={!leftSha || !rightSha || loading}>
+            <button className="compare-run-btn" onClick={handleCompareHistory} disabled={!leftHash || !rightHash || loading}>
               {loading ? 'Loading…' : 'Compare'}
             </button>
           </div>
