@@ -6,7 +6,7 @@ import {
   Type, Palette, Highlighter, Undo, Redo, CheckSquare,
   ChevronDown, MoreHorizontal, Minus, Quote, Code2,
   RotateCcw, Printer, MessageSquare, PenTool, Smile,
-  PaintBucket
+  Paintbrush
 } from 'lucide-react';
 import EmojiPicker from './EmojiPicker';
 
@@ -254,7 +254,7 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
           title="Paint format (click to copy, double-click for persistent mode)"
           aria-label="Paint format"
         >
-          <PaintBucket size={16} />
+          <Paintbrush size={16} />
         </button>
       </div>
 
