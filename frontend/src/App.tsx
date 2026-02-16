@@ -64,6 +64,10 @@ const KeyboardShortcutsDialog = lazy(() => import('./components/KeyboardShortcut
 const SpecialChars = lazy(() => import('./components/SpecialChars'));
 const EquationDialog = lazy(() => import('./components/EquationDialog'));
 const Whiteboard = lazy(() => import('./components/Whiteboard'));
+const PageColumns = lazy(() => import('./components/PageColumns'));
+const CoverPage = lazy(() => import('./components/CoverPage'));
+const TableOfFigures = lazy(() => import('./components/TableOfFigures'));
+const PublishDialog = lazy(() => import('./components/PublishDialog'));
 import TableOfContents from './components/TableOfContents';
 import { HeaderFooterEditor, HeaderFooterContent, defaultContent as defaultHFContent } from './components/HeaderFooter';
 import './comments-styles.css';
@@ -142,6 +146,10 @@ function App() {
   const [citations, setCitations] = useState<Citation[]>([]);
   const [citationStyle, setCitationStyle] = useState<CitationStyle>('apa');
   const [showMacroEditor, setShowMacroEditor] = useState(false);
+  const [showPageColumns, setShowPageColumns] = useState(false);
+  const [showCoverPage, setShowCoverPage] = useState(false);
+  const [showTableOfFigures, setShowTableOfFigures] = useState(false);
+  const [showPublish, setShowPublish] = useState(false);
   const { recording: macroRecording, startRecording: startMacroRecording, stopRecording: stopMacroRecording } = useMacroRecorder();
   const [vhCommits, setVhCommits] = useState<import('./types').GitCommit[]>([]);
   const [vhSelectedCommit, setVhSelectedCommit] = useState<import('./types').GitCommit | null>(null);
@@ -896,6 +904,14 @@ function App() {
     window.addEventListener('macro-run-picker', handleMacroRunPicker);
     window.addEventListener('citation-picker-open', handleCitationPickerOpen);
     window.addEventListener('citation-manager-toggle', handleCitationManagerToggle);
+    const handlePageColumnsOpen = () => setShowPageColumns(true);
+    const handleCoverPageOpen = () => setShowCoverPage(true);
+    const handleTableOfFiguresOpen = () => setShowTableOfFigures(true);
+    const handlePublishOpen = () => setShowPublish(true);
+    window.addEventListener('page-columns-open', handlePageColumnsOpen);
+    window.addEventListener('cover-page-open', handleCoverPageOpen);
+    window.addEventListener('table-of-figures-open', handleTableOfFiguresOpen);
+    window.addEventListener('publish-open', handlePublishOpen);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('find-replace-open', handleEvent);
@@ -918,6 +934,10 @@ function App() {
       window.removeEventListener('macro-run-picker', handleMacroRunPicker);
       window.removeEventListener('citation-picker-open', handleCitationPickerOpen);
       window.removeEventListener('citation-manager-toggle', handleCitationManagerToggle);
+      window.removeEventListener('page-columns-open', handlePageColumnsOpen);
+      window.removeEventListener('cover-page-open', handleCoverPageOpen);
+      window.removeEventListener('table-of-figures-open', handleTableOfFiguresOpen);
+      window.removeEventListener('publish-open', handlePublishOpen);
     };
   }, []);
 
@@ -1301,6 +1321,39 @@ function App() {
             fileName={activeFile?.path || 'untitled.md'}
             onClose={() => setShowExport(false)}
           />
+        </Suspense>
+      )}
+
+      {/* Publish Dialog */}
+      {showPublish && (
+        <Suspense fallback={null}>
+          <PublishDialog
+            content={content}
+            htmlContent={editorRef?.getHTML() || ''}
+            fileName={activeFile?.path || 'untitled.md'}
+            onClose={() => setShowPublish(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* Page Columns Dialog */}
+      {showPageColumns && editorRef && (
+        <Suspense fallback={null}>
+          <PageColumns editor={editorRef} onClose={() => setShowPageColumns(false)} />
+        </Suspense>
+      )}
+
+      {/* Cover Page Dialog */}
+      {showCoverPage && editorRef && (
+        <Suspense fallback={null}>
+          <CoverPage editor={editorRef} onClose={() => setShowCoverPage(false)} />
+        </Suspense>
+      )}
+
+      {/* Table of Figures Dialog */}
+      {showTableOfFigures && editorRef && (
+        <Suspense fallback={null}>
+          <TableOfFigures editor={editorRef} onClose={() => setShowTableOfFigures(false)} />
         </Suspense>
       )}
 

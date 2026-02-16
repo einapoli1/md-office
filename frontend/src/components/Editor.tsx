@@ -54,6 +54,8 @@ import { TemplateVariable } from '../extensions/TemplateVariable';
 import { EquationEvaluator } from '../extensions/EquationEvaluator';
 import { CitationNode } from '../extensions/Citation';
 import { BibliographyBlock } from '../extensions/Bibliography';
+import { Callout } from '../extensions/Callout';
+import { Caption } from '../extensions/Caption';
 import TableToolbar from './TableToolbar';
 import TableContextMenu from './TableContextMenu';
 import { importDocx } from '../utils/docxIO';
@@ -465,6 +467,8 @@ const Editor: React.FC<EditorProps> = ({
       EquationEvaluator,
       CitationNode,
       BibliographyBlock,
+      Callout,
+      Caption,
       PageBreaks.configure({
         pageHeight: 1056,
         gapHeight: 24,

@@ -127,6 +127,12 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Export Form Data', action: () => {
         window.dispatchEvent(new CustomEvent('export-form-data'));
       }},
+      { label: 'Publish...', action: () => {
+        window.dispatchEvent(new CustomEvent('publish-open'));
+      }},
+      { label: 'Cover Page', action: () => {
+        window.dispatchEvent(new CustomEvent('cover-page-open'));
+      }},
       { label: 'divider' },
       { label: 'Share', action: () => {
         const url = new URL(window.location.href);
@@ -283,6 +289,19 @@ const MenuBar: React.FC<MenuBarProps> = ({
         window.dispatchEvent(new CustomEvent('watermark-open'));
       }},
       { label: 'divider' },
+      { label: 'Callout: Info', action: () => { if (editor) (editor.commands as any).insertCallout('info'); }},
+      { label: 'Callout: Warning', action: () => { if (editor) (editor.commands as any).insertCallout('warning'); }},
+      { label: 'Callout: Tip', action: () => { if (editor) (editor.commands as any).insertCallout('tip'); }},
+      { label: 'Callout: Error', action: () => { if (editor) (editor.commands as any).insertCallout('error'); }},
+      { label: 'Callout: Success', action: () => { if (editor) (editor.commands as any).insertCallout('success'); }},
+      { label: 'Callout: Note', action: () => { if (editor) (editor.commands as any).insertCallout('note'); }},
+      { label: 'divider' },
+      { label: 'Caption (Figure)', action: () => { if (editor) (editor.commands as any).insertCaption('figure'); }},
+      { label: 'Caption (Table)', action: () => { if (editor) (editor.commands as any).insertCaption('table'); }},
+      { label: 'Table of Figures', action: () => { window.dispatchEvent(new CustomEvent('table-of-figures-open')); }},
+      { label: 'Index', action: () => { window.dispatchEvent(new CustomEvent('table-of-figures-open', { detail: { type: 'index' } })); }},
+      { label: 'Cover Page', action: () => { window.dispatchEvent(new CustomEvent('cover-page-open')); }},
+      { label: 'divider' },
       { label: 'Chart from Sheets', action: () => {
         window.dispatchEvent(new CustomEvent('embed-picker-open', { detail: { type: 'chart' } }));
       }},
@@ -313,6 +332,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Columns: 1', action: () => editor?.commands.setColumns(1) },
       { label: 'Columns: 2', action: () => editor?.commands.setColumns(2) },
       { label: 'Columns: 3', action: () => editor?.commands.setColumns(3) },
+      { label: 'Columns (Advanced)...', action: () => {
+        window.dispatchEvent(new CustomEvent('page-columns-open'));
+      }},
     ],
     [t('menu.tools._label')]: [
       { label: 'Spelling & Grammar', action: () => {
