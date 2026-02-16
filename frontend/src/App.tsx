@@ -7,10 +7,11 @@ import Login from './components/Login';
 import DocsToolbar from './components/DocsToolbar';
 import Ruler from './components/Ruler';
 import { FileSystemItem, FileContent } from './types';
-import { fileAPI } from './utils/api';
+import { fileAPI, gitAPI } from './utils/api';
 import { parseFrontmatter, getPageStyles } from './utils/frontmatter';
 import { localFileAPI, initializeLocalStorage } from './utils/localApi';
 import { Template } from './utils/templates';
+import VersionHistory from './components/VersionHistory';
 import CommentsSidebar, { Comment } from './components/CommentsSidebar';
 import SuggestionPopup from './components/SuggestionPopup';
 import SuggestionsSidebar from './components/SuggestionsSidebar';
@@ -81,6 +82,11 @@ function App() {
   const [collabStatus, setCollabStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [collabUsers, setCollabUsers] = useState(0);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [vhCommits, setVhCommits] = useState<import('./types').GitCommit[]>([]);
+  const [vhSelectedCommit, setVhSelectedCommit] = useState<import('./types').GitCommit | null>(null);
+  const [vhPreviewContent, setVhPreviewContent] = useState<string | null>(null);
+  const [vhLoading, setVhLoading] = useState(false);
 
   // Auto-save functionality
   const saveTimeoutRef = useRef<number>();
@@ -322,6 +328,65 @@ function App() {
       });
     } catch (error) {
       console.error('Failed to delete item:', error);
+    }
+  };
+
+  // Version history
+  const openVersionHistory = async () => {
+    setShowVersionHistory(true);
+    setVhSelectedCommit(null);
+    setVhPreviewContent(null);
+    if (!isGuestMode) {
+      try {
+        const history = await gitAPI.getHistory(activeFile?.path);
+        setVhCommits(history.commits || []);
+      } catch (e) {
+        console.error('Failed to load version history:', e);
+        setVhCommits([]);
+      }
+    }
+  };
+
+  const handleVhPreview = async (commit: import('./types').GitCommit) => {
+    setVhSelectedCommit(commit);
+    setVhLoading(true);
+    try {
+      // Fetch file content at this commit via the backend
+      const resp = await fetch(`/api/git/file-at?hash=${commit.hash}&path=${encodeURIComponent(activeFile?.path || '')}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      const json = await resp.json();
+      if (json.data) {
+        setVhPreviewContent(json.data);
+      } else {
+        setVhPreviewContent(null);
+      }
+    } catch {
+      setVhPreviewContent(null);
+    } finally {
+      setVhLoading(false);
+    }
+  };
+
+  const handleVhRevert = async (commit: import('./types').GitCommit) => {
+    if (!isGuestMode) {
+      try {
+        await gitAPI.revertToCommit(commit.hash);
+        // Reload the file
+        if (activeFile) {
+          const currentAPI = fileAPI;
+          const fileContent = await currentAPI.getFile(activeFile.path);
+          setActiveFile(fileContent);
+          setContent(fileContent.content);
+          originalContentRef.current = fileContent.content;
+          setSaveStatus('saved');
+        }
+        setShowVersionHistory(false);
+        toast('Version restored', 'success');
+      } catch (e) {
+        console.error('Failed to revert:', e);
+        toast('Failed to restore version', 'error');
+      }
     }
   };
 
@@ -575,6 +640,10 @@ function App() {
         e.preventDefault();
         setShowShortcuts(prev => !prev);
       }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'h' || e.key === 'H')) {
+        e.preventDefault();
+        openVersionHistory();
+      }
     };
     const handleEvent = (e: Event) => {
       const { replace } = (e as CustomEvent).detail || {};
@@ -692,6 +761,7 @@ function App() {
         onTitleChange={handleTitleChange}
         editor={editorRef}
         onShareClick={() => setShowShareDialog(true)}
+        onVersionHistory={openVersionHistory}
       />
 
       {/* Formatting Toolbar - Google Docs style */}
@@ -773,6 +843,19 @@ function App() {
           <SuggestionsSidebar
             editor={editorRef}
             onClose={() => setShowSuggestions(false)}
+          />
+        )}
+
+        {showVersionHistory && (
+          <VersionHistory
+            commits={vhCommits}
+            onRevert={handleVhRevert}
+            onPreview={handleVhPreview}
+            onClose={() => setShowVersionHistory(false)}
+            selectedCommit={vhSelectedCommit}
+            previewContent={vhPreviewContent}
+            currentContent={content}
+            isLoading={vhLoading}
           />
         )}
       </div>

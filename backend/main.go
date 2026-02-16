@@ -315,6 +315,7 @@ func main() {
 	gitRoutes.Get("/history", getGitHistory)
 	gitRoutes.Post("/revert", revertToCommit)
 	gitRoutes.Get("/diff", getGitDiff)
+	gitRoutes.Get("/file-at", getFileAtCommit)
 	gitRoutes.Get("/branches", getBranches)
 	gitRoutes.Post("/branches", createBranch)
 	gitRoutes.Post("/checkout", checkoutBranch)
@@ -1472,12 +1473,16 @@ func getGitHistory(c *fiber.Ctx) error {
 
 	var commits []GitCommit
 	err = logs.ForEach(func(commit *object.Commit) error {
-		// If path filter is specified, check if this commit affects the path
+		// If path filter is specified, check if this commit touches the file
 		if pathFilter != "" {
-			// This is a simplified check. In a more robust implementation,
-			// you'd check the commit's file changes
-			if !strings.Contains(commit.Message, pathFilter) {
-				return nil // Skip this commit
+			tree, tErr := commit.Tree()
+			if tErr != nil {
+				return nil
+			}
+			// Check if the file exists in this commit's tree
+			_, fErr := tree.File(pathFilter)
+			if fErr != nil {
+				return nil // File doesn't exist at this commit, skip
 			}
 		}
 
@@ -1633,6 +1638,47 @@ func getGitDiff(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(APIResponse{Data: diff})
+}
+
+func getFileAtCommit(c *fiber.Ctx) error {
+	userID := c.Locals("userID").(string)
+
+	if err := checkWorkspacePermission(userID, "viewer"); err != nil {
+		return c.JSON(APIResponse{Error: err.Error()})
+	}
+
+	if gitRepo == nil {
+		return c.JSON(APIResponse{Error: "Git repository not available"})
+	}
+
+	hashStr := c.Query("hash", "")
+	filePath := c.Query("path", "")
+	if hashStr == "" || filePath == "" {
+		return c.JSON(APIResponse{Error: "hash and path query parameters required"})
+	}
+
+	hash := plumbing.NewHash(hashStr)
+	commitObj, err := gitRepo.CommitObject(hash)
+	if err != nil {
+		return c.JSON(APIResponse{Error: "Invalid commit hash: " + err.Error()})
+	}
+
+	tree, err := commitObj.Tree()
+	if err != nil {
+		return c.JSON(APIResponse{Error: "Failed to get tree: " + err.Error()})
+	}
+
+	file, err := tree.File(filePath)
+	if err != nil {
+		return c.JSON(APIResponse{Error: "File not found at this commit: " + err.Error()})
+	}
+
+	content, err := file.Contents()
+	if err != nil {
+		return c.JSON(APIResponse{Error: "Failed to read file: " + err.Error()})
+	}
+
+	return c.JSON(APIResponse{Data: content})
 }
 
 func uploadFile(c *fiber.Ctx) error {

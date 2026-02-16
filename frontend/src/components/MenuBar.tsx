@@ -19,6 +19,7 @@ interface MenuBarProps {
   onTitleChange?: (newPath: string) => void;
   editor?: any;
   onShareClick?: () => void;
+  onVersionHistory?: () => void;
 }
 
 const MenuBar: React.FC<MenuBarProps> = ({
@@ -38,6 +39,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
   onTitleChange,
   editor,
   onShareClick,
+  onVersionHistory,
 }) => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -84,6 +86,8 @@ const MenuBar: React.FC<MenuBarProps> = ({
         window.dispatchEvent(new CustomEvent('export-open'));
       }},
       { label: 'Print', action: onPrint, shortcut: '⌘P' },
+      { label: 'divider' },
+      { label: 'Version history', action: onVersionHistory, shortcut: '⌘⇧H' },
       { label: 'divider' },
       { label: 'Share', action: () => {
         const url = new URL(window.location.href);
