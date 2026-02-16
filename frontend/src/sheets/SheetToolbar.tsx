@@ -26,9 +26,10 @@ interface SheetToolbarProps {
   onInsertComment?: () => void;
   onProtectedRanges?: () => void;
   onFindReplace?: () => void;
+  onInsertSparkline?: () => void;
 }
 
-export default function SheetToolbar({ format, onFormatChange, onMergeCells, canUndo, canRedo, onUndo, onRedo, onInsertChart, filtersEnabled, onToggleFilters, freeze, onFreezeChange, onImportCSV, onImportXLSX, onExportCSV, onExportXLSX, onConditionalFormat, onDataValidation, onPivotTable, onNamedRanges, onInsertComment, onProtectedRanges, onFindReplace }: SheetToolbarProps) {
+export default function SheetToolbar({ format, onFormatChange, onMergeCells, canUndo, canRedo, onUndo, onRedo, onInsertChart, filtersEnabled, onToggleFilters, freeze, onFreezeChange, onImportCSV, onImportXLSX, onExportCSV, onExportXLSX, onConditionalFormat, onDataValidation, onPivotTable, onNamedRanges, onInsertComment, onProtectedRanges, onFindReplace, onInsertSparkline }: SheetToolbarProps) {
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importMode, setImportMode] = useState<'csv' | 'xlsx'>('csv');
@@ -155,6 +156,7 @@ export default function SheetToolbar({ format, onFormatChange, onMergeCells, can
 
       {/* Chart */}
       <button className="sheet-tb-btn" onClick={onInsertChart} title="Insert chart">📊</button>
+      {onInsertSparkline && <button className="sheet-tb-btn" onClick={onInsertSparkline} title="Insert sparkline">〰️</button>}
 
       {/* Filter toggle */}
       <button className={`sheet-tb-btn ${filtersEnabled ? 'active' : ''}`} onClick={onToggleFilters} title="Toggle filters">🔽</button>

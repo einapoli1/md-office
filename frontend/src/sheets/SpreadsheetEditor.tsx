@@ -18,6 +18,9 @@ import type { ConditionalRule, ValidationRule } from './conditionalEval';
 import PivotTableDialog from './PivotTable';
 import NamedRangesDialog from './NamedRanges';
 import SheetComments, { CommentTooltip } from './SheetComments';
+import Sparkline, { isSparklineValue, parseSparklineValue, SparklineData } from './Sparkline';
+import CellMiniChart from './CellMiniChart';
+import SparklineDialog from './SparklineDialog';
 import ProtectedRanges from './ProtectedRanges';
 import SheetFindReplace from './SheetFindReplace';
 import type { FindMatch } from './SheetFindReplace';
@@ -125,6 +128,8 @@ export default function SpreadsheetEditor({
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [findReplaceMode, setFindReplaceMode] = useState(false);
   const [findMatches, setFindMatches] = useState<FindMatch[]>([]);
+  const [showSparklineDialog, setShowSparklineDialog] = useState(false);
+  const [hoveredSparkline, setHoveredSparkline] = useState<{ data: SparklineData; x: number; y: number } | null>(null);
   const [latexFormulaMode, setLatexFormulaMode] = useState<'equation' | 'result'>('equation');
   // Listen for latex-formula-mode toggle
   useEffect(() => {
@@ -1221,6 +1226,7 @@ export default function SpreadsheetEditor({
         onInsertComment={() => openCommentPanel(activeCell.row, activeCell.col)}
         onProtectedRanges={() => setShowProtectedRangesDialog(true)}
         onFindReplace={() => { setFindReplaceMode(false); setShowFindReplace(true); }}
+        onInsertSparkline={() => setShowSparklineDialog(true)}
       />
       {enableCollaboration && (
         <div className="sheet-collab-bar">
@@ -1561,6 +1567,18 @@ export default function SpreadsheetEditor({
                             )}
                           </span>
                         );
+                      })() : isSparklineValue(display) ? (() => {
+                        const sparkData = parseSparklineValue(display);
+                        if (!sparkData) return <span className="sheet-cell-text">{display}</span>;
+                        return (
+                          <span
+                            className="sheet-cell-text"
+                            onMouseEnter={e => setHoveredSparkline({ data: sparkData, x: e.clientX + 10, y: e.clientY + 10 })}
+                            onMouseLeave={() => setHoveredSparkline(null)}
+                          >
+                            <Sparkline data={sparkData} width={getColWidth(sheet, c) - 8} height={24} />
+                          </span>
+                        );
                       })() : (
                         <span className="sheet-cell-text">{display}</span>
                       )}
@@ -1754,6 +1772,21 @@ export default function SpreadsheetEditor({
           onReplace={handleFindReplace}
           onClose={() => { setShowFindReplace(false); setFindMatches([]); }}
           replaceMode={findReplaceMode}
+        />
+      )}
+      {hoveredSparkline && (
+        <CellMiniChart data={hoveredSparkline.data} x={hoveredSparkline.x} y={hoveredSparkline.y} />
+      )}
+      {showSparklineDialog && (
+        <SparklineDialog
+          onInsert={(formula) => {
+            const id = cellId(activeCell.col, activeCell.row);
+            const newCell = { ...(sheet.cells[id] || { value: '' }), formula: formula.slice(1), value: formula };
+            sheet.cells[id] = newCell;
+            recalculate(sheet, graphRef.current, id, workbook.namedRanges);
+            setWorkbook({ ...workbook });
+          }}
+          onClose={() => setShowSparklineDialog(false)}
         />
       )}
       <SheetStatusBar

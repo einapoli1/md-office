@@ -1,6 +1,7 @@
 // Formula engine with dependency tracking and circular reference detection
 
 import { evaluateLatexFormula } from '../utils/mathSolver';
+import { serializeSparkline } from './Sparkline';
 
 export type CellGetter = (ref: string) => string;
 
@@ -96,6 +97,8 @@ const ALL_FUNC_NAMES = new Set([
   'MEDIAN', 'STDEV', 'VAR', 'LARGE', 'SMALL', 'RANK',
   // LaTeX
   'LATEX',
+  // Sparkline
+  'SPARKLINE',
 ]);
 
 // Built-in numeric functions (simple signature)
@@ -687,6 +690,39 @@ function evaluate(tokens: Token[], get: CellGetter): number | string {
       if (fname === 'ISNA') {
         const args = collectArgs();
         return String(args[0]) === '#N/A' ? 1 : 0;
+      }
+
+      // SPARKLINE(range, chartType, color)
+      if (fname === 'SPARKLINE') {
+        const sparkData: number[] = [];
+        // First arg: range or values
+        if (peek()?.type === 'range') {
+          const range = next().value;
+          const refs = expandRange(range);
+          for (const r of refs) {
+            const v = parseFloat(get(r));
+            sparkData.push(isNaN(v) ? 0 : v);
+          }
+        } else {
+          const v = parseExpr();
+          sparkData.push(typeof v === 'number' ? v : parseFloat(String(v)) || 0);
+        }
+        if (peek()?.value === ',') next();
+        // Second arg: chart type (string)
+        let chartType = 'line';
+        if (peek() && peek()!.value !== ')') {
+          const ct = parseExpr();
+          chartType = String(ct);
+          if (peek()?.value === ',') next();
+        }
+        // Third arg: color (string)
+        let color = '#4285f4';
+        if (peek() && peek()!.value !== ')') {
+          const cc = parseExpr();
+          color = String(cc);
+        }
+        if (peek()?.value === ')') next();
+        return serializeSparkline({ type: 'sparkline', data: sparkData, chartType, color });
       }
 
       // LATEX("expression", val1, val2, ...) — evaluate LaTeX with positional args
