@@ -180,12 +180,109 @@ The application follows a clean separation between frontend and backend:
 
 Open source (license TBD)
 
+## Self-Hosting with Docker
+
+### Quick Start
+
+```bash
+# Clone and configure
+git clone <repo-url> md-office && cd md-office
+cp .env.example .env
+# Edit .env — at minimum set JWT_SECRET to a random string
+
+# Build and run
+docker-compose up -d
+
+# Open http://localhost:8080
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `8080` | Server port |
+| `JWT_SECRET` | (built-in) | **Set this!** Secret for JWT tokens |
+| `CORS_ORIGINS` | `*` | Allowed CORS origins (comma-separated) |
+| `WORKSPACE_PATH` | `/data/workspace` | Where documents are stored |
+| `GITHUB_CLIENT_ID` | — | GitHub OAuth app client ID |
+| `GITHUB_CLIENT_SECRET` | — | GitHub OAuth app secret |
+| `GITLAB_CLIENT_ID` | — | GitLab OAuth app client ID |
+| `GITLAB_CLIENT_SECRET` | — | GitLab OAuth app secret |
+| `GITEA_URL` | — | Self-hosted Gitea instance URL |
+
+### OAuth Setup (Optional)
+
+To enable GitHub/GitLab login:
+1. Create an OAuth app on GitHub (Settings → Developer Settings → OAuth Apps)
+2. Set the callback URL to `http://your-host:8080/api/auth/github/callback`
+3. Add `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` to `.env`
+
+### Data Persistence
+
+All data is stored in the `md-office-data` Docker volume. To back up:
+
+```bash
+docker run --rm -v md-office-data:/data -v $(pwd):/backup alpine tar czf /backup/md-office-backup.tar.gz /data
+```
+
+### Health Check
+
+```bash
+curl http://localhost:8080/health
+# {"status":"ok","timestamp":"...","version":"1.0.0"}
+```
+
+## REST API
+
+The API is available at `/api/v1/` and requires an API key for authentication.
+
+### Authentication
+
+1. Log in to the web UI
+2. Go to Tools → API Keys & Webhooks
+3. Generate an API key
+4. Use it in requests: `Authorization: Bearer mdo_...`
+
+### Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/v1/docs` | List documents |
+| POST | `/api/v1/docs` | Create document |
+| GET | `/api/v1/docs/:id` | Get document |
+| PUT | `/api/v1/docs/:id` | Update document |
+| DELETE | `/api/v1/docs/:id` | Delete document |
+| GET | `/api/v1/sheets` | List spreadsheets |
+| GET | `/api/v1/slides` | List slide decks |
+| GET | `/api/v1/databases` | List databases |
+| GET | `/api/v1/search?q=term` | Search all documents |
+| GET | `/api/v1/export/:type/:id?format=html` | Export document |
+| GET | `/health` | Health check |
+
+(Same CRUD pattern for sheets, slides, databases)
+
+### Rate Limiting
+
+API requests are rate-limited to 120 requests/minute per API key. Headers:
+- `X-RateLimit-Remaining`: Requests remaining
+- `X-RateLimit-Reset`: Window reset time
+
+### OpenAPI Spec
+
+The OpenAPI 3.0 specification is at `backend/api/openapi.json`.
+
+## Webhooks
+
+Subscribe to document events via the Settings panel or API:
+
+**Events:** `doc.created`, `doc.updated`, `doc.deleted`, `sheet.updated`, `slide.updated`, `db.updated`
+
+Webhook payloads include an HMAC-SHA256 signature in the `X-Signature-256` header.
+
+Deliveries are retried up to 3 times with exponential backoff.
+
 ## Future Enhancements
 
 - Real-time collaborative editing
 - Plugin system for extensions
-- Export to various formats (PDF, DOCX, etc.)
-- Advanced Git operations (branching, merging)
-- User authentication and multi-user workspaces
-- Cloud storage integration
 - Mobile app support

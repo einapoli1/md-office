@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  md-office:
+    build: .
+    ports:
+      - "${PORT:-8080}:8080"
+    volumes:
+      - md-office-data:/data
+    env_file:
+      - .env
+    environment:
+      - PORT=8080
+      - WORKSPACE_PATH=/data/workspace
+    restart: unless-stopped
+
+volumes:
+  md-office-data:
