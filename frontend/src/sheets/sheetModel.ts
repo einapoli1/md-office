@@ -35,7 +35,32 @@ export interface CellData {
   comment?: CellComment;
 }
 
-export type ChartType = 'bar' | 'line' | 'pie' | 'scatter' | 'area';
+export type ChartType = 'bar' | 'line' | 'pie' | 'scatter' | 'area' | 'donut' | 'radar' | 'waterfall' | 'combo' | 'stacked-bar' | 'stacked-bar-100' | 'histogram';
+
+export type LineStyle = 'solid' | 'dashed' | 'dotted';
+export type MarkerStyle = 'circle' | 'square' | 'diamond' | 'triangle' | 'none';
+export type LegendPosition = 'top' | 'bottom' | 'left' | 'right' | 'none';
+
+export interface SeriesConfig {
+  dataRange: string;
+  label: string;
+  color: string;
+  lineStyle?: LineStyle;
+  markerStyle?: MarkerStyle;
+  /** For combo charts: render this series as 'bar' or 'line' */
+  comboType?: 'bar' | 'line';
+  /** For combo charts: use secondary (right) Y axis */
+  useSecondaryAxis?: boolean;
+}
+
+export interface AxisConfig {
+  title?: string;
+  min?: number;
+  max?: number;
+  logScale?: boolean;
+  gridlines?: boolean;
+  labelRotation?: number;
+}
 
 export interface ChartConfig {
   id: string;
@@ -43,11 +68,21 @@ export interface ChartConfig {
   dataRange: string;   // e.g. "B1:B10"
   labelRange: string;  // e.g. "A1:A10"
   title: string;
+  subtitle?: string;
   colors?: string[];
   x: number;  // pixel position
   y: number;
   width: number;
   height: number;
+  series?: SeriesConfig[];
+  xAxis?: AxisConfig;
+  yAxis?: AxisConfig;
+  yAxisSecondary?: AxisConfig;
+  legendPosition?: LegendPosition;
+  showDataLabels?: boolean;
+  smoothLines?: boolean;
+  titleFontSize?: number;
+  subtitleFontSize?: number;
 }
 
 export interface FilterState {
@@ -64,6 +99,9 @@ export interface FreezePanes {
 
 export interface SheetData {
   name: string;
+  isChartSheet?: boolean;
+  /** For chart sheets: the chart config to display full-tab */
+  chartSheetConfig?: ChartConfig;
   cells: Record<string, CellData>;
   merges: MergeRange[];
   colWidths: Record<number, number>;

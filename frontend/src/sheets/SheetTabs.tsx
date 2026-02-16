@@ -1,15 +1,16 @@
 import { useState, useRef } from 'react';
 
 interface SheetTabsProps {
-  sheets: { name: string }[];
+  sheets: { name: string; isChartSheet?: boolean }[];
   activeSheet: number;
   onSelectSheet: (index: number) => void;
   onAddSheet: () => void;
   onRenameSheet: (index: number, name: string) => void;
   onDeleteSheet: (index: number) => void;
+  onInsertChartSheet?: () => void;
 }
 
-export default function SheetTabs({ sheets, activeSheet, onSelectSheet, onAddSheet, onRenameSheet, onDeleteSheet }: SheetTabsProps) {
+export default function SheetTabs({ sheets, activeSheet, onSelectSheet, onAddSheet, onRenameSheet, onDeleteSheet, onInsertChartSheet }: SheetTabsProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; index: number } | null>(null);
@@ -73,6 +74,12 @@ export default function SheetTabs({ sheets, activeSheet, onSelectSheet, onAddShe
           <div onClick={() => startRename(contextMenu.index)}>Rename</div>
           {sheets.length > 1 && (
             <div onClick={() => { onDeleteSheet(contextMenu.index); setContextMenu(null); }}>Delete</div>
+          )}
+          {onInsertChartSheet && (
+            <>
+              <div style={{ borderTop: '1px solid #eee', margin: '4px 0' }} />
+              <div onClick={() => { onInsertChartSheet(); setContextMenu(null); }}>📊 Insert Chart Sheet</div>
+            </>
           )}
         </div>
       )}

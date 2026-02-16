@@ -9,6 +9,7 @@ import FormulaBar from './FormulaBar';
 import SheetToolbar from './SheetToolbar';
 import SheetTabs from './SheetTabs';
 import { SheetChartOverlay, InsertChartDialog } from './SheetChart';
+import ChartSheet from './ChartSheet';
 import SheetShortcuts from './SheetShortcuts';
 import { exportCSV, importCSV, exportXLSX, importXLSX, downloadBlob, downloadString } from './sheetIO';
 import ConditionalFormatDialog from './ConditionalFormat';
@@ -792,6 +793,24 @@ export default function SpreadsheetEditor({
     setWorkbook({ ...workbook });
   }, [workbook]);
 
+  const handleInsertChartSheet = useCallback(() => {
+    const chartSheet = createEmptySheet(`Chart${workbook.sheets.length + 1}`);
+    chartSheet.isChartSheet = true;
+    chartSheet.chartSheetConfig = {
+      id: `chartsheet_${Date.now()}`,
+      type: 'bar',
+      dataRange: '',
+      labelRange: '',
+      title: 'Chart Sheet',
+      x: 0, y: 0,
+      width: 800, height: 600,
+    };
+    workbook.sheets.push(chartSheet);
+    workbook.activeSheet = workbook.sheets.length - 1;
+    setShowChartDialog(true);
+    setWorkbook({ ...workbook });
+  }, [workbook]);
+
   const handleSelectSheet = useCallback((idx: number) => {
     if (editing) commitEdit();
     workbook.activeSheet = idx;
@@ -1378,6 +1397,9 @@ export default function SpreadsheetEditor({
       />
       
       <div className="sheet-grid-wrapper">
+        {sheet.isChartSheet && sheet.chartSheetConfig ? (
+          <ChartSheet chart={sheet.chartSheetConfig} sheet={workbook.sheets.find(s => !s.isChartSheet) || sheet} />
+        ) : (<>
         {/* Corner */}
         <div className="sheet-corner" />
         
@@ -1788,6 +1810,7 @@ export default function SpreadsheetEditor({
             </div>
           </div>
         </div>
+      </>)}
       </div>
 
       <SheetTabs
@@ -1797,6 +1820,7 @@ export default function SpreadsheetEditor({
         onAddSheet={handleAddSheet}
         onRenameSheet={handleRenameSheet}
         onDeleteSheet={handleDeleteSheet}
+        onInsertChartSheet={handleInsertChartSheet}
       />
 
       {/* Context menu */}
@@ -1838,6 +1862,7 @@ export default function SpreadsheetEditor({
       {/* Chart dialog */}
       {showChartDialog && (
         <InsertChartDialog
+          sheet={sheet}
           onInsert={handleInsertChart}
           onClose={() => setShowChartDialog(false)}
         />
