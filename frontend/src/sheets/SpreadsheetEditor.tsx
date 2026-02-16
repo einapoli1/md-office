@@ -33,6 +33,7 @@ import {
   type CellChangeCallback,
 } from './sheetCollab';
 import { COLLAB_COLORS } from '../utils/collabColors';
+import SheetStatusBar from './SheetStatusBar';
 import './sheets-styles.css';
 
 const NUM_COLS = 26;
@@ -628,6 +629,22 @@ export default function SpreadsheetEditor({
   const selectedRangeStr = useMemo(() => {
     return `${indexToCol(selRange.minCol)}${selRange.minRow + 1}:${indexToCol(selRange.maxCol)}${selRange.maxRow + 1}`;
   }, [selRange]);
+
+  const selectedNumericValues = useMemo(() => {
+    const values: number[] = [];
+    for (let r = selRange.minRow; r <= selRange.maxRow; r++) {
+      for (let c = selRange.minCol; c <= selRange.maxCol; c++) {
+        const id = cellId(c, r);
+        const cell = sheet.cells[id];
+        if (cell) {
+          const v = cell.computed !== undefined ? cell.computed : cell.value;
+          const n = typeof v === 'number' ? v : parseFloat(String(v));
+          if (!isNaN(n)) values.push(n);
+        }
+      }
+    }
+    return values;
+  }, [selRange, sheet.cells]);
 
   const currentFormat = useMemo((): CellFormat => {
     const id = cellId(activeCell.col, activeCell.row);
@@ -1696,6 +1713,14 @@ export default function SpreadsheetEditor({
           replaceMode={findReplaceMode}
         />
       )}
+      <SheetStatusBar
+        cellRef={cellId(activeCell.col, activeCell.row)}
+        selectedValues={selectedNumericValues}
+        sheetIndex={workbook.activeSheet}
+        sheetCount={workbook.sheets.length}
+        collaborationStatus={collabStatus}
+        connectedUsers={remoteCursors.length + 1}
+      />
       <SheetShortcuts />
     </div>
   );

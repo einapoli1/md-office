@@ -19,6 +19,7 @@ import RehearsalMode from './RehearsalMode';
 import type { SlideTimings } from './RehearsalMode';
 import SlideMaster from './SlideMaster';
 import SlideShortcuts from './SlideShortcuts';
+import SlideStatusBar from './SlideStatusBar';
 import {
   initSlideCollab, syncPresentationFromYjs, updateSlideFieldInYjs,
   addSlideInYjs, deleteSlideInYjs, reorderSlideInYjs, updatePresMetaInYjs,
@@ -505,6 +506,14 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
           onClose={() => setShowMasterEditor(false)}
         />
       )}
+      <SlideStatusBar
+        currentSlide={activeIdx + 1}
+        totalSlides={pres.slides.length}
+        layoutName={currentSlide?.layout || 'content'}
+        notesCharCount={(currentSlide?.notes || '').length}
+        collaborationStatus={collab ? (collabRef.current ? 'connected' : 'connecting') : undefined}
+        connectedUsers={remoteUsers.length + 1}
+      />
       <SlideShortcuts />
     </div>
   );

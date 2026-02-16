@@ -996,16 +996,18 @@ function App() {
         )}
       </div>
 
-      <StatusBar
-        content={content}
-        activeFile={activeFile?.path}
-        saveStatus={saveStatus}
-        lastSaved={lastSaved}
-        isGuestMode={isGuestMode}
-        suggestionMode={suggestionMode}
-        collaborationStatus={collabStatus}
-        connectedUsers={collabUsers}
-      />
+      {appMode === 'docs' && (
+        <StatusBar
+          content={content}
+          activeFile={activeFile?.path}
+          saveStatus={saveStatus}
+          lastSaved={lastSaved}
+          isGuestMode={isGuestMode}
+          suggestionMode={suggestionMode}
+          collaborationStatus={collabStatus}
+          connectedUsers={collabUsers}
+        />
+      )}
 
       {/* Word Count Dialog */}
       {showWordCount && (

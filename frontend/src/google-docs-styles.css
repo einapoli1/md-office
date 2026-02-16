@@ -5081,3 +5081,127 @@ input:focus-visible {
     margin-top: 8px;
   }
 }
+
+/* ===== Sheet Status Bar ===== */
+.sheet-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  padding: 0 12px;
+  background: #f8f9fa;
+  border-top: 1px solid #e0e0e0;
+  font-size: 11px;
+  color: #5f6368;
+  flex-shrink: 0;
+}
+.dark .sheet-status-bar {
+  background: #292a2d;
+  border-top-color: #3c3c3c;
+  color: #9aa0a6;
+}
+.sheet-status-bar-left,
+.sheet-status-bar-center,
+.sheet-status-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sheet-status-bar-center {
+  flex: 1;
+  justify-content: center;
+}
+.sheet-status-cell-ref {
+  font-weight: 600;
+  font-family: 'Roboto Mono', monospace;
+  min-width: 40px;
+}
+.sheet-status-divider {
+  width: 1px;
+  height: 14px;
+  background: #dadce0;
+}
+.dark .sheet-status-divider { background: #5f6368; }
+.sheet-status-calculations {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sheet-status-calc {
+  cursor: default;
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: background 0.15s;
+}
+.sheet-status-calc:hover {
+  background: #e8eaed;
+}
+.dark .sheet-status-calc:hover { background: #3c4043; }
+.sheet-status-collab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #137333;
+  background: #e6f4ea;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.sheet-status-collab.connecting { color: #e37400; background: #fef7e0; }
+.sheet-status-collab-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34a853;
+  display: inline-block;
+}
+
+/* ===== Slide Status Bar ===== */
+.slide-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  padding: 0 12px;
+  background: #f8f9fa;
+  border-top: 1px solid #e0e0e0;
+  font-size: 11px;
+  color: #5f6368;
+  flex-shrink: 0;
+}
+.dark .slide-status-bar {
+  background: #292a2d;
+  border-top-color: #3c3c3c;
+  color: #9aa0a6;
+}
+.slide-status-bar-left,
+.slide-status-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.slide-status-divider {
+  width: 1px;
+  height: 14px;
+  background: #dadce0;
+}
+.dark .slide-status-divider { background: #5f6368; }
+.slide-status-layout {
+  text-transform: capitalize;
+}
+.slide-status-collab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #137333;
+  background: #e6f4ea;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.slide-status-collab.connecting { color: #e37400; background: #fef7e0; }
+.slide-status-collab-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34a853;
+  display: inline-block;
+}
