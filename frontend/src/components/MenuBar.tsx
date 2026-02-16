@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Share2, Settings, Moon, Sun, FileText, Plus, LogIn, LogOut, User, Table2, Presentation, Pencil } from 'lucide-react';
+import { Share2, Settings, Moon, Sun, FileText, Plus, LogIn, LogOut, User, Table2, Presentation, Pencil, Menu, X } from 'lucide-react';
 import { FileContent } from '../types';
 import type { AppMode } from '../App';
 
@@ -56,6 +56,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
   onShowShortcuts,
 }) => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [documentTitle, setDocumentTitle] = useState('');
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -344,6 +345,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
   const handleMenuItemClick = (action?: () => void) => {
     if (action) action();
     setActiveMenu(null);
+    setMobileMenuOpen(false);
   };
 
   const getSaveStatusText = () => {
@@ -447,7 +449,19 @@ const MenuBar: React.FC<MenuBarProps> = ({
           </div>
         )}
         
-        <div className="menu-items">
+        <button
+          className="hamburger-btn"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+        >
+          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+
+        {mobileMenuOpen && (
+          <div className="mobile-menu-backdrop" onClick={() => { setMobileMenuOpen(false); setActiveMenu(null); }} />
+        )}
+
+        <div className={`menu-items${mobileMenuOpen ? ' mobile-menu-open' : ''}`}>
           {Object.entries(menus).map(([menuName, items]) => (
             <div key={menuName} className="menu-item">
               <button
