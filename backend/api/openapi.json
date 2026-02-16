@@ -1,0 +1,128 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "MD Office API",
+    "version": "1.0.0",
+    "description": "REST API for MD Office document management"
+  },
+  "servers": [
+    { "url": "/api/v1", "description": "API v1" }
+  ],
+  "security": [
+    { "apiKey": [] }
+  ],
+  "components": {
+    "securitySchemes": {
+      "apiKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key (mdo_...)"
+      },
+      "jwt": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Document": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "path": { "type": "string" },
+          "type": { "type": "string", "enum": ["docs", "sheets", "slides", "databases"] },
+          "content": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "size": { "type": "integer" }
+        }
+      },
+      "APIResponse": {
+        "type": "object",
+        "properties": {
+          "data": {},
+          "error": { "type": "string" }
+        }
+      },
+      "Webhook": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "url": { "type": "string" },
+          "events": { "type": "array", "items": { "type": "string" } },
+          "secret": { "type": "string" },
+          "active": { "type": "boolean" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/docs": {
+      "get": {
+        "summary": "List documents",
+        "operationId": "listDocs",
+        "responses": { "200": { "description": "List of documents" } }
+      },
+      "post": {
+        "summary": "Create document",
+        "operationId": "createDoc",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "title": { "type": "string" }, "content": { "type": "string" }, "folder": { "type": "string" } }, "required": ["title"] } } }
+        },
+        "responses": { "201": { "description": "Document created" } }
+      }
+    },
+    "/docs/{id}": {
+      "get": {
+        "summary": "Get document",
+        "operationId": "getDoc",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Document" } }
+      },
+      "put": {
+        "summary": "Update document",
+        "operationId": "updateDoc",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Updated document" } }
+      },
+      "delete": {
+        "summary": "Delete document",
+        "operationId": "deleteDoc",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Deleted" } }
+      }
+    },
+    "/sheets": { "get": { "summary": "List sheets", "responses": { "200": { "description": "OK" } } }, "post": { "summary": "Create sheet", "responses": { "201": { "description": "Created" } } } },
+    "/sheets/{id}": { "get": { "summary": "Get sheet", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "OK" } } }, "put": { "summary": "Update sheet", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "OK" } } }, "delete": { "summary": "Delete sheet", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "OK" } } } },
+    "/slides": { "get": { "summary": "List slides", "responses": { "200": { "description": "OK" } } }, "post": { "summary": "Create slide deck", "responses": { "201": { "description": "Created" } } } },
+    "/slides/{id}": { "get": { "summary": "Get slide deck", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "OK" } } }, "put": { "summary": "Update slide deck", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "OK" } } }, "delete": { "summary": "Delete slide deck", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "OK" } } } },
+    "/databases": { "get": { "summary": "List databases", "responses": { "200": { "description": "OK" } } }, "post": { "summary": "Create database", "responses": { "201": { "description": "Created" } } } },
+    "/databases/{id}": { "get": { "summary": "Get database", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "OK" } } }, "put": { "summary": "Update database", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "OK" } } }, "delete": { "summary": "Delete database", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "OK" } } } },
+    "/search": {
+      "get": {
+        "summary": "Search across all document types",
+        "operationId": "search",
+        "parameters": [
+          { "name": "q", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "type", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } }
+        ],
+        "responses": { "200": { "description": "Search results" } }
+      }
+    },
+    "/export/{type}/{id}": {
+      "get": {
+        "summary": "Export document",
+        "operationId": "exportDocument",
+        "parameters": [
+          { "name": "type", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "format", "in": "query", "schema": { "type": "string", "enum": ["markdown", "html", "json"], "default": "markdown" } }
+        ],
+        "responses": { "200": { "description": "Exported document" } }
+      }
+    }
+  }
+}
