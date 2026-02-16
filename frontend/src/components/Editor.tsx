@@ -47,6 +47,8 @@ import { getUserColor } from '../utils/collabColors';
 import { Title, Subtitle } from '../extensions/ParagraphStyles';
 import MentionExtension from '../extensions/Mention';
 import DateChip from '../extensions/DateChip';
+import FormField from '../extensions/FormField';
+import FormMode from './FormMode';
 import { VariableChip } from '../extensions/VariableChip';
 import { TemplateVariable } from '../extensions/TemplateVariable';
 import { EquationEvaluator } from '../extensions/EquationEvaluator';
@@ -455,6 +457,7 @@ const Editor: React.FC<EditorProps> = ({
       Subtitle,
       MentionExtension,
       DateChip,
+      FormField,
       VariableChip,
       TemplateVariable,
       EquationEvaluator,
@@ -543,7 +546,17 @@ const Editor: React.FC<EditorProps> = ({
       toggleSpellCheck();
     };
     window.addEventListener('spellcheck-toggle', handleSpellCheckToggle);
-    return () => window.removeEventListener('spellcheck-toggle', handleSpellCheckToggle);
+    const handleExportFormData = () => {
+      if (editor) {
+        const { exportFormAsJSON } = require('../lib/formExport');
+        exportFormAsJSON(editor);
+      }
+    };
+    window.addEventListener('export-form-data', handleExportFormData);
+    return () => {
+      window.removeEventListener('spellcheck-toggle', handleSpellCheckToggle);
+      window.removeEventListener('export-form-data', handleExportFormData);
+    };
   }, [toggleSpellCheck]);
 
   // Keyboard shortcuts handler
@@ -765,6 +778,7 @@ const Editor: React.FC<EditorProps> = ({
         </div>
       )}
       
+      <FormMode editor={editor} />
       <div className="editor-content-area" style={{ position: 'relative' }}>
         <TableToolbar editor={editor} />
         <TableContextMenu editor={editor} />

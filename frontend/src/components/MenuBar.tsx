@@ -114,6 +114,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
       }},
       { label: 'divider' },
       { label: 'Version history', action: onVersionHistory, shortcut: '⌘⇧H' },
+      { label: 'Export Form Data', action: () => {
+        window.dispatchEvent(new CustomEvent('export-form-data'));
+      }},
       { label: 'divider' },
       { label: 'Share', action: () => {
         const url = new URL(window.location.href);
@@ -153,6 +156,10 @@ const MenuBar: React.FC<MenuBarProps> = ({
       }, shortcut: 'F11' },
       { label: 'divider' },
       { label: isDarkMode ? 'Light mode' : 'Dark mode', action: onToggleDarkMode, icon: isDarkMode ? Sun : Moon },
+      { label: 'divider' },
+      { label: 'Form Fill Mode', action: () => {
+        window.dispatchEvent(new CustomEvent('form-fill-toggle'));
+      }},
     ],
     Insert: [
       { label: 'Image', action: () => {
@@ -214,6 +221,22 @@ const MenuBar: React.FC<MenuBarProps> = ({
         if (editor) {
           (editor.commands as any).insertDateChip();
         }
+      }},
+      { label: 'divider' },
+      { label: 'Form Field: Text Input', action: () => {
+        if (editor) (editor.commands as any).insertFormField('text-input');
+      }},
+      { label: 'Form Field: Dropdown', action: () => {
+        if (editor) (editor.commands as any).insertFormField('dropdown');
+      }},
+      { label: 'Form Field: Checkbox', action: () => {
+        if (editor) (editor.commands as any).insertFormField('checkbox');
+      }},
+      { label: 'Form Field: Date', action: () => {
+        if (editor) (editor.commands as any).insertFormField('date-picker');
+      }},
+      { label: 'Form Field: Signature', action: () => {
+        if (editor) (editor.commands as any).insertFormField('signature');
       }},
       { label: 'Drawing', action: () => {
         window.dispatchEvent(new CustomEvent('whiteboard-open'));
