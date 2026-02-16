@@ -4,6 +4,7 @@ import { CellFormat } from './cellFormat';
 import { MergeRange } from './cellFormat';
 import type { ConditionalRule, ValidationRule } from './conditionalEval';
 import { DependencyGraph, extractRefs, evaluateFormula, cellId, parseCellRef, indexToCol } from './formulaEngine';
+import type { PivotConfig } from './pivotEngine';
 
 export interface CellData {
   value: string;
@@ -57,6 +58,8 @@ export interface SheetData {
 export interface WorkbookData {
   sheets: SheetData[];
   activeSheet: number;
+  namedRanges: Record<string, string>;
+  pivotTables: PivotConfig[];
 }
 
 export interface UndoEntry {
@@ -74,7 +77,7 @@ export function createEmptySheet(name: string): SheetData {
 }
 
 export function createWorkbook(): WorkbookData {
-  return { sheets: [createEmptySheet('Sheet1')], activeSheet: 0 };
+  return { sheets: [createEmptySheet('Sheet1')], activeSheet: 0, namedRanges: {}, pivotTables: [] };
 }
 
 export function getColWidth(sheet: SheetData, col: number): number {
@@ -86,7 +89,7 @@ export function getRowHeight(sheet: SheetData, row: number): number {
 }
 
 // Recalculate a cell and its dependents
-export function recalculate(sheet: SheetData, graph: DependencyGraph, changedCell: string): void {
+export function recalculate(sheet: SheetData, graph: DependencyGraph, changedCell: string, namedRanges?: Record<string, string>): void {
   const cell = sheet.cells[changedCell];
   
   const getCellValue = (ref: string): string => {
@@ -102,7 +105,7 @@ export function recalculate(sheet: SheetData, graph: DependencyGraph, changedCel
       cell.computed = '#CIRCULAR!';
     } else {
       graph.setDependencies(changedCell, refs);
-      cell.computed = evaluateFormula(cell.formula, getCellValue);
+      cell.computed = evaluateFormula(cell.formula, getCellValue, namedRanges);
     }
   } else if (cell) {
     cell.computed = undefined;
@@ -118,7 +121,7 @@ export function recalculate(sheet: SheetData, graph: DependencyGraph, changedCel
   for (const dep of dependents) {
     const depCell = sheet.cells[dep];
     if (depCell?.formula) {
-      depCell.computed = evaluateFormula(depCell.formula, getCellValue);
+      depCell.computed = evaluateFormula(depCell.formula, getCellValue, namedRanges);
     }
   }
 }
@@ -136,7 +139,7 @@ export function buildDependencyGraph(sheet: SheetData): DependencyGraph {
 }
 
 // Recalculate all formulas in sheet
-export function recalcAll(sheet: SheetData, _graph: DependencyGraph): void {
+export function recalcAll(sheet: SheetData, _graph: DependencyGraph, namedRanges?: Record<string, string>): void {
   const getCellValue = (ref: string): string => {
     const c = sheet.cells[ref];
     if (!c) return '';
@@ -148,7 +151,7 @@ export function recalcAll(sheet: SheetData, _graph: DependencyGraph): void {
     let changed = false;
     for (const [, cell] of Object.entries(sheet.cells)) {
       if (cell.formula) {
-        const newVal = evaluateFormula(cell.formula, getCellValue);
+        const newVal = evaluateFormula(cell.formula, getCellValue, namedRanges);
         if (newVal !== cell.computed) {
           cell.computed = newVal;
           changed = true;

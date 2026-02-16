@@ -753,9 +753,31 @@ function sumIf(rangeVals: string[], criteria: number | string, sumVals: string[]
   return sum;
 }
 
-export function evaluateFormula(formula: string, get: CellGetter): string {
+// Resolve named ranges in a formula string before tokenization
+export function resolveNamedRanges(formula: string, namedRanges: Record<string, string>): string {
+  if (!namedRanges || Object.keys(namedRanges).length === 0) return formula;
+  let resolved = formula;
+  // Sort by length descending to avoid partial matches
+  const names = Object.keys(namedRanges).sort((a, b) => b.length - a.length);
+  for (const name of names) {
+    // Replace name with its range value, case-insensitive, but only if not part of a larger identifier
+    const pattern = new RegExp(`\\b${name}\\b`, 'gi');
+    let rangeValue = namedRanges[name];
+    // Strip sheet prefix if present (e.g. "Sheet1!A1:A50" -> "A1:A50") for same-sheet resolution
+    if (rangeValue.includes('!')) {
+      rangeValue = rangeValue.split('!')[1];
+    }
+    resolved = resolved.replace(pattern, rangeValue);
+  }
+  return resolved;
+}
+
+export function evaluateFormula(formula: string, get: CellGetter, namedRanges?: Record<string, string>): string {
   try {
-    const expr = formula.startsWith('=') ? formula.slice(1) : formula;
+    let expr = formula.startsWith('=') ? formula.slice(1) : formula;
+    if (namedRanges) {
+      expr = resolveNamedRanges(expr, namedRanges);
+    }
     const tokens = tokenize(expr);
     const result = evaluate(tokens, get);
     return String(result);

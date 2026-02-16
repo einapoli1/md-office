@@ -12,6 +12,9 @@ import ConditionalFormatDialog from './ConditionalFormat';
 import DataValidationDialog from './DataValidation';
 import { evaluateConditionalFormats, getNumericValuesInRange, isCellInRange, validateCell } from './conditionalEval';
 import type { ConditionalRule, ValidationRule } from './conditionalEval';
+import PivotTableDialog from './PivotTable';
+import NamedRangesDialog from './NamedRanges';
+import { PivotConfig } from './pivotEngine';
 import './sheets-styles.css';
 
 const NUM_COLS = 26;
@@ -69,6 +72,8 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
   const [hiddenRows, setHiddenRows] = useState<Set<number>>(new Set());
   const [showCFDialog, setShowCFDialog] = useState(false);
   const [showDVDialog, setShowDVDialog] = useState(false);
+  const [showPivotDialog, setShowPivotDialog] = useState(false);
+  const [showNamedRangesDialog, setShowNamedRangesDialog] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   const graphRef = useRef<DependencyGraph>(new DependencyGraph());
@@ -85,11 +90,13 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
   if (!sheet.freeze) sheet.freeze = { rows: 0, cols: 0 };
   if (!sheet.conditionalFormats) sheet.conditionalFormats = [];
   if (!sheet.validationRules) sheet.validationRules = [];
+  if (!workbook.namedRanges) workbook.namedRanges = {};
+  if (!workbook.pivotTables) workbook.pivotTables = [];
 
   // Build dep graph on mount / sheet change
   useEffect(() => {
     graphRef.current = buildDependencyGraph(sheet);
-    recalcAll(sheet, graphRef.current);
+    recalcAll(sheet, graphRef.current, workbook.namedRanges);
     triggerUpdate();
   }, [workbook.activeSheet]);
 
@@ -172,11 +179,11 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
           newCell.computed = '#CIRCULAR!';
         } else {
           graphRef.current.setDependencies(id, refs);
-          recalculate(sheet, graphRef.current, id);
+          recalculate(sheet, graphRef.current, id, workbook.namedRanges);
         }
       } else {
         graphRef.current.removeDependencies(id);
-        recalculate(sheet, graphRef.current, id);
+        recalculate(sheet, graphRef.current, id, workbook.namedRanges);
       }
     }
 
@@ -298,13 +305,13 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
           if (e.shiftKey) {
             if (undoRef.current.canRedo()) {
               undoRef.current.redo(workbook);
-              recalcAll(sheet, graphRef.current);
+              recalcAll(sheet, graphRef.current, workbook.namedRanges);
               setWorkbook({ ...workbook });
             }
           } else {
             if (undoRef.current.canUndo()) {
               undoRef.current.undo(workbook);
-              recalcAll(sheet, graphRef.current);
+              recalcAll(sheet, graphRef.current, workbook.namedRanges);
               setWorkbook({ ...workbook });
             }
           }
@@ -512,7 +519,7 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
 
     sheet.sortState = { col, ascending };
     graphRef.current = buildDependencyGraph(sheet);
-    recalcAll(sheet, graphRef.current);
+    recalcAll(sheet, graphRef.current, workbook.namedRanges);
     setWorkbook({ ...workbook });
     setContextMenu(null);
   }, [sheet, workbook]);
@@ -598,6 +605,38 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
     setWorkbook({ ...workbook });
   }, [sheet, workbook]);
 
+  // Pivot table creation
+  const handleCreatePivot = useCallback((config: PivotConfig, result: { headers: string[]; rows: string[][] }) => {
+    // Create a new sheet with pivot results
+    const pivotSheet = createEmptySheet(`Pivot_${workbook.sheets.length + 1}`);
+    // Write headers
+    for (let c = 0; c < result.headers.length; c++) {
+      const id = cellId(c, 0);
+      pivotSheet.cells[id] = { value: result.headers[c], format: { bold: true } };
+    }
+    // Write data rows
+    for (let r = 0; r < result.rows.length; r++) {
+      for (let c = 0; c < result.rows[r].length; c++) {
+        const id = cellId(c, r + 1);
+        pivotSheet.cells[id] = { value: result.rows[r][c] };
+      }
+    }
+    workbook.sheets.push(pivotSheet);
+    workbook.pivotTables.push(config);
+    workbook.activeSheet = workbook.sheets.length - 1;
+    setShowPivotDialog(false);
+    setWorkbook({ ...workbook });
+  }, [workbook]);
+
+  // Named ranges
+  const handleSaveNamedRanges = useCallback((ranges: Record<string, string>) => {
+    workbook.namedRanges = ranges;
+    setShowNamedRangesDialog(false);
+    // Recalc all sheets since named ranges are workbook-level
+    recalcAll(sheet, graphRef.current, workbook.namedRanges);
+    setWorkbook({ ...workbook });
+  }, [workbook, sheet]);
+
   // Import/Export handlers
   const handleImportCSV = useCallback((file: File) => {
     const reader = new FileReader();
@@ -608,7 +647,7 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
       workbook.sheets.push(imported);
       workbook.activeSheet = workbook.sheets.length - 1;
       graphRef.current = buildDependencyGraph(imported);
-      recalcAll(imported, graphRef.current);
+      recalcAll(imported, graphRef.current, workbook.namedRanges);
       setWorkbook({ ...workbook });
     };
     reader.readAsText(file);
@@ -621,7 +660,7 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
     }
     workbook.activeSheet = workbook.sheets.length - sheets.length;
     graphRef.current = buildDependencyGraph(workbook.sheets[workbook.activeSheet]);
-    recalcAll(workbook.sheets[workbook.activeSheet], graphRef.current);
+    recalcAll(workbook.sheets[workbook.activeSheet], graphRef.current, workbook.namedRanges);
     setWorkbook({ ...workbook });
   }, [workbook]);
 
@@ -651,8 +690,8 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
         onMergeCells={handleMergeCells}
         canUndo={undoRef.current.canUndo()}
         canRedo={undoRef.current.canRedo()}
-        onUndo={() => { undoRef.current.undo(workbook); recalcAll(sheet, graphRef.current); setWorkbook({ ...workbook }); }}
-        onRedo={() => { undoRef.current.redo(workbook); recalcAll(sheet, graphRef.current); setWorkbook({ ...workbook }); }}
+        onUndo={() => { undoRef.current.undo(workbook); recalcAll(sheet, graphRef.current, workbook.namedRanges); setWorkbook({ ...workbook }); }}
+        onRedo={() => { undoRef.current.redo(workbook); recalcAll(sheet, graphRef.current, workbook.namedRanges); setWorkbook({ ...workbook }); }}
         onInsertChart={() => setShowChartDialog(true)}
         filtersEnabled={sheet.filtersEnabled}
         onToggleFilters={handleToggleFilters}
@@ -664,6 +703,8 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
         onExportXLSX={handleExportXLSX}
         onConditionalFormat={() => setShowCFDialog(true)}
         onDataValidation={() => setShowDVDialog(true)}
+        onPivotTable={() => setShowPivotDialog(true)}
+        onNamedRanges={() => setShowNamedRangesDialog(true)}
       />
       <FormulaBar
         cellRef={cellId(activeCell.col, activeCell.row)}
@@ -972,6 +1013,22 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
             setWorkbook({ ...workbook });
           }}
           onClose={() => setShowDVDialog(false)}
+        />
+      )}
+
+      {showPivotDialog && (
+        <PivotTableDialog
+          workbook={workbook}
+          onClose={() => setShowPivotDialog(false)}
+          onCreatePivot={handleCreatePivot}
+        />
+      )}
+
+      {showNamedRangesDialog && (
+        <NamedRangesDialog
+          namedRanges={workbook.namedRanges}
+          onSave={handleSaveNamedRanges}
+          onClose={() => setShowNamedRangesDialog(false)}
         />
       )}
     </div>

@@ -21,9 +21,11 @@ interface SheetToolbarProps {
   onExportXLSX?: () => void;
   onConditionalFormat?: () => void;
   onDataValidation?: () => void;
+  onPivotTable?: () => void;
+  onNamedRanges?: () => void;
 }
 
-export default function SheetToolbar({ format, onFormatChange, onMergeCells, canUndo, canRedo, onUndo, onRedo, onInsertChart, filtersEnabled, onToggleFilters, freeze, onFreezeChange, onImportCSV, onImportXLSX, onExportCSV, onExportXLSX, onConditionalFormat, onDataValidation }: SheetToolbarProps) {
+export default function SheetToolbar({ format, onFormatChange, onMergeCells, canUndo, canRedo, onUndo, onRedo, onInsertChart, filtersEnabled, onToggleFilters, freeze, onFreezeChange, onImportCSV, onImportXLSX, onExportCSV, onExportXLSX, onConditionalFormat, onDataValidation, onPivotTable, onNamedRanges }: SheetToolbarProps) {
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importMode, setImportMode] = useState<'csv' | 'xlsx'>('csv');
@@ -175,6 +177,9 @@ export default function SheetToolbar({ format, onFormatChange, onMergeCells, can
       {/* Conditional formatting & Data validation */}
       {onConditionalFormat && <button className="sheet-tb-btn" onClick={onConditionalFormat} title="Conditional formatting">🎨</button>}
       {onDataValidation && <button className="sheet-tb-btn" onClick={onDataValidation} title="Data validation">✓</button>}
+      <span className="sheet-tb-sep" />
+      {onPivotTable && <button className="sheet-tb-btn" onClick={onPivotTable} title="Pivot table">📋</button>}
+      {onNamedRanges && <button className="sheet-tb-btn" onClick={onNamedRanges} title="Named ranges">📛</button>}
     </div>
   );
 }
