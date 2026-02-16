@@ -723,6 +723,67 @@ const DocsToolbar: React.FC<DocsToolbarProps> = ({ editor }) => {
           <Sparkles size={16} />
         </button>
 
+        {/* Insert blocks dropdown */}
+        <div style={{ position: 'relative' }}>
+          <button
+            className="toolbar-btn"
+            onClick={() => {
+              const menu = document.getElementById('insert-blocks-menu');
+              if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+            }}
+            title="Insert block" aria-label="Insert block"
+          >
+            <span style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 2 }}>Insert <ChevronDown size={12} /></span>
+          </button>
+          <div
+            id="insert-blocks-menu"
+            style={{
+              display: 'none',
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              background: '#fff',
+              border: '1px solid #e0e0e0',
+              borderRadius: 6,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              zIndex: 1000,
+              minWidth: 160,
+              padding: '4px 0',
+            }}
+          >
+            {[
+              { label: '▶ Toggle Block', action: () => editor.chain().focus().insertToggle().run() },
+              { label: '📋 Kanban Board', action: () => editor.chain().focus().insertKanban().run() },
+              { label: '📅 Timeline', action: () => editor.chain().focus().insertTimeline().run() },
+              { label: '📑 Tabs', action: () => editor.chain().focus().insertTabs().run() },
+              { label: '📢 Banner', action: () => editor.chain().focus().insertBanner().run() },
+            ].map((item) => (
+              <button
+                key={item.label}
+                onClick={() => {
+                  item.action();
+                  const menu = document.getElementById('insert-blocks-menu');
+                  if (menu) menu.style.display = 'none';
+                }}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '6px 12px',
+                  background: 'none',
+                  border: 'none',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#f0f0f0')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="toolbar-divider" />
 
         {/* More options */}

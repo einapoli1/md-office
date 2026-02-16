@@ -56,6 +56,11 @@ import { CitationNode } from '../extensions/Citation';
 import { BibliographyBlock } from '../extensions/Bibliography';
 import { Callout } from '../extensions/Callout';
 import { Caption } from '../extensions/Caption';
+import { ToggleBlock } from '../extensions/ToggleBlock';
+import { AlertBanner } from '../extensions/AlertBanner';
+import { KanbanBoard } from '../extensions/KanbanBoard';
+import { Timeline } from '../extensions/Timeline';
+import { TabsBlock } from '../extensions/Tabs';
 import TableToolbar from './TableToolbar';
 import TableContextMenu from './TableContextMenu';
 import { importDocx } from '../utils/docxIO';
@@ -469,6 +474,11 @@ const Editor: React.FC<EditorProps> = ({
       BibliographyBlock,
       Callout,
       Caption,
+      ToggleBlock,
+      AlertBanner,
+      KanbanBoard,
+      Timeline,
+      TabsBlock,
       PageBreaks.configure({
         pageHeight: 1056,
         gapHeight: 24,
