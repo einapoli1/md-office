@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { WorkbookData } from './sheetModel';
-import { cellId, indexToCol } from './formulaEngine';
+import { cellId } from './formulaEngine';
 
 const NUM_COLS = 26;
 const NUM_ROWS = 100;

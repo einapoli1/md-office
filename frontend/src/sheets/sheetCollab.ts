@@ -137,6 +137,7 @@ function syncSheetFromYjs(ydoc: Y.Doc, sheetIndex: number): SheetData {
     charts: [],
     conditionalFormats: safeJsonParse(metaMap.get('conditionalFormats') as string, []),
     validationRules: safeJsonParse(metaMap.get('validationRules') as string, []),
+    protectedRanges: safeJsonParse(metaMap.get('protectedRanges') as string, []),
     sortState: undefined,
   };
 }

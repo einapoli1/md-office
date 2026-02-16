@@ -319,14 +319,6 @@ export default function SpreadsheetEditor({
     }
   }, [sheet, workbook]);
 
-  const openCommentPanel = useCallback((row: number, col: number) => {
-    const id = cellId(col, row);
-    const top = row * 28;
-    const left = colLefts[col] ?? 0;
-    const width = getColWidth(sheet, col);
-    setCommentPanel({ cellId: id, rect: { top, left, width, height: 28 } });
-  }, [colLefts, sheet]);
-
   const getCellDisplay = useCallback((id: string): string => {
     const cell = sheet.cells[id];
     if (!cell) return '';
@@ -598,6 +590,14 @@ export default function SpreadsheetEditor({
     }
     return lefts;
   }, [sheet]);
+
+  const openCommentPanel = useCallback((row: number, col: number) => {
+    const id = cellId(col, row);
+    const top = row * 28;
+    const left = colLefts[col] ?? 0;
+    const width = getColWidth(sheet, col);
+    setCommentPanel({ cellId: id, rect: { top, left, width, height: 28 } });
+  }, [colLefts, sheet]);
 
   const handleCellClick = useCallback((row: number, col: number, e: React.MouseEvent) => {
     if (editing) commitEdit();
