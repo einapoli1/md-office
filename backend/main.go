@@ -19,6 +19,9 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
+
+	oauthAuth "md-office-backend/auth"
+	"md-office-backend/gitops"
 )
 
 // JWT Configuration
@@ -265,6 +268,11 @@ func main() {
 		log.Fatal("Failed to initialize app:", err)
 	}
 
+	// Initialize OAuth token store
+	if err := oauthAuth.InitStore(); err != nil {
+		log.Printf("Warning: OAuth store init failed: %v", err)
+	}
+
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			return c.JSON(APIResponse{Error: err.Error()})
@@ -310,7 +318,13 @@ func main() {
 	search := protected.Group("/search")
 	search.Get("/", searchFiles)
 
-	// Git operations
+	// OAuth provider routes
+	oauthAuth.RegisterRoutes(api, authMiddleware)
+
+	// Git provider routes (remote repos)
+	gitops.RegisterRoutes(api, authMiddleware)
+
+	// Git operations (local workspace)
 	gitRoutes := protected.Group("/git")
 	gitRoutes.Get("/history", getGitHistory)
 	gitRoutes.Post("/revert", revertToCommit)
