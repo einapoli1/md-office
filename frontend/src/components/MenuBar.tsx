@@ -409,6 +409,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Snippet Manager', action: () => {
         window.dispatchEvent(new CustomEvent('snippet-manager-toggle'));
       }},
+      { label: 'Extensions', action: () => {
+        window.dispatchEvent(new CustomEvent('plugin-manager-toggle'));
+      }},
       { label: 'divider' },
       { label: 'divider' },
       { label: 'Macro Editor', action: () => {

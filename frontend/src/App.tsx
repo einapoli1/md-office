@@ -20,6 +20,7 @@ import CommentsSidebar, { Comment } from './components/CommentsSidebar';
 import SuggestionPopup from './components/SuggestionPopup';
 import SuggestionsSidebar from './components/SuggestionsSidebar';
 import FindReplace from './components/FindReplace';
+import PluginManager from './components/PluginManager';
 import InputDialog from './components/InputDialog';
 import LinkDialog from './components/LinkDialog';
 import ToastProvider from './components/ToastProvider';
@@ -172,6 +173,7 @@ function App() {
   const [showWritingPrompts, setShowWritingPrompts] = useState(false);
   const [showDocumentMap, setShowDocumentMap] = useState(false);
   const [showSnippetManager, setShowSnippetManager] = useState(false);
+  const [showPluginManager, setShowPluginManager] = useState(false);
   const { recording: macroRecording, startRecording: startMacroRecording, stopRecording: stopMacroRecording } = useMacroRecorder();
   const [vhCommits, setVhCommits] = useState<import('./types').GitCommit[]>([]);
   const [vhSelectedCommit, setVhSelectedCommit] = useState<import('./types').GitCommit | null>(null);
@@ -958,6 +960,8 @@ function App() {
     window.addEventListener('writing-assistant-toggle', handleWritingAssistant);
     window.addEventListener('document-map-toggle', handleDocumentMap);
     window.addEventListener('snippet-manager-toggle', handleSnippetManager);
+    const handlePluginManager = () => setShowPluginManager(prev => !prev);
+    window.addEventListener('plugin-manager-toggle', handlePluginManager);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('find-replace-open', handleEvent);
@@ -990,6 +994,7 @@ function App() {
       window.removeEventListener('writing-assistant-toggle', handleWritingAssistant);
       window.removeEventListener('document-map-toggle', handleDocumentMap);
       window.removeEventListener('snippet-manager-toggle', handleSnippetManager);
+      window.removeEventListener('plugin-manager-toggle', handlePluginManager);
     };
   }, []);
 
@@ -1711,6 +1716,10 @@ function App() {
       {/* Snippet Manager */}
       {showSnippetManager && editorRef && (
         <SnippetManager editor={editorRef} onClose={() => setShowSnippetManager(false)} />
+      )}
+      {/* Plugin Manager */}
+      {showPluginManager && (
+        <PluginManager onClose={() => setShowPluginManager(false)} />
       )}
     </div>
     </ToastProvider>

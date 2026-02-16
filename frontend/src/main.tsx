@@ -5,6 +5,17 @@ import { I18nProvider } from './lib/i18n'
 import { PreferencesProvider } from './lib/preferencesStore'
 import './google-docs-styles.css'
 import './responsive.css'
+import { pluginManager } from './lib/pluginSystem'
+import createWordCounterPlugin from './plugins/wordCounter'
+import createLoremPlugin from './plugins/lorem'
+import createCodeHighlightPlugin from './plugins/codeHighlight'
+import createZenQuotesPlugin from './plugins/zenQuotes'
+
+// Register plugins
+pluginManager.install(createWordCounterPlugin);
+pluginManager.install(createLoremPlugin);
+pluginManager.install(createCodeHighlightPlugin);
+pluginManager.install(createZenQuotesPlugin);
 
 // Register service worker
 if ('serviceWorker' in navigator) {
