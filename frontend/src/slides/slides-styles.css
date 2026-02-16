@@ -1223,3 +1223,57 @@ body.dark .anim-prop-row label { color: #9aa0a6; }
 body.dark .speaker-notes-editor { background: #2d2d2d; border-color: #3c4043; color: #e8eaed; }
 body.dark .shortcuts-panel { background: #2d2d2d; color: #e8eaed; }
 body.dark .shortcut-key kbd { background: #404040; border-color: #5f6368; color: #e8eaed; }
+
+/* ── Animation Timeline Enhancements ── */
+.anim-track-order {
+  width: 20px; height: 20px; border-radius: 50%; background: #e0e0e0; color: #555;
+  display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; flex-shrink: 0;
+}
+.anim-track-selected .anim-track-order { background: #4285f4; color: #fff; }
+.anim-track-playing { background: #e6f4ea !important; }
+.anim-track-playing .anim-track-order { background: #34a853; color: #fff; }
+.anim-playhead {
+  position: absolute; top: 0; bottom: 0; border-radius: 3px;
+  background: rgba(52, 168, 83, 0.25); border: 1px solid #34a853;
+  animation: anim-playhead-pulse 0.5s ease infinite alternate;
+}
+@keyframes anim-playhead-pulse { from { opacity: 0.5; } to { opacity: 1; } }
+.anim-group-badge {
+  width: 16px; height: 16px; border-radius: 3px; background: #fbbc04; color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700;
+}
+.anim-time-ruler {
+  position: relative; height: 16px; margin-top: 4px; border-top: 1px solid #e0e0e0;
+}
+.anim-time-mark {
+  position: absolute; top: 2px; font-size: 9px; color: #999; transform: translateX(-50%);
+}
+.anim-props-header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 4px; }
+.anim-props-title { font-size: 12px; font-weight: 600; color: #555; }
+.anim-props-actions { display: flex; gap: 4px; }
+.anim-prop-row-inline { display: flex; gap: 12px; }
+.anim-input-with-unit { display: flex; align-items: center; gap: 4px; }
+.anim-input-with-unit span { font-size: 11px; color: #999; }
+.anim-input-with-unit input { width: 70px; }
+.anim-trigger-btns { display: flex; gap: 4px; }
+.anim-trigger-btn {
+  padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; background: #fff;
+  cursor: pointer; font-size: 11px; transition: all 0.15s;
+}
+.anim-trigger-btn:hover { background: #f5f5f5; }
+.anim-trigger-btn.active { background: #e8f0fe; border-color: #4285f4; color: #1a73e8; }
+
+/* Animation order badge on slide elements */
+.anim-order-badge {
+  position: absolute; top: -8px; left: -8px; z-index: 10;
+  width: 18px; height: 18px; border-radius: 50%; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  pointer-events: none;
+}
+
+body.dark .anim-track-order { background: #555; color: #ccc; }
+body.dark .anim-time-ruler { border-color: #444; }
+body.dark .anim-time-mark { color: #666; }
+body.dark .anim-trigger-btn { background: #3c3c3c; border-color: #555; color: #ccc; }
+body.dark .anim-trigger-btn.active { background: #1e3a5f; border-color: #4285f4; }
