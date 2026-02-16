@@ -21,6 +21,7 @@ import FindReplace from './components/FindReplace';
 import InputDialog from './components/InputDialog';
 import LinkDialog from './components/LinkDialog';
 import ToastProvider from './components/ToastProvider';
+import OfflineIndicator from './components/OfflineIndicator';
 import ShareDialog from './components/ShareDialog';
 import { toast } from './components/Toast';
 import { importDocx } from './utils/docxIO';
@@ -884,6 +885,7 @@ function App() {
   return (
     <ErrorBoundary>
     <ToastProvider>
+    <OfflineIndicator />
     <div className="app">
       <a href="#main-editor" className="skip-to-content">Skip to content</a>
       <MenuBar
