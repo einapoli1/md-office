@@ -27,6 +27,8 @@ interface Props {
   onNewFromTemplate: (templateId: string) => void;
   onExportPDF?: () => void;
   onExportHTML?: () => void;
+  onExportPPTX?: () => void;
+  onImportPPTX?: () => void;
   onToggleTimeline?: () => void;
   showTimeline?: boolean;
   onInsertVideo?: () => void;
@@ -43,7 +45,7 @@ export default function SlideToolbar({
   onShapeToolSelect, activeShapeTool,
   onInsertFragment, onPreviewAnimation,
   onNewFromTemplate,
-  onExportPDF, onExportHTML,
+  onExportPDF, onExportHTML, onExportPPTX, onImportPPTX,
   onToggleTimeline, showTimeline,
   onInsertVideo, onInsertAudio, onInsertInteractive,
   onDesignIdeas, onSlideSorter,
@@ -134,6 +136,8 @@ export default function SlideToolbar({
         <button className="toolbar-btn present-btn" onClick={onPresent} title="Present">▶ Present</button>
         <button className="toolbar-btn" onClick={onExportPDF} title="Export PDF (Print)">🖨 PDF</button>
         <button className="toolbar-btn" onClick={onExportHTML} title="Export standalone HTML">💾 HTML</button>
+        <button className="toolbar-btn" onClick={onExportPPTX} title="Export PPTX">📦 PPTX</button>
+        <button className="toolbar-btn" onClick={onImportPPTX} title="Import PPTX">📂 Import PPTX</button>
       </div>
     </div>
   );

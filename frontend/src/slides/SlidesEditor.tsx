@@ -12,7 +12,7 @@ import SlideshowView from './SlideshowView';
 import { openPresenterWindow } from './PresenterView';
 import { TEMPLATES, createFromTemplate } from './slideTemplates';
 import type { ShapeType } from './ShapeTools';
-import { exportSlidesPDF, exportSlidesHTML } from './slideIO';
+import { exportSlidesPDF, exportSlidesHTML, exportPPTX, importPPTX } from './slideIO';
 import SlideCommentsComponent, { CommentPins } from './SlideComments';
 import type { SlideComment } from './SlideComments';
 import RehearsalMode from './RehearsalMode';
@@ -443,6 +443,29 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
     URL.revokeObjectURL(url);
   }, [pres, theme]);
 
+  const handleExportPPTX = useCallback(() => {
+    exportPPTX(pres.slides, theme);
+  }, [pres, theme]);
+
+  const handleImportPPTX = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pptx';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const imported = await importPPTX(file);
+        setPres(prev => ({ ...prev, slides: imported }));
+        setActiveIdx(0);
+      } catch (err) {
+        console.error('Failed to import PPTX:', err);
+        alert('Failed to import PPTX file.');
+      }
+    };
+    input.click();
+  }, []);
+
   const handleDesignApply = useCallback((layout: import('./slideModel').SlideLayout, content: string) => {
     const newSlides = [...pres.slides];
     newSlides[activeIdx] = { ...newSlides[activeIdx], layout, content };
@@ -508,6 +531,8 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
         onNewFromTemplate={handleNewFromTemplate}
         onExportPDF={handleExportPDF}
         onExportHTML={handleExportHTML}
+        onExportPPTX={handleExportPPTX}
+        onImportPPTX={handleImportPPTX}
         onInsertVideo={() => setShowVideoDialog(true)}
         onInsertAudio={() => setShowAudioDialog(true)}
         onInsertInteractive={() => setShowInteractiveDialog(true)}
