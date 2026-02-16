@@ -81,6 +81,16 @@ export const ALL_FUNCTIONS: FunctionInfo[] = [
   // Special
   { name: 'LATEX', desc: 'LaTeX formula', syntax: 'LATEX(expression)', params: [{ name: 'expression', desc: 'LaTeX math expression' }] },
   { name: 'SPARKLINE', desc: 'Inline chart', syntax: 'SPARKLINE(range, type, color)', params: [{ name: 'range', desc: 'Data range' }, { name: 'type', desc: 'Chart type (line/bar/area)' }, { name: 'color', desc: 'Color' }] },
+  // Array functions
+  { name: 'ARRAYFORMULA', desc: 'Apply formula across range', syntax: 'ARRAYFORMULA(formula)', params: [{ name: 'formula', desc: 'Formula to apply as array' }] },
+  { name: 'UNIQUE', desc: 'Unique values from range', syntax: 'UNIQUE(range)', params: [{ name: 'range', desc: 'Range to deduplicate' }] },
+  { name: 'SORT', desc: 'Sort range values', syntax: 'SORT(range, col, ascending)', params: [{ name: 'range', desc: 'Range to sort' }, { name: 'col', desc: 'Column to sort by' }, { name: 'ascending', desc: '1=ascending, 0=descending' }] },
+  { name: 'FILTER', desc: 'Filter rows by condition', syntax: 'FILTER(range, cond_range, criteria)', params: [{ name: 'range', desc: 'Data range' }, { name: 'cond_range', desc: 'Condition range' }, { name: 'criteria', desc: 'Filter criteria' }] },
+  { name: 'TRANSPOSE', desc: 'Flip rows and columns', syntax: 'TRANSPOSE(range)', params: [{ name: 'range', desc: 'Range to transpose' }] },
+  { name: 'FLATTEN', desc: 'Flatten 2D range to 1D', syntax: 'FLATTEN(range)', params: [{ name: 'range', desc: 'Range to flatten' }] },
+  { name: 'SEQUENCE', desc: 'Generate number sequence', syntax: 'SEQUENCE(rows, cols, start, step)', params: [{ name: 'rows', desc: 'Number of rows' }, { name: 'cols', desc: 'Number of columns' }, { name: 'start', desc: 'Starting value' }, { name: 'step', desc: 'Step increment' }] },
+  { name: 'MAP', desc: 'Apply operation to range', syntax: 'MAP(range, operation)', params: [{ name: 'range', desc: 'Input range' }, { name: 'operation', desc: 'Operation to apply' }] },
+  { name: 'REDUCE', desc: 'Reduce range to single value', syntax: 'REDUCE(initial, range, operation)', params: [{ name: 'initial', desc: 'Initial accumulator value' }, { name: 'range', desc: 'Input range' }, { name: 'operation', desc: 'Operation (SUM, PRODUCT, MAX, MIN)' }] },
 ];
 
 // Fuzzy match: check if all chars of query appear in order in target

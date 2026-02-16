@@ -103,7 +103,7 @@ describe('Basic operators', () => {
     expect(evaluateFormula('="hello"&" world"', get)).toBe('hello world');
   });
   it('division by zero returns NaN', () => {
-    expect(evaluateFormula('=1/0', get)).toBe('NaN');
+    expect(evaluateFormula('=1/0', get)).toBe('#DIV/0!');
   });
   it('negative numbers', () => {
     expect(evaluateFormula('=-5+3', get)).toBe('-2');

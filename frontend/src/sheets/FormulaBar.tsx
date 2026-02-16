@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { FormulaRef } from './fillLogic';
 import { ALL_FUNCTIONS } from './CellAutocomplete';
 import type { FunctionInfo } from './CellAutocomplete';
+import { isArrayFormula } from './formulaEngine';
 
 interface FormulaBarProps {
   cellRef: string;
@@ -10,6 +11,8 @@ interface FormulaBarProps {
   onCommit: () => void;
   onCancel: () => void;
   formulaRefs?: FormulaRef[];
+  sheetNames?: string[];       // available sheet names for cross-sheet autocomplete
+  isArrayFormulaSrc?: boolean;  // whether this cell is an array formula source
 }
 
 // Parse the formula to find which function and parameter the cursor is inside
@@ -53,10 +56,14 @@ function getFunctionAtCursor(formula: string, cursorPos: number): { func: Functi
   return { func: funcInfo, paramIndex: commaCount };
 }
 
-export default function FormulaBar({ cellRef, value, onChange, onCommit, onCancel, formulaRefs }: FormulaBarProps) {
+export default function FormulaBar({ cellRef, value, onChange, onCommit, onCancel, formulaRefs, sheetNames, isArrayFormulaSrc }: FormulaBarProps) {
   const [showFunctions, setShowFunctions] = useState(false);
   const [cursorPos, setCursorPos] = useState(0);
+  const [sheetSuggestions, setSheetSuggestions] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Whether the current value is an array formula
+  const isArray = isArrayFormulaSrc || isArrayFormula(value);
 
   useEffect(() => {
     setShowFunctions(false);
@@ -72,9 +79,27 @@ export default function FormulaBar({ cellRef, value, onChange, onCommit, onCance
     }
   };
 
+  // Check for cross-sheet reference autocomplete
+  const checkSheetAutocomplete = useCallback((val: string, pos: number) => {
+    if (!sheetNames || sheetNames.length === 0) { setSheetSuggestions([]); return; }
+    // Look backwards from cursor for a partial sheet name (after = or operator)
+    const before = val.slice(0, pos);
+    // Match partial word that could be a sheet name (after =, +, -, *, /, (, ,)
+    const match = before.match(/(?:^=|[+\-*/,(])([A-Za-z0-9_ ]{1,50})$/);
+    if (match) {
+      const partial = match[1].toLowerCase();
+      const matches = sheetNames.filter(s => s.toLowerCase().startsWith(partial) && s.toLowerCase() !== partial);
+      setSheetSuggestions(matches.slice(0, 5));
+    } else {
+      setSheetSuggestions([]);
+    }
+  }, [sheetNames]);
+
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);
-    setCursorPos(e.target.selectionStart ?? 0);
+    const pos = e.target.selectionStart ?? 0;
+    setCursorPos(pos);
+    checkSheetAutocomplete(e.target.value, pos);
   };
 
   const handleSelect = () => {
@@ -84,8 +109,27 @@ export default function FormulaBar({ cellRef, value, onChange, onCommit, onCance
   const insertFunction = (fname: string) => {
     onChange(`=${fname}(`);
     setShowFunctions(false);
+    setSheetSuggestions([]);
     inputRef.current?.focus();
   };
+
+  const insertSheetRef = (sheetName: string) => {
+    const before = value.slice(0, cursorPos);
+    const match = before.match(/(?:^=|[+\-*/,(])([A-Za-z0-9_ ]{1,50})$/);
+    if (match) {
+      const start = cursorPos - match[1].length;
+      const prefix = sheetName.includes(' ') ? `'${sheetName}'!` : `${sheetName}!`;
+      const newVal = value.slice(0, start) + prefix + value.slice(cursorPos);
+      onChange(newVal);
+    }
+    setSheetSuggestions([]);
+    inputRef.current?.focus();
+  };
+
+  // Display value — show {} braces for array formulas
+  const displayValue = isArray && value.startsWith('=') && !value.startsWith('{=')
+    ? `{${value}}`
+    : value;
 
   // Function signature tooltip
   const signatureInfo = useMemo(() => {
@@ -131,11 +175,29 @@ export default function FormulaBar({ cellRef, value, onChange, onCommit, onCance
       >
         <em>f</em>x
       </button>
+      {isArray && (
+        <span
+          className="formula-array-badge"
+          title="Array formula — results spill across multiple cells"
+          style={{
+            padding: '1px 5px',
+            fontSize: 10,
+            fontWeight: 700,
+            color: '#1a73e8',
+            background: '#e3f2fd',
+            borderRadius: 3,
+            marginRight: 4,
+            userSelect: 'none',
+          }}
+        >
+          {'{…}'}
+        </span>
+      )}
       <div className="formula-input-wrapper" style={{ position: 'relative', flex: 1 }}>
         <input
           ref={inputRef}
           className="formula-input"
-          value={value}
+          value={displayValue}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
           onSelect={handleSelect}
@@ -163,6 +225,44 @@ export default function FormulaBar({ cellRef, value, onChange, onCommit, onCance
             }}
           >
             {coloredFormula}
+          </div>
+        )}
+
+        {/* Cross-sheet reference autocomplete */}
+        {sheetSuggestions.length > 0 && (
+          <div
+            className="sheet-ref-suggestions"
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              marginTop: 2,
+              background: '#fff',
+              border: '1px solid #ccc',
+              borderRadius: 4,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              zIndex: 1300,
+              minWidth: 150,
+              maxHeight: 150,
+              overflowY: 'auto',
+            }}
+          >
+            {sheetSuggestions.map(name => (
+              <div
+                key={name}
+                className="sheet-ref-item"
+                onClick={() => insertSheetRef(name)}
+                style={{
+                  padding: '4px 10px',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#e3f2fd')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                📄 {name}!
+              </div>
+            ))}
           </div>
         )}
 
