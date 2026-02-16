@@ -401,6 +401,11 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
         canRedo={undoRef.current.canRedo()}
         onUndo={() => { undoRef.current.undo(workbook); recalcAll(sheet, graphRef.current); setWorkbook({ ...workbook }); }}
         onRedo={() => { undoRef.current.redo(workbook); recalcAll(sheet, graphRef.current); setWorkbook({ ...workbook }); }}
+        onInsertChart={() => {}}
+        filtersEnabled={false}
+        onToggleFilters={() => {}}
+        freeze={{ rows: 0, cols: 0 }}
+        onFreezeChange={() => {}}
       />
       <FormulaBar
         cellRef={cellId(activeCell.col, activeCell.row)}
