@@ -12,6 +12,7 @@ import SlideshowView from './SlideshowView';
 import { openPresenterWindow } from './PresenterView';
 import { TEMPLATES, createFromTemplate } from './slideTemplates';
 import type { ShapeType } from './ShapeTools';
+import { exportSlidesPDF, exportSlidesHTML } from './slideIO';
 import './slides-styles.css';
 
 interface Props {
@@ -151,6 +152,18 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath }:
     handleContentChange(currentSlide.content + `\n${wrapper}text${wrapper}`);
   }, [currentSlide, handleContentChange]);
 
+  const handleExportPDF = useCallback(() => exportSlidesPDF(), []);
+  const handleExportHTML = useCallback(() => {
+    const html = exportSlidesHTML(pres.slides, theme);
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${pres.meta.title || 'presentation'}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [pres, theme]);
+
   // @ts-ignore
   const startPresentation = useCallback(() => setSlideshow(true), []);
   const openPresenter = useCallback(() => {
@@ -182,6 +195,8 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath }:
         onInsertFragment={handleInsertFragment}
         onPreviewAnimation={handlePreviewAnimation}
         onNewFromTemplate={handleNewFromTemplate}
+        onExportPDF={handleExportPDF}
+        onExportHTML={handleExportHTML}
       />
 
       <div className="slides-main">

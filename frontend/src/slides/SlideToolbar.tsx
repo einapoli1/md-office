@@ -24,6 +24,8 @@ interface Props {
   onInsertFragment: (type: FragmentType) => void;
   onPreviewAnimation: () => void;
   onNewFromTemplate: (templateId: string) => void;
+  onExportPDF?: () => void;
+  onExportHTML?: () => void;
 }
 
 export default function SlideToolbar({
@@ -33,6 +35,7 @@ export default function SlideToolbar({
   onShapeToolSelect, activeShapeTool,
   onInsertFragment, onPreviewAnimation,
   onNewFromTemplate,
+  onExportPDF, onExportHTML,
 }: Props) {
   const [templateOpen, setTemplateOpen] = useState(false);
 
@@ -113,6 +116,8 @@ export default function SlideToolbar({
         </div>
 
         <button className="toolbar-btn present-btn" onClick={onPresent} title="Present">▶ Present</button>
+        <button className="toolbar-btn" onClick={onExportPDF} title="Export PDF (Print)">🖨 PDF</button>
+        <button className="toolbar-btn" onClick={onExportHTML} title="Export standalone HTML">💾 HTML</button>
       </div>
     </div>
   );

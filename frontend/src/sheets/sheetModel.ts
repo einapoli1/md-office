@@ -2,6 +2,7 @@
 
 import { CellFormat } from './cellFormat';
 import { MergeRange } from './cellFormat';
+import type { ConditionalRule, ValidationRule } from './conditionalEval';
 import { DependencyGraph, extractRefs, evaluateFormula, cellId, parseCellRef, indexToCol } from './formulaEngine';
 
 export interface CellData {
@@ -49,6 +50,8 @@ export interface SheetData {
   filtersEnabled: boolean;
   freeze: FreezePanes;
   sortState?: { col: number; ascending: boolean };
+  conditionalFormats: ConditionalRule[];
+  validationRules: ValidationRule[];
 }
 
 export interface WorkbookData {
@@ -67,7 +70,7 @@ const DEFAULT_COL_WIDTH = 100;
 const DEFAULT_ROW_HEIGHT = 28;
 
 export function createEmptySheet(name: string): SheetData {
-  return { name, cells: {}, merges: [], colWidths: {}, rowHeights: {}, charts: [], filters: [], filtersEnabled: false, freeze: { rows: 0, cols: 0 } };
+  return { name, cells: {}, merges: [], colWidths: {}, rowHeights: {}, charts: [], filters: [], filtersEnabled: false, freeze: { rows: 0, cols: 0 }, conditionalFormats: [], validationRules: [] };
 }
 
 export function createWorkbook(): WorkbookData {

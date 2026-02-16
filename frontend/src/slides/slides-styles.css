@@ -467,3 +467,17 @@ body.dark .slide-notes-input { background: transparent; color: #ddd; }
 body.dark .thumb-context-menu { background: #333; border-color: #444; }
 body.dark .thumb-context-menu button { color: #ddd; }
 body.dark .thumb-context-menu button:hover { background: #444; }
+
+/* Print styles: one slide per page */
+@media print {
+  body * { visibility: hidden !important; }
+  .slide-canvas-wrapper, .slide-canvas-wrapper * { visibility: visible !important; }
+  .slide-canvas-wrapper {
+    position: absolute !important; left: 0 !important; top: 0 !important;
+    width: 100vw !important; height: 100vh !important;
+    page-break-after: always;
+  }
+  .slides-editor .slide-toolbar,
+  .slides-editor .slide-thumbnails,
+  .slides-editor .slide-notes-area { display: none !important; }
+}

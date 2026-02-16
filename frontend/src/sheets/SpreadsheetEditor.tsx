@@ -7,6 +7,7 @@ import FormulaBar from './FormulaBar';
 import SheetToolbar from './SheetToolbar';
 import SheetTabs from './SheetTabs';
 import { SheetChartOverlay, InsertChartDialog } from './SheetChart';
+import { exportCSV, importCSV, exportXLSX, importXLSX, downloadBlob, downloadString } from './sheetIO';
 import './sheets-styles.css';
 
 const NUM_COLS = 26;
@@ -558,6 +559,43 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
     setWorkbook({ ...workbook });
   }, [sheet, workbook]);
 
+  // Import/Export handlers
+  const handleImportCSV = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const csv = reader.result as string;
+      const imported = importCSV(csv);
+      imported.name = file.name.replace(/\.csv$/i, '') || 'Imported';
+      workbook.sheets.push(imported);
+      workbook.activeSheet = workbook.sheets.length - 1;
+      graphRef.current = buildDependencyGraph(imported);
+      recalcAll(imported, graphRef.current);
+      setWorkbook({ ...workbook });
+    };
+    reader.readAsText(file);
+  }, [workbook]);
+
+  const handleImportXLSX = useCallback(async (file: File) => {
+    const sheets = await importXLSX(file);
+    for (const s of sheets) {
+      workbook.sheets.push(s);
+    }
+    workbook.activeSheet = workbook.sheets.length - sheets.length;
+    graphRef.current = buildDependencyGraph(workbook.sheets[workbook.activeSheet]);
+    recalcAll(workbook.sheets[workbook.activeSheet], graphRef.current);
+    setWorkbook({ ...workbook });
+  }, [workbook]);
+
+  const handleExportCSV = useCallback(() => {
+    const csv = exportCSV(sheet);
+    downloadString(csv, `${sheet.name || 'sheet'}.csv`, 'text/csv');
+  }, [sheet]);
+
+  const handleExportXLSX = useCallback(() => {
+    const blob = exportXLSX(workbook.sheets);
+    downloadBlob(blob, 'spreadsheet.xlsx');
+  }, [workbook.sheets]);
+
   // Freeze pane styles
   const freezeRowPx = sheet.freeze.rows * 28;
   const freezeColPx = useMemo(() => {
@@ -581,6 +619,10 @@ export default function SpreadsheetEditor({ initialData, onSave }: SpreadsheetEd
         onToggleFilters={handleToggleFilters}
         freeze={sheet.freeze}
         onFreezeChange={handleFreezeChange}
+        onImportCSV={handleImportCSV}
+        onImportXLSX={handleImportXLSX}
+        onExportCSV={handleExportCSV}
+        onExportXLSX={handleExportXLSX}
       />
       <FormulaBar
         cellRef={cellId(activeCell.col, activeCell.row)}

@@ -1,3 +1,4 @@
+import { useState, useRef } from 'react';
 import { CellFormat, NumberFormat, TextAlign } from './cellFormat';
 import { FreezePanes } from './sheetModel';
 
@@ -14,11 +15,47 @@ interface SheetToolbarProps {
   onToggleFilters: () => void;
   freeze: FreezePanes;
   onFreezeChange: (freeze: FreezePanes) => void;
+  onImportCSV?: (file: File) => void;
+  onImportXLSX?: (file: File) => void;
+  onExportCSV?: () => void;
+  onExportXLSX?: () => void;
+  onConditionalFormat?: () => void;
+  onDataValidation?: () => void;
 }
 
-export default function SheetToolbar({ format, onFormatChange, onMergeCells, canUndo, canRedo, onUndo, onRedo, onInsertChart, filtersEnabled, onToggleFilters, freeze, onFreezeChange }: SheetToolbarProps) {
+export default function SheetToolbar({ format, onFormatChange, onMergeCells, canUndo, canRedo, onUndo, onRedo, onInsertChart, filtersEnabled, onToggleFilters, freeze, onFreezeChange, onImportCSV, onImportXLSX, onExportCSV, onExportXLSX, onConditionalFormat, onDataValidation }: SheetToolbarProps) {
+  const [fileMenuOpen, setFileMenuOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importMode, setImportMode] = useState<'csv' | 'xlsx'>('csv');
   return (
     <div className="sheet-toolbar">
+      {/* File menu */}
+      <div style={{ position: 'relative' }}>
+        <button className="sheet-tb-btn" onClick={() => setFileMenuOpen(!fileMenuOpen)} title="File">📁</button>
+        {fileMenuOpen && (
+          <div style={{ position: 'absolute', top: '100%', left: 0, background: '#fff', border: '1px solid #ccc', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 1000, padding: '4px 0', minWidth: 180, whiteSpace: 'nowrap' }} onClick={() => setFileMenuOpen(false)}>
+            <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={() => { setImportMode('csv'); fileInputRef.current!.accept = '.csv'; fileInputRef.current!.click(); }}>📥 Import CSV</div>
+            <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={() => { setImportMode('xlsx'); fileInputRef.current!.accept = '.xlsx,.xls'; fileInputRef.current!.click(); }}>📥 Import XLSX</div>
+            <div style={{ borderTop: '1px solid #eee', margin: '4px 0' }} />
+            <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={() => onExportCSV?.()}>📤 Download as CSV</div>
+            <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={() => onExportXLSX?.()}>📤 Download as XLSX</div>
+          </div>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          style={{ display: 'none' }}
+          onChange={e => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            if (importMode === 'csv') onImportCSV?.(file);
+            else onImportXLSX?.(file);
+            e.target.value = '';
+          }}
+        />
+      </div>
+      <span className="sheet-tb-sep" />
+
       {/* Undo/Redo */}
       <button className="sheet-tb-btn" disabled={!canUndo} onClick={onUndo} title="Undo">↶</button>
       <button className="sheet-tb-btn" disabled={!canRedo} onClick={onRedo} title="Redo">↷</button>
@@ -133,6 +170,11 @@ export default function SheetToolbar({ format, onFormatChange, onMergeCells, can
         <option value="col1">Freeze first column</option>
         {(freeze.rows > 1 || freeze.cols > 1 || (freeze.rows > 0 && freeze.cols > 0)) && <option value="custom">Custom freeze</option>}
       </select>
+      <span className="sheet-tb-sep" />
+
+      {/* Conditional formatting & Data validation */}
+      {onConditionalFormat && <button className="sheet-tb-btn" onClick={onConditionalFormat} title="Conditional formatting">🎨</button>}
+      {onDataValidation && <button className="sheet-tb-btn" onClick={onDataValidation} title="Data validation">✓</button>}
     </div>
   );
 }
