@@ -873,6 +873,10 @@ function App() {
         e.preventDefault();
         setShowReadingMode(prev => !prev);
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowCommandPalette(prev => !prev);
+      }
     };
     const handleEvent = (e: Event) => {
       const { replace } = (e as CustomEvent).detail || {};
@@ -1111,7 +1115,7 @@ function App() {
   // Register commands and shortcuts
   useEffect(() => {
     // Command palette & shortcuts overlay
-    commandRegistry.registerCommand('command-palette.open', 'Command Palette', 'General', () => setShowCommandPalette(true), '⌘⇧P');
+    commandRegistry.registerCommand('command-palette.open', 'Command Palette', 'General', () => setShowCommandPalette(true), '⌘K');
     commandRegistry.registerCommand('shortcuts.show', 'Keyboard Shortcuts', 'General', () => setShowShortcutOverlay(true), '⌘/');
 
     // File commands
@@ -1193,13 +1197,123 @@ function App() {
       window.dispatchEvent(new CustomEvent('sheets-select-row'));
     }, 'Shift+Space', undefined, ['sheets']);
 
+    // Sheets additional
+    commandRegistry.registerCommand('sheets.sortAZ', 'Sort A→Z', 'Sheets', () => {
+      window.dispatchEvent(new CustomEvent('sheets-sort-az'));
+    }, undefined, undefined, ['sheets']);
+    commandRegistry.registerCommand('sheets.sortZA', 'Sort Z→A', 'Sheets', () => {
+      window.dispatchEvent(new CustomEvent('sheets-sort-za'));
+    }, undefined, undefined, ['sheets']);
+    commandRegistry.registerCommand('sheets.insertChart', 'Insert Chart', 'Sheets', () => {
+      window.dispatchEvent(new CustomEvent('sheets-insert-chart'));
+    }, undefined, undefined, ['sheets']);
+    commandRegistry.registerCommand('sheets.filter', 'Toggle Filter', 'Sheets', () => {
+      window.dispatchEvent(new CustomEvent('sheets-filter-toggle'));
+    }, undefined, undefined, ['sheets']);
+    commandRegistry.registerCommand('sheets.mergeCells', 'Merge Cells', 'Sheets', () => {
+      window.dispatchEvent(new CustomEvent('sheets-merge-cells'));
+    }, undefined, undefined, ['sheets']);
+    commandRegistry.registerCommand('sheets.freezeRow', 'Freeze Row', 'Sheets', () => {
+      window.dispatchEvent(new CustomEvent('sheets-freeze-row'));
+    }, undefined, undefined, ['sheets']);
+    commandRegistry.registerCommand('sheets.formatCurrency', 'Format as Currency', 'Sheets', () => {
+      window.dispatchEvent(new CustomEvent('sheets-format-currency'));
+    }, undefined, undefined, ['sheets']);
+    commandRegistry.registerCommand('sheets.formatPercent', 'Format as Percent', 'Sheets', () => {
+      window.dispatchEvent(new CustomEvent('sheets-format-percent'));
+    }, undefined, undefined, ['sheets']);
+    commandRegistry.registerCommand('sheets.conditionalFormat', 'Conditional Formatting', 'Sheets', () => {
+      window.dispatchEvent(new CustomEvent('sheets-conditional-format'));
+    }, undefined, undefined, ['sheets']);
+    commandRegistry.registerCommand('sheets.pivotTable', 'Insert Pivot Table', 'Sheets', () => {
+      window.dispatchEvent(new CustomEvent('sheets-pivot-table'));
+    }, undefined, undefined, ['sheets']);
+
     // Slides-specific
     commandRegistry.registerCommand('slides.present', 'Start Slideshow', 'Slides', () => {
       window.dispatchEvent(new CustomEvent('slide-present'));
     }, '⌘Enter', undefined, ['slides']);
+    commandRegistry.registerCommand('slides.newSlide', 'New Slide', 'Slides', () => {
+      window.dispatchEvent(new CustomEvent('slides-new-slide'));
+    }, undefined, undefined, ['slides']);
+    commandRegistry.registerCommand('slides.duplicateSlide', 'Duplicate Slide', 'Slides', () => {
+      window.dispatchEvent(new CustomEvent('slides-duplicate'));
+    }, undefined, undefined, ['slides']);
+    commandRegistry.registerCommand('slides.transition', 'Slide Transition', 'Slides', () => {
+      window.dispatchEvent(new CustomEvent('slides-transition'));
+    }, undefined, undefined, ['slides']);
+    commandRegistry.registerCommand('slides.layout', 'Change Layout', 'Slides', () => {
+      window.dispatchEvent(new CustomEvent('slides-layout'));
+    }, undefined, undefined, ['slides']);
+    commandRegistry.registerCommand('slides.speakerNotes', 'Speaker Notes', 'Slides', () => {
+      window.dispatchEvent(new CustomEvent('slides-notes-toggle'));
+    }, undefined, undefined, ['slides']);
+    commandRegistry.registerCommand('slides.insertShape', 'Insert Shape', 'Slides', () => {
+      window.dispatchEvent(new CustomEvent('slides-insert-shape'));
+    }, undefined, undefined, ['slides']);
+
+    // Additional Tools
+    commandRegistry.registerCommand('tools.snippets', 'Snippet Manager', 'Tools', () => setShowSnippetManager(true));
+    commandRegistry.registerCommand('tools.themeCustomizer', 'Theme Customizer', 'Tools', () => {
+      window.dispatchEvent(new CustomEvent('theme-customizer-toggle'));
+    });
+    commandRegistry.registerCommand('tools.plugins', 'Plugin Manager', 'Tools', () => setShowPluginManager(true));
+    commandRegistry.registerCommand('tools.citations', 'Citation Manager', 'Tools', () => setShowCitationPicker(true));
+
+    // Additional Insert commands
+    commandRegistry.registerCommand('insert.image', 'Insert Image', 'Insert', () => {
+      window.dispatchEvent(new CustomEvent('insert-image'));
+    }, undefined, undefined, ['docs']);
+    commandRegistry.registerCommand('insert.table', 'Insert Table', 'Insert', () => {
+      editorRef?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+    }, undefined, undefined, ['docs']);
+    commandRegistry.registerCommand('insert.horizontalRule', 'Horizontal Rule', 'Insert', () => {
+      editorRef?.chain().focus().setHorizontalRule().run();
+    }, undefined, undefined, ['docs']);
+    commandRegistry.registerCommand('insert.codeBlock', 'Code Block', 'Insert', () => {
+      editorRef?.chain().focus().toggleCodeBlock().run();
+    }, '⌘⇧`', undefined, ['docs']);
+    commandRegistry.registerCommand('insert.blockquote', 'Block Quote', 'Insert', () => {
+      editorRef?.chain().focus().toggleBlockquote().run();
+    }, undefined, undefined, ['docs']);
+    commandRegistry.registerCommand('insert.comment', 'Insert Comment', 'Insert', () => {
+      window.dispatchEvent(new CustomEvent('insert-comment'));
+    }, undefined, undefined, ['docs']);
+
+    // Additional Format commands
+    commandRegistry.registerCommand('format.superscript', 'Superscript', 'Format', () => {
+      editorRef?.chain().focus().toggleSuperscript().run();
+    }, '⌘.', undefined, ['docs']);
+    commandRegistry.registerCommand('format.subscript', 'Subscript', 'Format', () => {
+      editorRef?.chain().focus().toggleSubscript().run();
+    }, '⌘,', undefined, ['docs']);
+    commandRegistry.registerCommand('format.highlight', 'Highlight', 'Format', () => {
+      editorRef?.chain().focus().toggleHighlight().run();
+    }, undefined, undefined, ['docs']);
+    commandRegistry.registerCommand('format.increaseIndent', 'Increase Indent', 'Format', () => {
+      editorRef?.commands.sinkListItem('listItem');
+    }, 'Tab', undefined, ['docs']);
+    commandRegistry.registerCommand('format.decreaseIndent', 'Decrease Indent', 'Format', () => {
+      editorRef?.commands.liftListItem('listItem');
+    }, '⇧Tab', undefined, ['docs']);
+
+    // Additional View commands
+    commandRegistry.registerCommand('view.zoomIn', 'Zoom In', 'View', () => {
+      document.documentElement.style.fontSize = `${(parseFloat(getComputedStyle(document.documentElement).fontSize) + 1)}px`;
+    }, '⌘+');
+    commandRegistry.registerCommand('view.zoomOut', 'Zoom Out', 'View', () => {
+      document.documentElement.style.fontSize = `${Math.max(10, parseFloat(getComputedStyle(document.documentElement).fontSize) - 1)}px`;
+    }, '⌘-');
+    commandRegistry.registerCommand('view.zoomReset', 'Reset Zoom', 'View', () => {
+      document.documentElement.style.fontSize = '';
+    }, '⌘0');
+    commandRegistry.registerCommand('view.fullscreen', 'Toggle Fullscreen', 'View', () => {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }, 'F11');
 
     // Register shortcut bindings
-    shortcutManager.registerBinding({ commandId: 'command-palette.open', keys: 'Cmd+Shift+P' });
+    shortcutManager.registerBinding({ commandId: 'command-palette.open', keys: 'Cmd+K' });
     shortcutManager.registerBinding({ commandId: 'shortcuts.show', keys: 'Cmd+/' });
 
     commandRegistry.loadUsageStats();
