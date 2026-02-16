@@ -1,6 +1,6 @@
 // Fill logic for drag-fill (auto-complete) in spreadsheet
 
-import { parseCellRef, indexToCol } from './formulaEngine';
+import { indexToCol } from './formulaEngine';
 
 export type PatternType = 'number' | 'date' | 'formula' | 'copy';
 
@@ -58,7 +58,7 @@ export function detectPattern(cells: string[]): Pattern {
       return { type: 'number', values: cells, increment: 1 };
     }
     // Detect constant increment
-    const increments = [];
+    const increments: number[] = [];
     for (let i = 1; i < nums.length; i++) {
       increments.push(nums[i] - nums[i - 1]);
     }

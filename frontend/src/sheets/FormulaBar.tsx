@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { parseFormulaRefs, FormulaRef } from './fillLogic';
+import type { FormulaRef } from './fillLogic';
 
 interface FormulaBarProps {
   cellRef: string;
