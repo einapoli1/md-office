@@ -87,6 +87,10 @@ import WritingPrompts from './components/WritingPrompts';
 import DocumentMap from './components/DocumentMap';
 import SnippetManager from './components/SnippetManager';
 import { HeaderFooterEditor, HeaderFooterContent, defaultContent as defaultHFContent } from './components/HeaderFooter';
+import ReviewPanel from './components/ReviewPanel';
+import DocumentCompare from './components/DocumentCompare';
+import RedlineView from './components/RedlineView';
+import ApprovalWorkflow from './components/ApprovalWorkflow';
 import './comments-styles.css';
 
 function App() {
@@ -182,6 +186,15 @@ function App() {
   const [showDocumentMap, setShowDocumentMap] = useState(false);
   const [showSnippetManager, setShowSnippetManager] = useState(false);
   const [showPluginManager, setShowPluginManager] = useState(false);
+  const [showReviewPanel, setShowReviewPanel] = useState(false);
+  const [showDocumentCompare, setShowDocumentCompare] = useState(false);
+  const [showRedlineView, setShowRedlineView] = useState(false);
+  const [showApprovalWorkflow, setShowApprovalWorkflow] = useState(false);
+  const [approvalState, setApprovalState] = useState<import('./components/ApprovalWorkflow').ApprovalState>({
+    status: 'draft', approvers: [], signOffLog: [],
+  });
+  const [trackedChanges, setTrackedChanges] = useState<import('./components/ReviewPanel').TrackedChange[]>([]);
+  const [redlineChanges, setRedlineChanges] = useState<import('./components/RedlineView').RedlineChange[]>([]);
   const { recording: macroRecording, startRecording: startMacroRecording, stopRecording: stopMacroRecording } = useMacroRecorder();
   const [vhCommits, setVhCommits] = useState<import('./types').GitCommit[]>([]);
   const [vhSelectedCommit, setVhSelectedCommit] = useState<import('./types').GitCommit | null>(null);
@@ -976,6 +989,14 @@ function App() {
     window.addEventListener('snippet-manager-toggle', handleSnippetManager);
     const handlePluginManager = () => setShowPluginManager(prev => !prev);
     window.addEventListener('plugin-manager-toggle', handlePluginManager);
+    const handleReviewPanel = () => setShowReviewPanel(prev => !prev);
+    const handleCompareOpen = () => setShowDocumentCompare(true);
+    const handleRedlineView = () => setShowRedlineView(true);
+    const handleApprovalWorkflow = () => setShowApprovalWorkflow(true);
+    window.addEventListener('review-panel-toggle', handleReviewPanel);
+    window.addEventListener('compare-open', handleCompareOpen);
+    window.addEventListener('redline-view-open', handleRedlineView);
+    window.addEventListener('approval-workflow-open', handleApprovalWorkflow);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('find-replace-open', handleEvent);
@@ -1012,6 +1033,10 @@ function App() {
       window.removeEventListener('envelopes-labels-open', handleEnvelopesLabels);
       window.removeEventListener('page-number-dialog-open', handlePageNumberDialog);
       window.removeEventListener('document-protection-open', handleDocProtection);
+      window.removeEventListener('review-panel-toggle', handleReviewPanel);
+      window.removeEventListener('compare-open', handleCompareOpen);
+      window.removeEventListener('redline-view-open', handleRedlineView);
+      window.removeEventListener('approval-workflow-open', handleApprovalWorkflow);
     };
   }, []);
 
@@ -1115,6 +1140,9 @@ function App() {
     commandRegistry.registerCommand('view.wordCount', 'Word Count', 'View', () => setShowWordCount(true));
     commandRegistry.registerCommand('view.documentStats', 'Document Statistics', 'View', () => setShowDocStats(v => !v));
     commandRegistry.registerCommand('view.pageless', 'Toggle Pageless Mode', 'View', () => setPageless(v => !v));
+    commandRegistry.registerCommand('view.reviewPanel', 'Review Panel', 'View', () => setShowReviewPanel(v => !v));
+    commandRegistry.registerCommand('view.redlineView', 'Redline View', 'View', () => setShowRedlineView(true));
+    commandRegistry.registerCommand('file.requestApproval', 'Request Approval', 'File', () => setShowApprovalWorkflow(true));
 
     // Format commands (docs)
     commandRegistry.registerCommand('format.bold', 'Bold', 'Format', () => editorRef?.chain().focus().toggleBold().run(), '⌘B', undefined, ['docs']);
@@ -1371,6 +1399,54 @@ function App() {
           <SuggestionsSidebar
             editor={editorRef}
             onClose={() => setShowSuggestions(false)}
+          />
+        )}
+
+        {showReviewPanel && (
+          <ReviewPanel
+            comments={comments}
+            suggestions={[]}
+            changes={trackedChanges}
+            onResolveComment={handleResolveComment}
+            onAcceptSuggestion={() => {}}
+            onRejectSuggestion={() => {}}
+            onAcceptChange={(id) => setTrackedChanges(prev => prev.map(c => c.id === id ? { ...c, accepted: true } : c))}
+            onRejectChange={(id) => setTrackedChanges(prev => prev.map(c => c.id === id ? { ...c, accepted: false } : c))}
+            onNavigateToItem={() => {}}
+            onClose={() => setShowReviewPanel(false)}
+          />
+        )}
+
+        {showDocumentCompare && (
+          <DocumentCompare
+            commits={vhCommits}
+            currentContent={content}
+            onFetchVersion={async (sha) => {
+              if (!activeFile) return '';
+              try {
+                const resp = await gitAPI.getFileAtCommit(sha, activeFile.path);
+                return typeof resp === 'string' ? resp : '';
+              } catch { return ''; }
+            }}
+            onApplyMerged={(merged) => { setContent(merged); setShowDocumentCompare(false); }}
+            onClose={() => setShowDocumentCompare(false)}
+          />
+        )}
+
+        {showRedlineView && (
+          <RedlineView
+            documentContent={content}
+            changes={redlineChanges}
+            onAcceptAll={() => setRedlineChanges([])}
+            onClose={() => setShowRedlineView(false)}
+          />
+        )}
+
+        {showApprovalWorkflow && (
+          <ApprovalWorkflow
+            state={approvalState}
+            onUpdateState={setApprovalState}
+            onClose={() => setShowApprovalWorkflow(false)}
           />
         )}
 

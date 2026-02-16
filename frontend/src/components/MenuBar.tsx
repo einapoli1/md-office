@@ -139,6 +139,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
         window.dispatchEvent(new CustomEvent('cover-page-open'));
       }},
       { label: 'Preferences', action: onShowPreferences, shortcut: '⌘,' },
+      { label: 'Request Approval', action: () => {
+        window.dispatchEvent(new CustomEvent('approval-workflow-open'));
+      }},
       { label: 'divider' },
       { label: 'Share', action: () => {
         const url = new URL(window.location.href);
@@ -199,6 +202,13 @@ const MenuBar: React.FC<MenuBarProps> = ({
       }},
       { label: 'Edit Activity', action: () => {
         window.dispatchEvent(new CustomEvent('edit-history-toggle'));
+      }},
+      { label: 'divider' },
+      { label: 'Review Panel', action: () => {
+        window.dispatchEvent(new CustomEvent('review-panel-toggle'));
+      }},
+      { label: 'Redline View', action: () => {
+        window.dispatchEvent(new CustomEvent('redline-view-open'));
       }},
     ],
     [t('menu.insert._label')]: [
