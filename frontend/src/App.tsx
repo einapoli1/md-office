@@ -78,6 +78,9 @@ const PageColumns = lazy(() => import('./components/PageColumns'));
 const CoverPage = lazy(() => import('./components/CoverPage'));
 const TableOfFigures = lazy(() => import('./components/TableOfFigures'));
 const PublishDialog = lazy(() => import('./components/PublishDialog'));
+const EnvelopesLabelsDialog = lazy(() => import('./components/EnvelopesLabelsDialog'));
+const PageNumberDialog = lazy(() => import('./components/PageNumberDialog'));
+const DocumentProtection = lazy(() => import('./components/DocumentProtection'));
 import _TableOfContents from './components/TableOfContents';
 import OutlineView from './components/OutlineView';
 import WritingPrompts from './components/WritingPrompts';
@@ -166,6 +169,11 @@ function App() {
   const [showCoverPage, setShowCoverPage] = useState(false);
   const [showTableOfFigures, setShowTableOfFigures] = useState(false);
   const [showPublish, setShowPublish] = useState(false);
+  const [showEnvelopes, setShowEnvelopes] = useState(false);
+  const [showPageNumbers, setShowPageNumbers] = useState(false);
+  const [showDocProtection, setShowDocProtection] = useState(false);
+  const [protectionLevel, setProtectionLevel] = useState<'none' | 'readonly' | 'comments' | 'formfill' | 'full'>('none');
+  const [isDocEncrypted, setIsDocEncrypted] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
   const [showFocusMode, setShowFocusMode] = useState(false);
   const [showReadingMode, setShowReadingMode] = useState(false);
@@ -954,6 +962,12 @@ function App() {
     window.addEventListener('cover-page-open', handleCoverPageOpen);
     window.addEventListener('table-of-figures-open', handleTableOfFiguresOpen);
     window.addEventListener('publish-open', handlePublishOpen);
+    const handleEnvelopesLabels = () => setShowEnvelopes(true);
+    const handlePageNumberDialog = () => setShowPageNumbers(true);
+    const handleDocProtection = () => setShowDocProtection(true);
+    window.addEventListener('envelopes-labels-open', handleEnvelopesLabels);
+    window.addEventListener('page-number-dialog-open', handlePageNumberDialog);
+    window.addEventListener('document-protection-open', handleDocProtection);
     const handleWritingAssistant = () => setShowWritingPrompts(prev => !prev);
     const handleDocumentMap = () => setShowDocumentMap(prev => !prev);
     const handleSnippetManager = () => setShowSnippetManager(prev => !prev);
@@ -995,6 +1009,9 @@ function App() {
       window.removeEventListener('document-map-toggle', handleDocumentMap);
       window.removeEventListener('snippet-manager-toggle', handleSnippetManager);
       window.removeEventListener('plugin-manager-toggle', handlePluginManager);
+      window.removeEventListener('envelopes-labels-open', handleEnvelopesLabels);
+      window.removeEventListener('page-number-dialog-open', handlePageNumberDialog);
+      window.removeEventListener('document-protection-open', handleDocProtection);
     };
   }, []);
 
@@ -1466,6 +1483,7 @@ function App() {
           currentBranch={currentBranchName}
           onBranchClick={() => setShowBranchManager(true)}
           onSave={handleAutoSave}
+          isProtected={protectionLevel !== 'none'}
         />
         <div style={{ position: 'fixed', bottom: 0, right: 8, zIndex: 100 }}>
           <LanguagePicker />
@@ -1522,6 +1540,37 @@ function App() {
       {showTableOfFigures && editorRef && (
         <Suspense fallback={null}>
           <TableOfFigures editor={editorRef} onClose={() => setShowTableOfFigures(false)} />
+        </Suspense>
+      )}
+
+      {/* Envelopes & Labels */}
+      {showEnvelopes && (
+        <Suspense fallback={null}>
+          <EnvelopesLabelsDialog onClose={() => setShowEnvelopes(false)} />
+        </Suspense>
+      )}
+
+      {/* Page Number Dialog */}
+      {showPageNumbers && (
+        <Suspense fallback={null}>
+          <PageNumberDialog onClose={() => setShowPageNumbers(false)} onApply={(settings) => {
+            console.log('Page number settings:', settings);
+          }} />
+        </Suspense>
+      )}
+
+      {/* Document Protection */}
+      {showDocProtection && (
+        <Suspense fallback={null}>
+          <DocumentProtection
+            currentLevel={protectionLevel}
+            isEncrypted={isDocEncrypted}
+            onClose={() => setShowDocProtection(false)}
+            onApply={(level, _password) => {
+              setProtectionLevel(level);
+              setIsDocEncrypted(!!_password);
+            }}
+          />
         </Suspense>
       )}
 

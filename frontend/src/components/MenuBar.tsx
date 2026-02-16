@@ -119,6 +119,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
         window.dispatchEvent(new CustomEvent('export-open'));
       }},
       { label: 'Print', action: onPrint, shortcut: '⌘P' },
+      { label: 'Envelopes & Labels', action: () => {
+        window.dispatchEvent(new CustomEvent('envelopes-labels-open'));
+      }},
       { label: 'Page setup', action: () => {
         window.dispatchEvent(new CustomEvent('page-setup-open'));
       }},
@@ -227,7 +230,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
       }},
       { label: 'divider' },
       { label: 'Page numbers', action: () => {
-        window.dispatchEvent(new CustomEvent('edit-header-footer', { detail: { type: 'footer' } }));
+        window.dispatchEvent(new CustomEvent('page-number-dialog-open'));
       }},
       { label: 'Header', action: () => {
         window.dispatchEvent(new CustomEvent('edit-header-footer', { detail: { type: 'header' } }));
@@ -422,6 +425,10 @@ const MenuBar: React.FC<MenuBarProps> = ({
       }},
       { label: 'Run Macro...', action: () => {
         window.dispatchEvent(new CustomEvent('macro-run-picker'));
+      }},
+      { label: 'divider' },
+      { label: 'Protect Document', action: () => {
+        window.dispatchEvent(new CustomEvent('document-protection-open'));
       }},
       { label: 'divider' },
       { label: t('menu.tools.accessibility'), action: onShowAccessibility },
