@@ -237,6 +237,13 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Watermark', action: () => {
         window.dispatchEvent(new CustomEvent('watermark-open'));
       }},
+      { label: 'divider' },
+      { label: 'Chart from Sheets', action: () => {
+        window.dispatchEvent(new CustomEvent('embed-picker-open', { detail: { type: 'chart' } }));
+      }},
+      { label: 'Table from Sheets', action: () => {
+        window.dispatchEvent(new CustomEvent('embed-picker-open', { detail: { type: 'range' } }));
+      }},
     ],
     Format: [
       { label: 'Bold', action: () => editor?.chain().focus().toggleBold().run(), shortcut: 'Ctrl+B' },
@@ -320,6 +327,13 @@ const MenuBar: React.FC<MenuBarProps> = ({
         { label: 'Change transition', action: () => window.dispatchEvent(new CustomEvent('slide-change-transition')) },
         { label: 'divider' },
         { label: 'Present', action: () => window.dispatchEvent(new CustomEvent('slide-present')), shortcut: '⌘⇧P' },
+        { label: 'divider' },
+        { label: 'Chart from Sheets', action: () => {
+          window.dispatchEvent(new CustomEvent('embed-picker-open', { detail: { type: 'chart' } }));
+        }},
+        { label: 'Table from Sheets', action: () => {
+          window.dispatchEvent(new CustomEvent('embed-picker-open', { detail: { type: 'range' } }));
+        }},
       ],
     }),
     Help: [
