@@ -2,6 +2,8 @@ import { useState, useRef, useCallback } from 'react';
 import { Slide } from './slideModel';
 import { SlideTheme } from './slideThemes';
 import SlideCanvas from './SlideCanvas';
+import { getInitials } from '../utils/collabColors';
+import type { RemoteSlideUser } from './slideCollab';
 
 interface Props {
   slides: Slide[];
@@ -12,9 +14,10 @@ interface Props {
   onAddSlide: (atIndex: number) => void;
   onDuplicateSlide: (index: number) => void;
   onDeleteSlide: (index: number) => void;
+  remoteUsers?: RemoteSlideUser[];
 }
 
-export default function SlideThumbnails({ slides, activeIndex, theme, onSelect, onReorder, onAddSlide, onDuplicateSlide, onDeleteSlide }: Props) {
+export default function SlideThumbnails({ slides, activeIndex, theme, onSelect, onReorder, onAddSlide, onDuplicateSlide, onDeleteSlide, remoteUsers = [] }: Props) {
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; idx: number } | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -31,25 +34,55 @@ export default function SlideThumbnails({ slides, activeIndex, theme, onSelect, 
     setCtxMenu({ x: e.clientX, y: e.clientY, idx });
   };
 
+  // Group remote users by slide index
+  const usersBySlide = new Map<number, RemoteSlideUser[]>();
+  for (const u of remoteUsers) {
+    const arr = usersBySlide.get(u.activeSlide) || [];
+    arr.push(u);
+    usersBySlide.set(u.activeSlide, arr);
+  }
+
   return (
     <div className="slide-thumbnails" ref={listRef} onClick={() => setCtxMenu(null)}>
-      {slides.map((slide, i) => (
-        <div
-          key={slide.id}
-          className={`slide-thumb ${i === activeIndex ? 'active' : ''} ${dragIdx === i ? 'dragging' : ''}`}
-          onClick={() => onSelect(i)}
-          draggable
-          onDragStart={() => handleDragStart(i)}
-          onDragOver={(e) => handleDragOver(e, i)}
-          onDrop={() => handleDrop(i)}
-          onContextMenu={(e) => handleContextMenu(e, i)}
-        >
-          <span className="thumb-number">{i + 1}</span>
-          <div className="thumb-preview">
-            <SlideCanvas slide={slide} theme={theme} scale={0.12} />
+      {slides.map((slide, i) => {
+        const usersOnSlide = usersBySlide.get(i) || [];
+        return (
+          <div
+            key={slide.id}
+            className={`slide-thumb ${i === activeIndex ? 'active' : ''} ${dragIdx === i ? 'dragging' : ''}`}
+            onClick={() => onSelect(i)}
+            draggable
+            onDragStart={() => handleDragStart(i)}
+            onDragOver={(e) => handleDragOver(e, i)}
+            onDrop={() => handleDrop(i)}
+            onContextMenu={(e) => handleContextMenu(e, i)}
+          >
+            <span className="thumb-number">{i + 1}</span>
+            <div className="thumb-preview">
+              <SlideCanvas slide={slide} theme={theme} scale={0.12} />
+            </div>
+            {usersOnSlide.length > 0 && (
+              <div className="thumb-collab-users">
+                {usersOnSlide.slice(0, 3).map(u => (
+                  <div
+                    key={u.clientId}
+                    className="thumb-collab-avatar"
+                    style={{ backgroundColor: u.color }}
+                    title={u.name}
+                  >
+                    {getInitials(u.name)}
+                  </div>
+                ))}
+                {usersOnSlide.length > 3 && (
+                  <div className="thumb-collab-avatar thumb-collab-overflow">
+                    +{usersOnSlide.length - 3}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
       <button className="thumb-add-btn" onClick={() => onAddSlide(slides.length)} title="Add slide">+</button>
 
       {ctxMenu && (
