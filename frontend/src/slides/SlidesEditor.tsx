@@ -39,6 +39,7 @@ import {
   type SlideCollabHandle, type RemoteSlideUser, type SlideMasterData,
 } from './slideCollab';
 import CollabPresence from '../components/CollabPresence';
+import { aiGenerateSlides, isAIConfigured } from '../lib/aiProvider';
 import './slides-styles.css';
 
 interface CollabConfig {
@@ -82,6 +83,9 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
   const [showPhotoAlbum, setShowPhotoAlbum] = useState(false);
   const [showSpeakerCoach, setShowSpeakerCoach] = useState(false);
   const [showQASession, setShowQASession] = useState(false);
+  const [showAIGenerate, setShowAIGenerate] = useState(false);
+  const [aiOutline, setAIOutline] = useState('');
+  const [aiGenerating, setAIGenerating] = useState(false);
   const [savedTimings, setSavedTimings] = useState<import('./RehearsalMode').SlideTimings | undefined>(undefined);
 
   const collabRef = useRef<SlideCollabHandle | null>(null);
@@ -553,6 +557,9 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
         <button className="btn-secondary btn-sm" onClick={() => setShowMasterEditor(true)}>
           Master Slides
         </button>
+        <button className="btn-secondary btn-sm" onClick={() => setShowAIGenerate(true)}>
+          ✨ AI Generate
+        </button>
         <button className={`btn-secondary btn-sm ${showComments ? 'btn-active' : ''}`} onClick={() => setShowComments(!showComments)}>
           💬 Comments
         </button>
@@ -718,6 +725,60 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
           currentSlideIndex={activeIdx}
           onClose={() => setShowQASession(false)}
         />
+      )}
+      {showAIGenerate && (
+        <div className="slide-modal-overlay" onClick={() => setShowAIGenerate(false)}>
+          <div className="slide-modal" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+            <h3>Generate Slides from Outline</h3>
+            <p style={{ fontSize: 13, color: '#aaa', margin: '8px 0' }}>
+              Paste bullet points or an outline below and AI will generate a slide deck.
+            </p>
+            <textarea
+              style={{ width: '100%', minHeight: 150, background: '#2d2d2d', color: '#eee', border: '1px solid #555', borderRadius: 4, padding: 8, fontSize: 13, resize: 'vertical' }}
+              placeholder={'- Introduction to our product\n- Key features\n  - Fast\n  - Reliable\n  - Affordable\n- Pricing\n- Q&A'}
+              value={aiOutline}
+              onChange={e => setAIOutline(e.target.value)}
+              disabled={aiGenerating}
+            />
+            {!isAIConfigured() && (
+              <div style={{ fontSize: 11, color: '#888', margin: '6px 0' }}>
+                ⚠️ Configure your AI API key in Docs → AI Assistant → Settings first.
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
+              <button className="btn-secondary" onClick={() => setShowAIGenerate(false)}>Cancel</button>
+              <button
+                className="btn-primary"
+                disabled={!aiOutline.trim() || aiGenerating || !isAIConfigured()}
+                onClick={async () => {
+                  setAIGenerating(true);
+                  try {
+                    const result = await aiGenerateSlides(aiOutline);
+                    const slides: Array<{ title: string; bullets: string[]; notes?: string }> = JSON.parse(result);
+                    const newPres = { ...pres };
+                    for (const s of slides) {
+                      const slide = createSlide('content');
+                      const bullets = s.bullets.map((b: string) => `- ${b}`).join('\n');
+                      slide.content = `# ${s.title}\n\n${bullets}`;
+                      if (s.notes) slide.notes = s.notes;
+                      newPres.slides.push(slide);
+                    }
+                    setPres(newPres);
+                    onChange(serializePresentation(newPres));
+                    setShowAIGenerate(false);
+                    setAIOutline('');
+                  } catch (err) {
+                    console.error('AI slide generation failed:', err);
+                    alert('Failed to generate slides. Check your AI settings and try again.');
+                  }
+                  setAIGenerating(false);
+                }}
+              >
+                {aiGenerating ? 'Generating...' : 'Generate Slides'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

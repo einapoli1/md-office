@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Sparkles, Send, Copy, ArrowDownToLine, Replace, Loader2 } from 'lucide-react';
+import { X, Sparkles, Send, Copy, ArrowDownToLine, Replace, Loader2, Settings } from 'lucide-react';
+import { aiComplete, loadAISettings, saveAISettings, isAIConfigured, AIProvider } from '../lib/aiProvider';
 
 interface AIAssistantProps {
   isOpen: boolean;
@@ -18,55 +19,87 @@ const QUICK_ACTIONS = [
   { label: 'Summarize', prompt: 'Summarize this text concisely', icon: '📝' },
   { label: 'Expand', prompt: 'Expand on this text with more detail', icon: '📖' },
   { label: 'Simplify', prompt: 'Simplify this text for easier reading', icon: '✨' },
-  { label: 'Fix grammar', prompt: 'Fix any grammar and spelling errors in this text', icon: '✅' },
+  { label: 'Fix grammar', prompt: 'Fix any grammar and spelling errors in this text. Return only the corrected text.', icon: '✅' },
   { label: 'Translate', prompt: 'Translate this text to Spanish', icon: '🌐' },
   { label: 'Formal tone', prompt: 'Rewrite this text in a formal, professional tone', icon: '👔' },
   { label: 'Casual tone', prompt: 'Rewrite this text in a casual, conversational tone', icon: '💬' },
   { label: 'Make shorter', prompt: 'Make this text shorter while keeping the key points', icon: '✂️' },
 ];
 
-/** Placeholder AI response generator — swap with real API later */
-async function getAIResponse(prompt: string, text: string, _apiEndpoint?: string): Promise<string> {
-  // Simulate network delay
-  await new Promise(r => setTimeout(r, 800 + Math.random() * 700));
+const DEFAULT_MODELS: Record<AIProvider, string[]> = {
+  openai: ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+  anthropic: ['claude-sonnet-4-20250514', 'claude-haiku-4-20250414', 'claude-3-5-sonnet-20241022'],
+};
 
-  const lower = prompt.toLowerCase();
-  if (lower.includes('summarize')) {
-    const words = text.split(/\s+/);
-    const shortened = words.slice(0, Math.max(10, Math.floor(words.length / 3))).join(' ');
-    return `**Summary:** ${shortened}${words.length > 10 ? '...' : ''}\n\n_(This is a placeholder summary. Connect to an AI backend for real results.)_`;
-  }
-  if (lower.includes('grammar') || lower.includes('fix')) {
-    return `${text}\n\n_(Placeholder: grammar check would be applied here. Connect to an AI backend for real results.)_`;
-  }
-  if (lower.includes('expand')) {
-    return `${text}\n\nAdditionally, this topic encompasses several important aspects that deserve further exploration.\n\n_(Placeholder expansion. Connect to an AI backend for real results.)_`;
-  }
-  if (lower.includes('simplify')) {
-    return `${text.split('.').slice(0, 2).join('. ')}.\n\n_(Placeholder simplification. Connect to an AI backend for real results.)_`;
-  }
-  if (lower.includes('translate')) {
-    return `_(Translation placeholder. Connect to an AI backend for real results.)_\n\nOriginal: ${text.slice(0, 100)}...`;
-  }
-  if (lower.includes('shorter') || lower.includes('concise')) {
-    const words = text.split(/\s+/);
-    return words.slice(0, Math.max(5, Math.floor(words.length / 2))).join(' ') + '.\n\n_(Placeholder. Connect to an AI backend for real results.)_';
-  }
-  if (lower.includes('formal')) {
-    return `I would like to bring to your attention the following: ${text.slice(0, 100)}...\n\n_(Placeholder formal rewrite. Connect to an AI backend for real results.)_`;
-  }
-  if (lower.includes('casual')) {
-    return `Hey! So basically: ${text.slice(0, 100)}...\n\n_(Placeholder casual rewrite. Connect to an AI backend for real results.)_`;
+async function getAIResponse(prompt: string, text: string): Promise<string> {
+  if (!isAIConfigured()) {
+    // Fallback: placeholder response
+    await new Promise(r => setTimeout(r, 500));
+    return `_(AI not configured. Add your API key in AI Settings to get real responses.)_\n\nPrompt: "${prompt}"\nText preview: "${text.slice(0, 100)}..."`;
   }
 
-  return `Here's a response to "${prompt}":\n\n${text.slice(0, 150)}...\n\n_(This is a placeholder response. Configure an AI backend endpoint for real results.)_`;
+  return aiComplete([
+    { role: 'system', content: 'You are a helpful writing assistant. Follow the user\'s instruction precisely. Return only the result text unless asked for an explanation.' },
+    { role: 'user', content: `${prompt}\n\nText:\n${text}` },
+  ]);
 }
+
+/* AI Settings Panel */
+const AISettingsPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const existing = loadAISettings();
+  const [provider, setProvider] = useState<AIProvider>(existing?.provider || 'openai');
+  const [apiKey, setApiKey] = useState(existing?.apiKey || '');
+  const [model, setModel] = useState(existing?.model || '');
+
+  const handleSave = () => {
+    saveAISettings({ provider, apiKey, model: model || DEFAULT_MODELS[provider][0] });
+    onClose();
+  };
+
+  return (
+    <div className="ai-settings-panel">
+      <div className="ai-settings-header">
+        <h4>AI Settings</h4>
+        <button onClick={onClose}><X size={16} /></button>
+      </div>
+      <div className="ai-settings-body">
+        <label>
+          Provider
+          <select value={provider} onChange={e => { setProvider(e.target.value as AIProvider); setModel(''); }}>
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+          </select>
+        </label>
+        <label>
+          API Key
+          <input
+            type="password"
+            value={apiKey}
+            onChange={e => setApiKey(e.target.value)}
+            placeholder={provider === 'openai' ? 'sk-...' : 'sk-ant-...'}
+          />
+          <small>Stored locally in your browser. Never sent to our servers.</small>
+        </label>
+        <label>
+          Model
+          <select value={model} onChange={e => setModel(e.target.value)}>
+            {DEFAULT_MODELS[provider].map(m => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+        </label>
+        <button className="ai-settings-save" onClick={handleSave}>Save Settings</button>
+      </div>
+    </div>
+  );
+};
 
 const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, editor }) => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -129,11 +162,11 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, editor }) =>
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, assistantMsg]);
-    } catch {
+    } catch (err: any) {
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Sorry, something went wrong. Please try again.',
+        content: `Error: ${err.message || 'Something went wrong. Please try again.'}`,
         timestamp: new Date(),
       }]);
     } finally {
@@ -143,7 +176,6 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, editor }) =>
 
   const handleInsert = () => {
     if (!lastResult || !editor) return;
-    // Clean markdown formatting for insertion
     const clean = lastResult.replace(/_(.*?)_/g, '$1').replace(/\*\*(.*?)\*\*/g, '$1');
     editor.chain().focus().insertContent(clean).run();
   };
@@ -169,6 +201,16 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, editor }) =>
 
   if (!isOpen) return null;
 
+  if (showSettings) {
+    return (
+      <div className="ai-assistant-panel">
+        <AISettingsPanel onClose={() => setShowSettings(false)} />
+      </div>
+    );
+  }
+
+  const configured = isAIConfigured();
+
   return (
     <div className="ai-assistant-panel">
       <div className="ai-assistant-header">
@@ -176,10 +218,22 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, editor }) =>
           <Sparkles size={18} />
           <span>AI Assistant</span>
         </div>
-        <button className="ai-assistant-close" onClick={onClose}>
-          <X size={18} />
-        </button>
+        <div style={{ display: 'flex', gap: '4px' }}>
+          <button className="ai-assistant-close" onClick={() => setShowSettings(true)} title="AI Settings">
+            <Settings size={16} />
+          </button>
+          <button className="ai-assistant-close" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
       </div>
+
+      {!configured && (
+        <div className="ai-settings-banner" onClick={() => setShowSettings(true)}>
+          <Settings size={14} />
+          <span>Add your API key for real AI responses</span>
+        </div>
+      )}
 
       <div className="ai-assistant-quick-actions">
         {QUICK_ACTIONS.map(action => (

@@ -26,6 +26,7 @@ interface MenuBarProps {
   onShareClick?: () => void;
   onVersionHistory?: () => void;
   onBranches?: () => void;
+  onConnectGit?: () => void;
   onCommitHistory?: () => void;
   appMode?: AppMode;
   onShowAbout?: () => void;
@@ -113,6 +114,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
       }},
       { label: 'Import Word document (.docx)', action: () => {
         window.dispatchEvent(new CustomEvent('import-docx'));
+      }},
+      { label: 'Import PDF (.pdf)', action: () => {
+        window.dispatchEvent(new CustomEvent('import-pdf'));
       }},
       { label: 'divider' },
       { label: 'Download', action: () => {

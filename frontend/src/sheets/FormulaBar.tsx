@@ -3,6 +3,7 @@ import type { FormulaRef } from './fillLogic';
 import { ALL_FUNCTIONS } from './CellAutocomplete';
 import type { FunctionInfo } from './CellAutocomplete';
 import { isArrayFormula } from './formulaEngine';
+import { aiFormulaSuggestion, isAIConfigured } from '../lib/aiProvider';
 
 interface FormulaBarProps {
   cellRef: string;
@@ -60,6 +61,9 @@ export default function FormulaBar({ cellRef, value, onChange, onCommit, onCance
   const [showFunctions, setShowFunctions] = useState(false);
   const [cursorPos, setCursorPos] = useState(0);
   const [sheetSuggestions, setSheetSuggestions] = useState<string[]>([]);
+  const [showAIPrompt, setShowAIPrompt] = useState(false);
+  const [aiPromptText, setAIPromptText] = useState('');
+  const [aiLoading, setAILoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Whether the current value is an array formula
@@ -174,6 +178,14 @@ export default function FormulaBar({ cellRef, value, onChange, onCommit, onCance
         title="Functions"
       >
         <em>f</em>x
+      </button>
+      <button
+        className="formula-fx-btn"
+        onClick={() => setShowAIPrompt(!showAIPrompt)}
+        title="AI Formula Suggestion"
+        style={{ fontSize: 11 }}
+      >
+        ✨AI
       </button>
       {isArray && (
         <span
@@ -334,6 +346,62 @@ export default function FormulaBar({ cellRef, value, onChange, onCommit, onCance
               <span className="formula-function-desc">{f.desc}</span>
             </div>
           ))}
+        </div>
+      )}
+      {showAIPrompt && (
+        <div className="formula-ai-dropdown" style={{
+          position: 'absolute', top: '100%', left: 60, zIndex: 1200,
+          background: '#1e1e1e', border: '1px solid #444', borderRadius: 6,
+          padding: 10, width: 340, boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+        }}>
+          <div style={{ fontSize: 12, color: '#ccc', marginBottom: 6 }}>
+            Describe what you want in English:
+          </div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <input
+              style={{ flex: 1, background: '#2d2d2d', border: '1px solid #555', color: '#eee', borderRadius: 4, padding: '4px 8px', fontSize: 12 }}
+              placeholder="e.g. sum of column B where column A is 'Sales'"
+              value={aiPromptText}
+              onChange={e => setAIPromptText(e.target.value)}
+              onKeyDown={async e => {
+                if (e.key === 'Enter' && aiPromptText.trim() && !aiLoading) {
+                  setAILoading(true);
+                  try {
+                    const formula = await aiFormulaSuggestion(aiPromptText);
+                    onChange(formula.trim());
+                    setShowAIPrompt(false);
+                    setAIPromptText('');
+                  } catch { /* ignore */ }
+                  setAILoading(false);
+                }
+                if (e.key === 'Escape') setShowAIPrompt(false);
+              }}
+              autoFocus
+              disabled={aiLoading}
+            />
+            <button
+              style={{ background: '#0078d4', color: '#fff', border: 'none', borderRadius: 4, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}
+              disabled={!aiPromptText.trim() || aiLoading || !isAIConfigured()}
+              onClick={async () => {
+                if (!aiPromptText.trim() || aiLoading) return;
+                setAILoading(true);
+                try {
+                  const formula = await aiFormulaSuggestion(aiPromptText);
+                  onChange(formula.trim());
+                  setShowAIPrompt(false);
+                  setAIPromptText('');
+                } catch { /* ignore */ }
+                setAILoading(false);
+              }}
+            >
+              {aiLoading ? '...' : 'Go'}
+            </button>
+          </div>
+          {!isAIConfigured() && (
+            <div style={{ fontSize: 10, color: '#888', marginTop: 4 }}>
+              Configure AI key in Docs → AI Assistant → Settings
+            </div>
+          )}
         </div>
       )}
     </div>
