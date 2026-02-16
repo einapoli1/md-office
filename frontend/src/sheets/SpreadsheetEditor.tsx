@@ -23,6 +23,11 @@ import CellMiniChart from './CellMiniChart';
 import SparklineDialog from './SparklineDialog';
 import ProtectedRanges from './ProtectedRanges';
 import SheetFindReplace from './SheetFindReplace';
+import GoalSeekDialog, { goalSeek } from './GoalSeek';
+import DataTableDialog, { computeDataTable, DataTableConfig } from './DataTable';
+import SolverDialog, { solve, SolverConfig } from './Solver';
+import DataImportDialog from './DataImport';
+import FrequencyAnalysisDialog from './FrequencyAnalysis';
 import type { FindMatch } from './SheetFindReplace';
 import { getFindMatchCellIds } from './SheetFindReplace';
 import type { CellComment, ProtectedRange } from './sheetModel';
@@ -131,6 +136,11 @@ export default function SpreadsheetEditor({
   const [showSparklineDialog, setShowSparklineDialog] = useState(false);
   const [hoveredSparkline, setHoveredSparkline] = useState<{ data: SparklineData; x: number; y: number } | null>(null);
   const [latexFormulaMode, setLatexFormulaMode] = useState<'equation' | 'result'>('equation');
+  const [showGoalSeek, setShowGoalSeek] = useState(false);
+  const [showDataTable, setShowDataTable] = useState(false);
+  const [showSolver, setShowSolver] = useState(false);
+  const [showDataImport, setShowDataImport] = useState(false);
+  const [showFreqAnalysis, setShowFreqAnalysis] = useState(false);
   // Listen for latex-formula-mode toggle
   useEffect(() => {
     const handler = () => setLatexFormulaMode(m => m === 'equation' ? 'result' : 'equation');
@@ -1227,6 +1237,11 @@ export default function SpreadsheetEditor({
         onProtectedRanges={() => setShowProtectedRangesDialog(true)}
         onFindReplace={() => { setFindReplaceMode(false); setShowFindReplace(true); }}
         onInsertSparkline={() => setShowSparklineDialog(true)}
+        onGoalSeek={() => setShowGoalSeek(true)}
+        onDataTable={() => setShowDataTable(true)}
+        onSolver={() => setShowSolver(true)}
+        onDataImport={() => setShowDataImport(true)}
+        onFrequencyAnalysis={() => setShowFreqAnalysis(true)}
       />
       {enableCollaboration && (
         <div className="sheet-collab-bar">
@@ -1706,6 +1721,139 @@ export default function SpreadsheetEditor({
           namedRanges={workbook.namedRanges}
           onSave={handleSaveNamedRanges}
           onClose={() => setShowNamedRangesDialog(false)}
+        />
+      )}
+
+      {showGoalSeek && (
+        <GoalSeekDialog
+          onClose={() => setShowGoalSeek(false)}
+          onRun={(targetCell, targetValue, changingCell) => {
+            const graph = buildDependencyGraph(sheet);
+            const getCv = (ref: string): number => {
+              const cell = sheet.cells[ref];
+              if (!cell) return 0;
+              const v = cell.computed !== undefined ? cell.computed : cell.value;
+              return parseFloat(String(v)) || 0;
+            };
+            const setCv = (ref: string, val: number) => {
+              if (!sheet.cells[ref]) sheet.cells[ref] = { value: '' };
+              sheet.cells[ref].value = String(val);
+              if (sheet.cells[ref].formula) delete sheet.cells[ref].formula;
+              delete sheet.cells[ref].computed;
+            };
+            const rc = () => recalcAll(sheet, graph, workbook.namedRanges);
+            const result = goalSeek(getCv, setCv, rc, targetCell, targetValue, changingCell);
+            setWorkbook({ ...workbook });
+            return result;
+          }}
+        />
+      )}
+
+      {showDataTable && (
+        <DataTableDialog
+          onClose={() => setShowDataTable(false)}
+          onApply={(config: DataTableConfig) => {
+            const graph = buildDependencyGraph(sheet);
+            const getCv = (ref: string): number => {
+              const cell = sheet.cells[ref];
+              if (!cell) return 0;
+              const v = cell.computed !== undefined ? cell.computed : cell.value;
+              return parseFloat(String(v)) || 0;
+            };
+            const setCv = (ref: string, val: number) => {
+              if (!sheet.cells[ref]) sheet.cells[ref] = { value: '' };
+              sheet.cells[ref].value = String(val);
+              if (sheet.cells[ref].formula) delete sheet.cells[ref].formula;
+              delete sheet.cells[ref].computed;
+            };
+            const rc = () => recalcAll(sheet, graph, workbook.namedRanges);
+            const result = computeDataTable(config, getCv, setCv, rc, config.formulaCell);
+            // Insert results starting 2 rows below active cell
+            const startRow = activeCell.row + 2;
+            const startCol = activeCell.col;
+            result.rows.forEach((row, ri) => {
+              const id0 = cellId(startCol, startRow + ri);
+              if (!sheet.cells[id0]) sheet.cells[id0] = { value: '' };
+              sheet.cells[id0].value = String(row.input);
+              row.values.forEach((v, ci) => {
+                const id1 = cellId(startCol + 1 + ci, startRow + ri);
+                if (!sheet.cells[id1]) sheet.cells[id1] = { value: '' };
+                sheet.cells[id1].value = String(v);
+              });
+            });
+            setShowDataTable(false);
+            setWorkbook({ ...workbook });
+          }}
+        />
+      )}
+
+      {showSolver && (
+        <SolverDialog
+          onClose={() => setShowSolver(false)}
+          onSolve={(config: SolverConfig) => {
+            const graph = buildDependencyGraph(sheet);
+            const getCv = (ref: string): number => {
+              const cell = sheet.cells[ref];
+              if (!cell) return 0;
+              const v = cell.computed !== undefined ? cell.computed : cell.value;
+              return parseFloat(String(v)) || 0;
+            };
+            const setCv = (ref: string, val: number) => {
+              if (!sheet.cells[ref]) sheet.cells[ref] = { value: '' };
+              sheet.cells[ref].value = String(val);
+              if (sheet.cells[ref].formula) delete sheet.cells[ref].formula;
+              delete sheet.cells[ref].computed;
+            };
+            const rc = () => recalcAll(sheet, graph, workbook.namedRanges);
+            const result = solve(config, getCv, setCv, rc);
+            setWorkbook({ ...workbook });
+            return result;
+          }}
+        />
+      )}
+
+      {showDataImport && (
+        <DataImportDialog
+          onClose={() => setShowDataImport(false)}
+          onImport={(data, mode) => {
+            const startRow = mode === 'append' ? Object.keys(sheet.cells).reduce((max, id) => {
+              const p = parseCellRef(id);
+              return p ? Math.max(max, p.row + 1) : max;
+            }, 0) : 0;
+            if (mode === 'replace') {
+              sheet.cells = {};
+            }
+            data.forEach((row, ri) => {
+              row.forEach((val, ci) => {
+                const id = cellId(ci, startRow + ri);
+                sheet.cells[id] = { value: val };
+              });
+            });
+            const graph = buildDependencyGraph(sheet);
+            recalcAll(sheet, graph, workbook.namedRanges);
+            setShowDataImport(false);
+            setWorkbook({ ...workbook });
+          }}
+        />
+      )}
+
+      {showFreqAnalysis && (
+        <FrequencyAnalysisDialog
+          values={selectedNumericValues}
+          selectedRange={selectedRangeStr}
+          onClose={() => setShowFreqAnalysis(false)}
+          onInsert={(data) => {
+            const startCol = selRange.maxCol + 2;
+            const startRow = selRange.minRow;
+            data.forEach((row, ri) => {
+              row.forEach((val, ci) => {
+                const id = cellId(startCol + ci, startRow + ri);
+                sheet.cells[id] = { value: val };
+              });
+            });
+            setShowFreqAnalysis(false);
+            setWorkbook({ ...workbook });
+          }}
         />
       )}
 

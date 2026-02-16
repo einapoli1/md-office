@@ -27,10 +27,16 @@ interface SheetToolbarProps {
   onProtectedRanges?: () => void;
   onFindReplace?: () => void;
   onInsertSparkline?: () => void;
+  onGoalSeek?: () => void;
+  onDataTable?: () => void;
+  onSolver?: () => void;
+  onDataImport?: () => void;
+  onFrequencyAnalysis?: () => void;
 }
 
-export default function SheetToolbar({ format, onFormatChange, onMergeCells, canUndo, canRedo, onUndo, onRedo, onInsertChart, filtersEnabled, onToggleFilters, freeze, onFreezeChange, onImportCSV, onImportXLSX, onExportCSV, onExportXLSX, onConditionalFormat, onDataValidation, onPivotTable, onNamedRanges, onInsertComment, onProtectedRanges, onFindReplace, onInsertSparkline }: SheetToolbarProps) {
+export default function SheetToolbar({ format, onFormatChange, onMergeCells, canUndo, canRedo, onUndo, onRedo, onInsertChart, filtersEnabled, onToggleFilters, freeze, onFreezeChange, onImportCSV, onImportXLSX, onExportCSV, onExportXLSX, onConditionalFormat, onDataValidation, onPivotTable, onNamedRanges, onInsertComment, onProtectedRanges, onFindReplace, onInsertSparkline, onGoalSeek, onDataTable, onSolver, onDataImport, onFrequencyAnalysis }: SheetToolbarProps) {
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
+  const [dataMenuOpen, setDataMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importMode, setImportMode] = useState<'csv' | 'xlsx'>('csv');
   return (
@@ -189,6 +195,22 @@ export default function SheetToolbar({ format, onFormatChange, onMergeCells, can
       {onInsertComment && <button className="sheet-tb-btn" onClick={onInsertComment} title="Insert comment">💬</button>}
       {onProtectedRanges && <button className="sheet-tb-btn" onClick={onProtectedRanges} title="Protected ranges">🔒</button>}
       {onFindReplace && <button className="sheet-tb-btn" onClick={onFindReplace} title="Find & Replace">🔍</button>}
+      <span className="sheet-tb-sep" />
+      {/* Data menu */}
+      <div style={{ position: 'relative' }}>
+        <button className="sheet-tb-btn" onClick={() => setDataMenuOpen(!dataMenuOpen)} title="Data">📊 Data</button>
+        {dataMenuOpen && (
+          <div style={{ position: 'absolute', top: '100%', right: 0, background: '#fff', border: '1px solid #ccc', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 1000, padding: '4px 0', minWidth: 200, whiteSpace: 'nowrap' }} onClick={() => setDataMenuOpen(false)}>
+            {onGoalSeek && <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={onGoalSeek}>🎯 Goal Seek</div>}
+            {onDataTable && <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={onDataTable}>📋 What-If Data Table</div>}
+            {onSolver && <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={onSolver}>⚙️ Solver</div>}
+            <div style={{ borderTop: '1px solid #eee', margin: '4px 0' }} />
+            {onDataImport && <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={onDataImport}>📥 Import Data</div>}
+            <div style={{ borderTop: '1px solid #eee', margin: '4px 0' }} />
+            {onFrequencyAnalysis && <div style={{ padding: '6px 16px', cursor: 'pointer' }} onClick={onFrequencyAnalysis}>📈 Descriptive Statistics</div>}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
