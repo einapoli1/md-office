@@ -18,6 +18,7 @@ import type { SlideComment } from './SlideComments';
 import RehearsalMode from './RehearsalMode';
 import type { SlideTimings } from './RehearsalMode';
 import SlideMaster from './SlideMaster';
+import SlideShortcuts from './SlideShortcuts';
 import {
   initSlideCollab, syncPresentationFromYjs, updateSlideFieldInYjs,
   addSlideInYjs, deleteSlideInYjs, reorderSlideInYjs, updatePresMetaInYjs,
@@ -504,6 +505,7 @@ export default function SlidesEditor({ content, onChange, filePath: _filePath, c
           onClose={() => setShowMasterEditor(false)}
         />
       )}
+      <SlideShortcuts />
     </div>
   );
 }

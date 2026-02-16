@@ -750,3 +750,63 @@
   max-height: 80vh;
   overflow-y: auto;
 }
+
+/* ── Dark Mode ─────────────────────────────────────────────────────────── */
+
+body.dark .sheet-container { background: #1f1f1f; color: #e8eaed; }
+
+body.dark .sheet-grid table { border-color: #3c4043; }
+
+body.dark .sheet-header-cell { background: #2d2d2d; color: #9aa0a6; border-color: #3c4043; }
+body.dark .sheet-header-cell:hover,
+body.dark .sheet-header-cell.active { background: #3c4043; color: #e8eaed; }
+body.dark .sheet-header-cell.selected { background: #8ab4f8; color: #1f1f1f; }
+
+body.dark .sheet-cell { border-color: #3c4043; color: #e8eaed; }
+body.dark .sheet-cell.editing { background: #2d2d2d; outline-color: #8ab4f8; }
+
+body.dark .sheet-selection { border-color: #8ab4f8; }
+body.dark .sheet-selection-range { background: rgba(138, 180, 248, 0.1); border-color: rgba(138, 180, 248, 0.25); }
+body.dark .sheet-fill-handle { background: #8ab4f8; }
+
+body.dark .sheet-formula-bar { background: #2d2d2d; border-color: #3c4043; }
+body.dark .sheet-name-box { color: #e8eaed; }
+body.dark .sheet-name-box:focus { border-color: #8ab4f8; background: #1f1f1f; }
+body.dark .sheet-formula-bar .fx-icon { color: #9aa0a6; }
+body.dark .sheet-formula-input { color: #e8eaed; background: transparent; }
+
+body.dark .sheet-tabs-bar { background: #2d2d2d; border-color: #3c4043; }
+body.dark .sheet-tab { color: #9aa0a6; }
+body.dark .sheet-tab:hover { background: #3c4043; color: #e8eaed; }
+body.dark .sheet-tab.active { background: #1f1f1f; color: #8ab4f8; border-bottom-color: #8ab4f8; }
+body.dark .sheet-tab-add { color: #9aa0a6; }
+body.dark .sheet-tab-add:hover { background: #3c4043; }
+
+body.dark .sheet-toolbar { background: #2d2d2d; border-color: #3c4043; }
+body.dark .sheet-toolbar button { color: #9aa0a6; }
+body.dark .sheet-toolbar button:hover { background: #3c4043; color: #e8eaed; }
+body.dark .sheet-toolbar button.active { background: #1e3a5f; color: #8ab4f8; }
+body.dark .sheet-toolbar .separator { background: #3c4043; }
+
+body.dark .sheet-chart-overlay { background: #2d2d2d; border-color: #3c4043; }
+body.dark .sheet-chart-overlay .chart-header { background: #333; border-color: #3c4043; color: #9aa0a6; }
+
+body.dark .sheet-filter-dropdown { background: #2d2d2d; border-color: #3c4043; }
+body.dark .sheet-filter-dropdown .filter-search { background: #1f1f1f; border-color: #3c4043; color: #e8eaed; }
+body.dark .sheet-filter-dropdown .filter-item:hover { background: #3c4043; }
+
+body.dark .sheet-find-replace { background: #2d2d2d; border-color: #3c4043; }
+body.dark .sheet-find-input { background: #1f1f1f; border-color: #3c4043; color: #e8eaed; }
+
+body.dark .sheet-dialog-overlay { background: rgba(0,0,0,0.5); }
+body.dark .sheet-dialog { background: #2d2d2d; color: #e8eaed; }
+
+body.dark .sheet-toast { background: #e8eaed; color: #1f1f1f; }
+
+body.dark .sheet-comment-panel { background: #2d2d2d; border-color: #3c4043; }
+body.dark .sheet-comment-author { color: #e8eaed; }
+body.dark .sheet-comment-text { color: #bdc1c6; }
+body.dark .sheet-comment-tooltip { background: #2d2d2d; border-color: #3c4043; }
+
+body.dark .sheet-freeze-col,
+body.dark .sheet-freeze-row { background: #5f6368; }

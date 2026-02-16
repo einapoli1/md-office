@@ -8,6 +8,7 @@ import FormulaBar from './FormulaBar';
 import SheetToolbar from './SheetToolbar';
 import SheetTabs from './SheetTabs';
 import { SheetChartOverlay, InsertChartDialog } from './SheetChart';
+import SheetShortcuts from './SheetShortcuts';
 import { exportCSV, importCSV, exportXLSX, importXLSX, downloadBlob, downloadString } from './sheetIO';
 import ConditionalFormatDialog from './ConditionalFormat';
 import DataValidationDialog from './DataValidation';
@@ -520,6 +521,10 @@ export default function SpreadsheetEditor({
           setFindReplaceMode(true);
           setShowFindReplace(true);
         }
+        if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+          e.preventDefault();
+          window.dispatchEvent(new CustomEvent('sheet-shortcuts-toggle'));
+        }
         if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
           e.preventDefault();
           if (e.shiftKey) {
@@ -662,6 +667,65 @@ export default function SpreadsheetEditor({
     });
     setWorkbook({ ...workbook });
   }, [selRange, sheet, workbook]);
+
+  // Formatting & clipboard keyboard shortcuts (defined after selRange/currentFormat/handleFormatChange)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key === 'b') { e.preventDefault(); handleFormatChange({ bold: !currentFormat.bold }); }
+      else if (e.key === 'i') { e.preventDefault(); handleFormatChange({ italic: !currentFormat.italic }); }
+      else if (e.key === 'u') { e.preventDefault(); handleFormatChange({ underline: !currentFormat.underline }); }
+      else if (e.key === 'c' && !e.shiftKey) {
+        const rows: string[] = [];
+        for (let r = selRange.minRow; r <= selRange.maxRow; r++) {
+          const cols: string[] = [];
+          for (let c = selRange.minCol; c <= selRange.maxCol; c++) cols.push(getCellDisplay(cellId(c, r)));
+          rows.push(cols.join('\t'));
+        }
+        navigator.clipboard.writeText(rows.join('\n')).catch(() => {});
+      }
+      else if (e.key === 'x') {
+        const rows: string[] = [];
+        for (let r = selRange.minRow; r <= selRange.maxRow; r++) {
+          const cols: string[] = [];
+          for (let c = selRange.minCol; c <= selRange.maxCol; c++) cols.push(getCellDisplay(cellId(c, r)));
+          rows.push(cols.join('\t'));
+        }
+        navigator.clipboard.writeText(rows.join('\n')).catch(() => {});
+        for (let r = selRange.minRow; r <= selRange.maxRow; r++) {
+          for (let c = selRange.minCol; c <= selRange.maxCol; c++) {
+            const id = cellId(c, r);
+            if (sheet.cells[id]) sheet.cells[id] = { ...sheet.cells[id], value: '', formula: undefined, computed: undefined };
+          }
+        }
+        recalcAll(sheet, graphRef.current, workbook.namedRanges);
+        setWorkbook({ ...workbook });
+      }
+      else if (e.key === 'v') {
+        e.preventDefault();
+        navigator.clipboard.readText().then(text => {
+          const rows = text.split('\n').map(r => r.split('\t'));
+          const entries: import('./sheetModel').UndoEntry[] = [];
+          rows.forEach((cols, ri) => {
+            cols.forEach((val, ci) => {
+              const r = activeCell.row + ri;
+              const c = activeCell.col + ci;
+              const id = cellId(c, r);
+              const old = sheet.cells[id] ? { ...sheet.cells[id] } : undefined;
+              sheet.cells[id] = { ...(sheet.cells[id] || {}), value: val, formula: undefined };
+              entries.push({ sheetIndex: workbook.activeSheet, cellId: id, before: old, after: { ...sheet.cells[id] } });
+            });
+          });
+          if (entries.length) undoRef.current.push(entries);
+          recalcAll(sheet, graphRef.current, workbook.namedRanges);
+          setWorkbook({ ...workbook });
+        }).catch(() => {});
+      }
+    };
+    const el = document.querySelector('.spreadsheet-editor');
+    el?.addEventListener('keydown', handler as EventListener);
+    return () => { el?.removeEventListener('keydown', handler as EventListener); };
+  }, [currentFormat, handleFormatChange, selRange, getCellDisplay, activeCell, sheet, workbook]);
 
   const handleAddSheet = useCallback(() => {
     workbook.sheets.push(createEmptySheet(`Sheet${workbook.sheets.length + 1}`));
@@ -1632,6 +1696,7 @@ export default function SpreadsheetEditor({
           replaceMode={findReplaceMode}
         />
       )}
+      <SheetShortcuts />
     </div>
   );
 }
