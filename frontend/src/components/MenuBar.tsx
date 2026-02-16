@@ -190,6 +190,13 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Document Map', action: () => {
         window.dispatchEvent(new CustomEvent('document-map-toggle'));
       }},
+      { label: 'divider' },
+      { label: 'Chat', action: () => {
+        window.dispatchEvent(new CustomEvent('collab-chat-toggle'));
+      }},
+      { label: 'Edit Activity', action: () => {
+        window.dispatchEvent(new CustomEvent('edit-history-toggle'));
+      }},
     ],
     [t('menu.insert._label')]: [
       { label: 'Image', action: () => {
