@@ -110,6 +110,8 @@ const StatusBar: React.FC<StatusBarProps> = ({
         <div 
           className="save-status"
           style={{ color: getSaveStatusColor() }}
+          aria-live="polite"
+          role="status"
         >
           <div className="status-indicator">
             <div 

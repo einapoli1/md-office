@@ -34,6 +34,8 @@ import TemplateSidebar from './components/TemplateSidebar';
 import OnboardingTour, { STORAGE_KEY as ONBOARDING_KEY } from './components/OnboardingTour';
 import MacroEditor from './components/MacroEditor';
 import MacroRecorder, { useMacroRecorder } from './components/MacroRecorder';
+import AccessibilitySettings from './components/AccessibilitySettings';
+import LanguagePicker from './components/LanguagePicker';
 import CitationPanel from './components/CitationPanel';
 import CitationPicker from './components/CitationPicker';
 import { Citation, CitationStyle } from './lib/citationEngine';
@@ -125,6 +127,7 @@ function App() {
   const [collabUsers, setCollabUsers] = useState(0);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [showA11y, setShowA11y] = useState(false);
   const [runTour, setRunTour] = useState(() => !localStorage.getItem(ONBOARDING_KEY));
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showMailMerge, setShowMailMerge] = useState(false);
@@ -1022,6 +1025,7 @@ function App() {
         onShowAbout={() => setShowAbout(true)}
         onStartTour={() => setRunTour(true)}
         onShowShortcuts={() => setShowShortcuts(true)}
+        onShowAccessibility={() => setShowA11y(true)}
       />
 
       {/* Formatting Toolbar - Google Docs style (only for docs mode) */}
@@ -1195,6 +1199,7 @@ function App() {
       </div>
 
       {appMode === 'docs' && (
+        <>
         <StatusBar
           content={content}
           activeFile={activeFile?.path}
@@ -1205,6 +1210,10 @@ function App() {
           collaborationStatus={collabStatus}
           connectedUsers={collabUsers}
         />
+        <div style={{ position: 'fixed', bottom: 0, right: 8, zIndex: 100 }}>
+          <LanguagePicker />
+        </div>
+        </>
       )}
 
       {/* Word Count Dialog */}
@@ -1324,6 +1333,8 @@ function App() {
       )}
 
       {/* About Dialog */}
+      <AccessibilitySettings open={showA11y} onClose={() => setShowA11y(false)} />
+
       {showAbout && (
         <AboutDialog
           onClose={() => setShowAbout(false)}

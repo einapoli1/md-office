@@ -6315,3 +6315,40 @@ input:focus-visible {
 .dark .bibliography-entries {
   color: #aaa;
 }
+
+/* Accessibility: High Contrast */
+.high-contrast {
+  --text-primary: #000 !important;
+  --bg-primary: #fff !important;
+  --border-color: #000 !important;
+}
+.high-contrast.dark {
+  --text-primary: #fff !important;
+  --bg-primary: #000 !important;
+  --border-color: #fff !important;
+}
+.high-contrast .menu-button,
+.high-contrast .menu-dropdown-item,
+.high-contrast .status-bar {
+  border: 1px solid currentColor;
+}
+
+/* Accessibility: Reduced Motion */
+.reduced-motion,
+.reduced-motion * {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* Accessibility: UI Font Size Override */
+:root {
+  --ui-font-size: 14px;
+}
+.menu-bar,
+.status-bar,
+.menu-dropdown,
+.menu-button,
+.menu-dropdown-item {
+  font-size: var(--ui-font-size);
+}

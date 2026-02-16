@@ -17,11 +17,15 @@ export default function OfflineIndicator() {
   if (!offline) return null;
 
   return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10000,
-      background: '#f59e0b', color: '#000', textAlign: 'center',
-      padding: '6px 12px', fontSize: '13px', fontWeight: 500,
-    }}>
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10000,
+        background: '#f59e0b', color: '#000', textAlign: 'center',
+        padding: '6px 12px', fontSize: '13px', fontWeight: 500,
+      }}
+    >
       You're offline — changes saved locally
     </div>
   );

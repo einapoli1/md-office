@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Share2, Settings, Moon, Sun, FileText, Plus, LogIn, LogOut, User, Table2, Presentation, Pencil, Menu, X } from 'lucide-react';
 import { FileContent } from '../types';
 import type { AppMode } from '../App';
+import { useI18n } from '../lib/i18n';
 
 interface MenuBarProps {
   onNewFile: () => void;
@@ -28,6 +29,7 @@ interface MenuBarProps {
   onShowAbout?: () => void;
   onStartTour?: () => void;
   onShowShortcuts?: () => void;
+  onShowAccessibility?: () => void;
 }
 
 const MenuBar: React.FC<MenuBarProps> = ({
@@ -54,7 +56,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
   onShowAbout,
   onStartTour,
   onShowShortcuts,
+  onShowAccessibility,
 }) => {
+  const { t } = useI18n();
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -93,7 +97,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
   }
 
   const menus: Record<string, MenuItem[]> = {
-    File: [
+    [t('menu.file._label')]: [
       { label: 'New document', action: onNewFile, shortcut: 'Ctrl+N', icon: FileText },
       { label: 'New spreadsheet', action: onNewSpreadsheet, icon: Table2 },
       { label: 'New presentation', action: onNewPresentation, icon: Presentation },
@@ -132,7 +136,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
         }
       }, icon: Share2 },
     ],
-    Edit: [
+    [t('menu.edit._label')]: [
       { label: 'Undo', action: () => editor?.chain().focus().undo().run(), shortcut: '⌘Z' },
       { label: 'Redo', action: () => editor?.chain().focus().redo().run(), shortcut: '⌘Y' },
       { label: 'divider' },
@@ -140,7 +144,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
         window.dispatchEvent(new CustomEvent('find-replace-open', { detail: { replace: false } }));
       }, shortcut: '⌘F' },
     ],
-    View: [
+    [t('menu.view._label')]: [
       { label: 'Show ruler', action: () => {
         window.dispatchEvent(new CustomEvent('ruler-toggle'));
       }},
@@ -161,7 +165,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
         window.dispatchEvent(new CustomEvent('form-fill-toggle'));
       }},
     ],
-    Insert: [
+    [t('menu.insert._label')]: [
       { label: 'Image', action: () => {
         window.dispatchEvent(new CustomEvent('insert-image'));
       }},
@@ -280,7 +284,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
         window.dispatchEvent(new CustomEvent('embed-picker-open', { detail: { type: 'range' } }));
       }},
     ],
-    Format: [
+    [t('menu.format._label')]: [
       { label: 'Bold', action: () => editor?.chain().focus().toggleBold().run(), shortcut: 'Ctrl+B' },
       { label: 'Italic', action: () => editor?.chain().focus().toggleItalic().run(), shortcut: 'Ctrl+I' },
       { label: 'Underline', action: () => editor?.chain().focus().toggleUnderline().run(), shortcut: 'Ctrl+U' },
@@ -304,7 +308,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Columns: 2', action: () => editor?.commands.setColumns(2) },
       { label: 'Columns: 3', action: () => editor?.commands.setColumns(3) },
     ],
-    Tools: [
+    [t('menu.tools._label')]: [
       { label: 'Spelling & Grammar', action: () => {
         window.dispatchEvent(new CustomEvent('spellcheck-toggle'));
       }},
@@ -355,10 +359,12 @@ const MenuBar: React.FC<MenuBarProps> = ({
         window.dispatchEvent(new CustomEvent('macro-run-picker'));
       }},
       { label: 'divider' },
-      { label: 'Preferences', action: onShowSettings, icon: Settings },
+      { label: t('menu.tools.accessibility'), action: onShowAccessibility },
+      { label: 'divider' },
+      { label: t('menu.tools.preferences'), action: onShowSettings, icon: Settings },
     ],
     ...(appMode === 'sheets' && {
-      Data: [
+      [t('menu.data._label')]: [
         { label: 'Sort A → Z', action: () => window.dispatchEvent(new CustomEvent('sheet-sort', { detail: { ascending: true } })) },
         { label: 'Sort Z → A', action: () => window.dispatchEvent(new CustomEvent('sheet-sort', { detail: { ascending: false } })) },
         { label: 'divider' },
@@ -370,7 +376,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
       ],
     }),
     ...(appMode === 'slides' && {
-      Slide: [
+      [t('menu.slide._label')]: [
         { label: 'New slide', action: () => window.dispatchEvent(new CustomEvent('slide-add')) },
         { label: 'Duplicate slide', action: () => window.dispatchEvent(new CustomEvent('slide-duplicate')) },
         { label: 'Delete slide', action: () => window.dispatchEvent(new CustomEvent('slide-delete')) },
@@ -389,7 +395,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
         }},
       ],
     }),
-    Help: [
+    [t('menu.help._label')]: [
       { label: 'Getting started', action: onStartTour },
       { label: 'Keyboard shortcuts', action: onShowShortcuts, shortcut: '⌘/' },
       { label: 'divider' },
@@ -397,7 +403,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'divider' },
       { label: 'Report a bug', action: () => window.open('https://github.com/md-office/md-office/issues', '_blank') },
     ],
-    ...(accountItems.length > 0 && { Account: accountItems })
+    ...(accountItems.length > 0 && { [t('menu.account._label')]: accountItems })
   };
 
   const APP_BRANDING: Record<AppMode, { icon: React.FC<any>; name: string; color: string }> = {
@@ -537,12 +543,14 @@ const MenuBar: React.FC<MenuBarProps> = ({
               <button
                 className={`menu-button ${activeMenu === menuName ? 'active' : ''}`}
                 onClick={() => handleMenuClick(menuName)}
+                aria-haspopup="true"
+                aria-expanded={activeMenu === menuName}
               >
                 {menuName}
               </button>
               
               {activeMenu === menuName && (
-                <div className="menu-dropdown">
+                <div className="menu-dropdown" role="menu">
                   {items.map((item, index) => {
                     if (item.label === 'divider') {
                       return <div key={index} className="menu-divider" />;
@@ -553,6 +561,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
                       <button
                         key={index}
                         className="menu-dropdown-item"
+                        role="menuitem"
                         onClick={() => handleMenuItemClick(item.action)}
                       >
                         <div className="menu-item-content">
