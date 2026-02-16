@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Upload, Eye, Download } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Upload, Eye, Download, Wand2 } from 'lucide-react';
 import { extractVariables, renderTemplate, parseCSV } from '../lib/templateEngine';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import MailMergeWizard from './MailMergeWizard';
 
 interface TemplatePanelProps {
   content: string;
@@ -16,6 +17,7 @@ const TemplatePanel: React.FC<TemplatePanelProps> = ({ content, onClose, onPrevi
   const [dataRows, setDataRows] = useState<Record<string, string>[]>([]);
   const [currentRow, setCurrentRow] = useState(0);
   const [isPreviewing, setIsPreviewing] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -156,6 +158,17 @@ const TemplatePanel: React.FC<TemplatePanelProps> = ({ content, onClose, onPrevi
           >
             <Upload size={14} /> Import Data (CSV / JSON)
           </button>
+          <button
+            onClick={() => setShowWizard(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
+              background: '#1a73e8', color: '#fff', border: 'none', borderRadius: 6,
+              cursor: 'pointer', fontSize: 13, width: '100%', justifyContent: 'center',
+              marginTop: 8,
+            }}
+          >
+            <Wand2 size={14} /> Mail Merge Wizard
+          </button>
         </div>
 
         {/* Data Table Preview */}
@@ -249,6 +262,9 @@ const TemplatePanel: React.FC<TemplatePanelProps> = ({ content, onClose, onPrevi
           <Download size={14} /> Generate All
         </button>
       </div>
+      {showWizard && (
+        <MailMergeWizard template={content} onClose={() => setShowWizard(false)} />
+      )}
     </div>
   );
 };
