@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import ErrorBoundary from './components/ErrorBoundary';
+import LoadingSpinner from './components/LoadingSpinner';
 import DocumentSidebar from './components/DocumentSidebar';
 import DocumentEditor from './components/DocumentEditor';
 import MenuBar from './components/MenuBar';
@@ -23,6 +25,8 @@ import ShareDialog from './components/ShareDialog';
 import { toast } from './components/Toast';
 import { importDocx } from './utils/docxIO';
 import RecentDocs, { RecentDocEntry, loadRecentDocs, touchRecentDoc, removeRecentDoc } from './components/RecentDocs';
+import AboutDialog from './components/AboutDialog';
+import OnboardingTour, { STORAGE_KEY as ONBOARDING_KEY } from './components/OnboardingTour';
 import SpreadsheetEditor from './sheets/SpreadsheetEditor';
 import SlidesEditor from './slides/SlidesEditor';
 
@@ -103,6 +107,8 @@ function App() {
   const [collabStatus, setCollabStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [collabUsers, setCollabUsers] = useState(0);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+  const [runTour, setRunTour] = useState(() => !localStorage.getItem(ONBOARDING_KEY));
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [vhCommits, setVhCommits] = useState<import('./types').GitCommit[]>([]);
   const [vhSelectedCommit, setVhSelectedCommit] = useState<import('./types').GitCommit | null>(null);
@@ -814,10 +820,7 @@ function App() {
   if (authLoading) {
     return (
       <div className="app-loading">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading MD Office...</p>
-        </div>
+        <LoadingSpinner size="large" message="Loading MD Office..." />
       </div>
     );
   }
@@ -852,8 +855,10 @@ function App() {
 
   // Main app interface
   return (
+    <ErrorBoundary>
     <ToastProvider>
     <div className="app">
+      <a href="#main-editor" className="skip-to-content">Skip to content</a>
       <MenuBar
         onNewFile={handleNewFile}
         onNewSpreadsheet={handleNewSpreadsheet}
@@ -874,6 +879,9 @@ function App() {
         onShareClick={() => setShowShareDialog(true)}
         onVersionHistory={openVersionHistory}
         appMode={appMode}
+        onShowAbout={() => setShowAbout(true)}
+        onStartTour={() => setRunTour(true)}
+        onShowShortcuts={() => setShowShortcuts(true)}
       />
 
       {/* Formatting Toolbar - Google Docs style (only for docs mode) */}
@@ -895,7 +903,7 @@ function App() {
           <TableOfContents editor={editorRef} onClose={() => setShowOutline(false)} />
         )}
 
-        <div className="main-editor">
+        <div className="main-editor" id="main-editor">
           {!activeFile && !loading ? (
             <RecentDocs
               recentDocs={recentDocs}
@@ -925,7 +933,7 @@ function App() {
             );
           })()}
           {loading ? (
-            <div className="editor-loading">Loading document...</div>
+            <LoadingSpinner message="Loading document..." />
           ) : appMode === 'sheets' && activeFile ? (
             <SpreadsheetEditor
               initialData={content}
@@ -1090,6 +1098,20 @@ function App() {
         </Suspense>
       )}
 
+      {/* About Dialog */}
+      {showAbout && (
+        <AboutDialog
+          onClose={() => setShowAbout(false)}
+          onShowShortcuts={() => setShowShortcuts(true)}
+        />
+      )}
+
+      {/* Onboarding Tour */}
+      <OnboardingTour
+        run={runTour}
+        onFinish={() => setRunTour(false)}
+      />
+
       {/* Share Dialog */}
       <ShareDialog
         isOpen={showShareDialog}
@@ -1098,6 +1120,7 @@ function App() {
       />
     </div>
     </ToastProvider>
+    </ErrorBoundary>
   );
 }
 

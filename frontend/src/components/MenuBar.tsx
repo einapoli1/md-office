@@ -24,6 +24,9 @@ interface MenuBarProps {
   onShareClick?: () => void;
   onVersionHistory?: () => void;
   appMode?: AppMode;
+  onShowAbout?: () => void;
+  onStartTour?: () => void;
+  onShowShortcuts?: () => void;
 }
 
 const MenuBar: React.FC<MenuBarProps> = ({
@@ -47,6 +50,9 @@ const MenuBar: React.FC<MenuBarProps> = ({
   onShareClick,
   onVersionHistory,
   appMode = 'docs',
+  onShowAbout,
+  onStartTour,
+  onShowShortcuts,
 }) => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -291,6 +297,14 @@ const MenuBar: React.FC<MenuBarProps> = ({
         { label: 'Present', action: () => window.dispatchEvent(new CustomEvent('slide-present')), shortcut: '⌘⇧P' },
       ],
     }),
+    Help: [
+      { label: 'Getting started', action: onStartTour },
+      { label: 'Keyboard shortcuts', action: onShowShortcuts, shortcut: '⌘/' },
+      { label: 'divider' },
+      { label: 'About MD Office', action: onShowAbout },
+      { label: 'divider' },
+      { label: 'Report a bug', action: () => window.open('https://github.com/md-office/md-office/issues', '_blank') },
+    ],
     ...(accountItems.length > 0 && { Account: accountItems })
   };
 
