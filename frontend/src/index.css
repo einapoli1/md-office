@@ -2265,3 +2265,53 @@ button[title] {
   .shortcuts-overlay { box-shadow: none; max-height: none; width: 100%; }
   .shortcuts-search-bar, .dialog-header button, .dialog-footer { display: none; }
 }
+
+/* ── OCR Extractor Dialog ── */
+.ocr-dialog {
+  background: #fff; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  width: 560px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden;
+}
+.ocr-dialog-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid #e0e0e0;
+}
+.ocr-dialog-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.ocr-dialog-body { padding: 16px 20px; overflow-y: auto; }
+.ocr-image-preview {
+  max-height: 200px; overflow: hidden; border-radius: 8px;
+  border: 1px solid #e0e0e0; margin-bottom: 14px; text-align: center; background: #f8f9fa;
+}
+.ocr-image-preview img { max-width: 100%; max-height: 200px; object-fit: contain; }
+.ocr-controls { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 14px; }
+.ocr-lang-select { display: flex; flex-direction: column; gap: 4px; }
+.ocr-lang-select label { font-size: 12px; color: #666; font-weight: 500; }
+.ocr-lang-select select { padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
+.ocr-extract-btn {
+  background: #4285f4; color: #fff; border: none; padding: 8px 18px;
+  border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap;
+}
+.ocr-extract-btn:hover { background: #3367d6; }
+.ocr-progress { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.ocr-progress-bar { height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; }
+.ocr-progress-fill { height: 100%; background: #4285f4; border-radius: 4px; transition: width 0.3s; }
+.ocr-progress-text { font-size: 12px; color: #666; }
+.ocr-error { color: #c5221f; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.ocr-retry-btn { padding: 4px 10px; border: 1px solid #c5221f; border-radius: 4px; background: none; color: #c5221f; cursor: pointer; font-size: 12px; }
+.ocr-result { display: flex; flex-direction: column; gap: 4px; }
+.ocr-result label { font-size: 12px; color: #666; font-weight: 500; }
+.ocr-result-text {
+  width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;
+  font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box;
+  line-height: 1.5; outline: none;
+}
+.ocr-result-text:focus { border-color: #4285f4; }
+.ocr-hint { font-size: 11px; color: #888; }
+.ocr-dialog-footer {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 14px 20px; border-top: 1px solid #e0e0e0;
+}
+body.dark .ocr-dialog { background: #2d2d2d; color: #e0e0e0; }
+body.dark .ocr-dialog-header { border-color: #444; }
+body.dark .ocr-image-preview { border-color: #444; background: #353535; }
+body.dark .ocr-result-text { background: #3c3c3c; border-color: #555; color: #e0e0e0; }
+body.dark .ocr-lang-select select { background: #3c3c3c; border-color: #555; color: #e0e0e0; }

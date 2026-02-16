@@ -244,6 +244,12 @@ export const defaultWheelConfigs: Record<AppMode, WheelConfig> = {
     { position: 'S', commandId: 'insert-link' },
     { position: 'W', commandId: 'italic' },
   ],
+  database: [
+    { position: 'N', commandId: 'bold' },
+    { position: 'E', commandId: 'insert-image' },
+    { position: 'S', commandId: 'insert-link' },
+    { position: 'W', commandId: 'italic' },
+  ],
 };
 
 const STORAGE_KEY = 'md-office-command-wheel';

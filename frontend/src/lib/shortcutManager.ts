@@ -6,7 +6,7 @@ import { commandRegistry } from './commandRegistry';
 export interface ShortcutBinding {
   commandId: string;
   keys: string; // e.g. "Cmd+Shift+P", "Cmd+K Cmd+C" (multi-chord)
-  context?: ('docs' | 'sheets' | 'slides' | 'draw')[];
+  context?: ('docs' | 'sheets' | 'slides' | 'draw' | 'database')[];
   when?: string; // optional condition identifier
 }
 
@@ -63,7 +63,7 @@ class ShortcutManager {
   private customOverrides: Map<string, string> = new Map(); // commandId -> keys
   private pendingChord: ParsedKey | null = null;
   private pendingTimeout: ReturnType<typeof setTimeout> | null = null;
-  private currentContext: 'docs' | 'sheets' | 'slides' | 'draw' = 'docs';
+  private currentContext: 'docs' | 'sheets' | 'slides' | 'draw' | 'database' = 'docs';
   private enabled = true;
 
   constructor() {
@@ -79,7 +79,7 @@ class ShortcutManager {
     window.removeEventListener('keydown', this.handleKeyDown, true);
   }
 
-  setContext(ctx: 'docs' | 'sheets' | 'slides' | 'draw'): void {
+  setContext(ctx: 'docs' | 'sheets' | 'slides' | 'draw' | 'database' | 'database'): void {
     this.currentContext = ctx;
   }
 
