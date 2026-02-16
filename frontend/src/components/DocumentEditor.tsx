@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Settings, X } from 'lucide-react';
 import { FileContent } from '../types';
 import Editor from './Editor';
+import CollabPresence from './CollabPresence';
 // PageBreaks handled by TipTap extension now
 import { 
   parseFrontmatter, 
@@ -30,6 +31,11 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
 }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [parsedDocument, setParsedDocument] = useState(() => parseFrontmatter(content));
+  const [collabProvider, setCollabProvider] = useState<any>(null);
+
+  const isCollab = new URLSearchParams(window.location.search).has('collab');
+  const collabUserName = new URLSearchParams(window.location.search).get('user') || 'Anonymous User';
+  const handleProviderReady = useCallback((p: any) => setCollabProvider(p), []);
 
   // Parse content when it changes
   useEffect(() => {
@@ -88,6 +94,9 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
         }}
       >
         <div className="document-header">
+          {isCollab && collabProvider && (
+            <CollabPresence provider={collabProvider} currentUser={collabUserName} />
+          )}
           <button 
             className="document-settings-btn"
             onClick={() => setShowSettings(!showSettings)}
@@ -115,8 +124,10 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
                 content={parsedDocument.content}
                 onChange={handleEditorChange}
                 onEditorReady={onEditorReady}
-                enableCollaboration={new URLSearchParams(window.location.search).has('collab')}
+                enableCollaboration={isCollab}
                 documentName={activeFile?.path || 'untitled'}
+                userName={collabUserName}
+                onProviderReady={handleProviderReady}
               />
             </div>
           </div>

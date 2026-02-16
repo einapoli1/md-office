@@ -20,7 +20,7 @@ import { CodeBlock } from '@tiptap/extension-code-block';
 import { HorizontalRule } from '@tiptap/extension-horizontal-rule';
 import { Mathematics } from '@tiptap/extension-mathematics';
 import { Collaboration } from '@tiptap/extension-collaboration';
-// import { CollaborationCursor } from '@tiptap/extension-collaboration-cursor'; // Disabled — see note below
+import { CollaborationCursor } from '@tiptap/extension-collaboration-cursor';
 import { HocuspocusProvider } from '@hocuspocus/provider';
 import * as Y from 'yjs';
 import TurndownService from 'turndown';
@@ -41,6 +41,7 @@ import { SuggestionExtension } from '../extensions/SuggestionExtension';
 import { ImageDrop } from '../extensions/ImageDrop';
 import { Columns } from '../extensions/Columns';
 import { TabStop } from '../extensions/TabStop';
+import { getUserColor } from '../utils/collabColors';
 import { Title, Subtitle } from '../extensions/ParagraphStyles';
 import TableToolbar from './TableToolbar';
 
@@ -52,6 +53,7 @@ interface EditorProps {
   enableCollaboration?: boolean; // Whether to enable real-time collaboration
   collaborationServerUrl?: string; // Hocuspocus server URL
   userName?: string; // Current user name for cursor display
+  onProviderReady?: (provider: HocuspocusProvider | null) => void;
 }
 
 // Enhanced turndown for all new features
@@ -290,7 +292,8 @@ const Editor: React.FC<EditorProps> = ({
   documentName,
   enableCollaboration = false,
   collaborationServerUrl = 'ws://localhost:1234',
-  userName = 'Anonymous User'
+  userName = 'Anonymous User',
+  onProviderReady
 }) => {
   const [spellCheck, setSpellCheck] = useState(() => {
     return localStorage.getItem('spellcheck') !== 'false';
@@ -308,18 +311,7 @@ const Editor: React.FC<EditorProps> = ({
   const [ydoc, setYdoc] = useState<Y.Doc | null>(null);
   const [provider, setProvider] = useState<HocuspocusProvider | null>(null);
   
-  // Generate consistent user color based on userName
-  const getUserColor = useCallback((name: string) => {
-    const colors = [
-      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-      '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
-    ];
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length];
-  }, []);
+  // getUserColor imported from utils/collabColors
 
   // Setup collaboration
   useEffect(() => {
@@ -334,6 +326,7 @@ const Editor: React.FC<EditorProps> = ({
 
       setYdoc(newYdoc);
       setProvider(newProvider);
+      onProviderReady?.(newProvider);
 
       // Connection status handlers
       newProvider.on('status', ({ status }: { status: string }) => {
@@ -369,9 +362,10 @@ const Editor: React.FC<EditorProps> = ({
         newYdoc.destroy();
         setYdoc(null);
         setProvider(null);
+        onProviderReady?.(null);
       };
     }
-  }, [enableCollaboration, documentName, collaborationServerUrl, userName, getUserColor]);
+  }, [enableCollaboration, documentName, collaborationServerUrl, userName]);
 
   // Determine if collab is ready (ydoc + provider both exist)
   const collabReady = enableCollaboration && ydoc != null && provider != null;
@@ -454,9 +448,13 @@ const Editor: React.FC<EditorProps> = ({
         Collaboration.configure({
           document: ydoc,
         }),
-        // NOTE: CollaborationCursor disabled — crashes on init (createDecorations
-        // reads undefined doc). Needs investigation into @tiptap/extension-collaboration-cursor
-        // compatibility with dynamic extension loading. Content sync works without it.
+        CollaborationCursor.configure({
+          provider: provider,
+          user: {
+            name: userName,
+            color: getUserColor(userName),
+          },
+        }),
       ] : []),
     ],
     // When collab is active, TipTap will use Yjs state if available,
