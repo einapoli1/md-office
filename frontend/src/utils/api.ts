@@ -185,5 +185,22 @@ export const gitAPI = {
   mergeBranch: async (branch: string): Promise<void> => {
     const response = await api.post<APIResponse<void>>('/git/merge', { branch });
     if (response.data.error) throw new Error(response.data.error);
-  }
+  },
+
+  deleteBranch: async (name: string): Promise<void> => {
+    const response = await api.post<APIResponse<void>>('/git/branches', { name, delete: true });
+    if (response.data.error) throw new Error(response.data.error);
+  },
+
+  getDiff: async (from: string, to: string): Promise<{ from: string; to: string; changes: { file: string; type: string; additions: number; deletions: number; content?: string }[] }> => {
+    const response = await api.get<APIResponse<{ from: string; to: string; changes: { file: string; type: string; additions: number; deletions: number; content?: string }[] }>>(`/git/diff?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+    if (response.data.error) throw new Error(response.data.error);
+    return response.data.data!;
+  },
+
+  getFileAtCommit: async (hash: string, path: string): Promise<string> => {
+    const response = await api.get<APIResponse<{ content: string }>>(`/git/file-at?hash=${encodeURIComponent(hash)}&path=${encodeURIComponent(path)}`);
+    if (response.data.error) throw new Error(response.data.error);
+    return response.data.data?.content || '';
+  },
 };

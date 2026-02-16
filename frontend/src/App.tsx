@@ -14,6 +14,8 @@ import { parseFrontmatter, getPageStyles } from './utils/frontmatter';
 import { localFileAPI, initializeLocalStorage } from './utils/localApi';
 import { Template } from './utils/templates';
 import VersionHistory from './components/VersionHistory';
+import BranchManager from './components/BranchManager';
+import CommitHistory from './components/CommitHistory';
 import CommentsSidebar, { Comment } from './components/CommentsSidebar';
 import SuggestionPopup from './components/SuggestionPopup';
 import SuggestionsSidebar from './components/SuggestionsSidebar';
@@ -130,6 +132,9 @@ function App() {
   const [showA11y, setShowA11y] = useState(false);
   const [runTour, setRunTour] = useState(() => !localStorage.getItem(ONBOARDING_KEY));
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [showBranchManager, setShowBranchManager] = useState(false);
+  const [showCommitHistory, setShowCommitHistory] = useState(false);
+  const [currentBranchName, setCurrentBranchName] = useState('main');
   const [showMailMerge, setShowMailMerge] = useState(false);
   const [showTemplateSidebar, setShowTemplateSidebar] = useState(false);
   const [showCitationPanel, setShowCitationPanel] = useState(false);
@@ -399,6 +404,33 @@ function App() {
   };
 
   // Version history
+  // Load current branch name
+  const loadCurrentBranch = useCallback(async () => {
+    if (isGuestMode) return;
+    try {
+      const branches = await gitAPI.getBranches();
+      const current = branches.find(b => b.isCurrent);
+      if (current) setCurrentBranchName(current.name);
+    } catch { /* ignore */ }
+  }, [isGuestMode]);
+
+  useEffect(() => { loadCurrentBranch(); }, [loadCurrentBranch]);
+
+  const handleAutoSave = useCallback(async (_commitMessage?: string) => {
+    // Trigger a normal save — the auto-save component handles commit messages
+    if (activeFile && !isGuestMode) {
+      try {
+        setSaveStatus('saving');
+        const currentAPI = fileAPI;
+        await currentAPI.saveFile(activeFile.path, content);
+        setSaveStatus('saved');
+        setLastSaved(new Date());
+      } catch {
+        setSaveStatus('error');
+      }
+    }
+  }, [activeFile, isGuestMode, content]);
+
   const openVersionHistory = async () => {
     setShowVersionHistory(true);
     setVhSelectedCommit(null);
@@ -1021,6 +1053,8 @@ function App() {
         editor={editorRef}
         onShareClick={() => setShowShareDialog(true)}
         onVersionHistory={openVersionHistory}
+        onBranches={() => setShowBranchManager(true)}
+        onCommitHistory={() => setShowCommitHistory(true)}
         appMode={appMode}
         onShowAbout={() => setShowAbout(true)}
         onStartTour={() => setRunTour(true)}
@@ -1196,6 +1230,38 @@ function App() {
             isLoading={vhLoading}
           />
         )}
+
+        {showBranchManager && (
+          <BranchManager
+            onClose={() => setShowBranchManager(false)}
+            onBranchChange={() => {
+              loadCurrentBranch();
+              if (activeFile) {
+                fileAPI.getFile(activeFile.path).then(f => {
+                  setActiveFile(f);
+                  setContent(f.content);
+                }).catch(() => {});
+              }
+            }}
+            hasUnsavedChanges={saveStatus === 'unsaved'}
+          />
+        )}
+
+        {showCommitHistory && (
+          <CommitHistory
+            onClose={() => setShowCommitHistory(false)}
+            activeFilePath={activeFile?.path}
+            onPreviewCommit={(commit) => {
+              handleVhPreview(commit);
+              setShowCommitHistory(false);
+              setShowVersionHistory(true);
+            }}
+            onRestoreCommit={(commit) => {
+              handleVhRevert(commit);
+              setShowCommitHistory(false);
+            }}
+          />
+        )}
       </div>
 
       {appMode === 'docs' && (
@@ -1209,6 +1275,9 @@ function App() {
           suggestionMode={suggestionMode}
           collaborationStatus={collabStatus}
           connectedUsers={collabUsers}
+          currentBranch={currentBranchName}
+          onBranchClick={() => setShowBranchManager(true)}
+          onSave={handleAutoSave}
         />
         <div style={{ position: 'fixed', bottom: 0, right: 8, zIndex: 100 }}>
           <LanguagePicker />

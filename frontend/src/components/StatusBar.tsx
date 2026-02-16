@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { FileText, Type, Clock, Minus, Plus } from 'lucide-react';
+import { FileText, Type, Clock, Minus, Plus, GitBranch as BranchIcon } from 'lucide-react';
+import AutoSave from './AutoSave';
 
 interface StatusBarProps {
   content: string;
@@ -11,6 +12,9 @@ interface StatusBarProps {
   collaborationStatus?: 'disconnected' | 'connecting' | 'connected';
   connectedUsers?: number;
   onZoomChange?: (zoom: number) => void;
+  currentBranch?: string;
+  onBranchClick?: () => void;
+  onSave?: (commitMessage?: string) => Promise<void>;
 }
 
 const StatusBar: React.FC<StatusBarProps> = ({ 
@@ -23,6 +27,9 @@ const StatusBar: React.FC<StatusBarProps> = ({
   collaborationStatus,
   connectedUsers = 0,
   onZoomChange,
+  currentBranch,
+  onBranchClick,
+  onSave,
 }) => {
   const [zoom, setZoom] = useState(100);
   const zoomLevels = [50, 75, 90, 100, 110, 125, 150, 175, 200];
@@ -107,25 +114,50 @@ const StatusBar: React.FC<StatusBarProps> = ({
   return (
     <div className="status-bar">
       <div className="status-bar-left">
-        <div 
-          className="save-status"
-          style={{ color: getSaveStatusColor() }}
-          aria-live="polite"
-          role="status"
-        >
-          <div className="status-indicator">
-            <div 
-              className={`status-dot ${saveStatus}`}
-              style={{ backgroundColor: getSaveStatusColor() }}
-            />
-            <span>{getSaveStatusText()}</span>
-            {isGuestMode && (
-              <span className="guest-mode-indicator" title="Guest mode - documents stored locally">
-                (Local)
-              </span>
-            )}
+        {currentBranch && (
+          <button
+            onClick={onBranchClick}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              border: 'none', background: 'transparent', cursor: 'pointer',
+              fontSize: 11, color: '#1a73e8', padding: '2px 8px', borderRadius: 4,
+              marginRight: 8,
+            }}
+            title="Manage branches"
+          >
+            <BranchIcon size={12} />
+            <span style={{ fontWeight: 500 }}>{currentBranch}</span>
+          </button>
+        )}
+        {onSave ? (
+          <AutoSave
+            content={content}
+            activeFilePath={activeFile}
+            onSave={onSave}
+            saveStatus={saveStatus}
+            lastSaved={lastSaved}
+          />
+        ) : (
+          <div 
+            className="save-status"
+            style={{ color: getSaveStatusColor() }}
+            aria-live="polite"
+            role="status"
+          >
+            <div className="status-indicator">
+              <div 
+                className={`status-dot ${saveStatus}`}
+                style={{ backgroundColor: getSaveStatusColor() }}
+              />
+              <span>{getSaveStatusText()}</span>
+              {isGuestMode && (
+                <span className="guest-mode-indicator" title="Guest mode - documents stored locally">
+                  (Local)
+                </span>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="status-bar-center">

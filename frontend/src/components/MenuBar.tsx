@@ -25,6 +25,8 @@ interface MenuBarProps {
   editor?: any;
   onShareClick?: () => void;
   onVersionHistory?: () => void;
+  onBranches?: () => void;
+  onCommitHistory?: () => void;
   appMode?: AppMode;
   onShowAbout?: () => void;
   onStartTour?: () => void;
@@ -52,6 +54,8 @@ const MenuBar: React.FC<MenuBarProps> = ({
   editor,
   onShareClick,
   onVersionHistory,
+  onBranches,
+  onCommitHistory,
   appMode = 'docs',
   onShowAbout,
   onStartTour,
@@ -118,6 +122,8 @@ const MenuBar: React.FC<MenuBarProps> = ({
       }},
       { label: 'divider' },
       { label: 'Version history', action: onVersionHistory, shortcut: '⌘⇧H' },
+      { label: 'Branches...', action: onBranches },
+      { label: 'Commit history', action: onCommitHistory },
       { label: 'Export Form Data', action: () => {
         window.dispatchEvent(new CustomEvent('export-form-data'));
       }},
