@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { FileText, Type, Clock, Minus, Plus, GitBranch as BranchIcon, Lock } from 'lucide-react';
+import { FileText, Type, Clock, Minus, Plus, GitBranch as BranchIcon, Lock, ShieldCheck, ShieldX, ShieldAlert } from 'lucide-react';
 import AutoSave from './AutoSave';
 
 interface StatusBarProps {
@@ -16,6 +16,7 @@ interface StatusBarProps {
   onBranchClick?: () => void;
   onSave?: (commitMessage?: string) => Promise<void>;
   isProtected?: boolean;
+  signatureStatus?: 'none' | 'valid' | 'invalid' | 'unverified';
 }
 
 const StatusBar: React.FC<StatusBarProps> = ({ 
@@ -32,6 +33,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
   onBranchClick,
   onSave,
   isProtected,
+  signatureStatus,
 }) => {
   const [zoom, setZoom] = useState(100);
   const zoomLevels = [50, 75, 90, 100, 110, 125, 150, 175, 200];
@@ -119,6 +121,17 @@ const StatusBar: React.FC<StatusBarProps> = ({
         {isProtected && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#d32f2f', marginRight: 8 }} title="Document is protected">
             <Lock size={12} /> Protected
+          </span>
+        )}
+        {signatureStatus && signatureStatus !== 'none' && (
+          <span
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, marginRight: 8, cursor: 'pointer',
+              color: signatureStatus === 'valid' ? '#16a34a' : signatureStatus === 'invalid' ? '#dc2626' : '#ca8a04' }}
+            title={signatureStatus === 'valid' ? 'All signatures valid' : signatureStatus === 'invalid' ? 'Signature invalid' : 'Unverified signatures'}
+            onClick={() => window.dispatchEvent(new CustomEvent('signature-panel-toggle'))}
+          >
+            {signatureStatus === 'valid' ? <ShieldCheck size={12} /> : signatureStatus === 'invalid' ? <ShieldX size={12} /> : <ShieldAlert size={12} />}
+            {signatureStatus === 'valid' ? 'Signed' : signatureStatus === 'invalid' ? 'Sig Invalid' : 'Sig Unverified'}
           </span>
         )}
         {currentBranch && (

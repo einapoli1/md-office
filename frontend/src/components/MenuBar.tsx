@@ -346,6 +346,10 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Table from Sheets', action: () => {
         window.dispatchEvent(new CustomEvent('embed-picker-open', { detail: { type: 'range' } }));
       }},
+      { label: 'divider' },
+      { label: 'Signature Block', action: () => {
+        window.dispatchEvent(new CustomEvent('insert-signature-block'));
+      }},
     ],
     [t('menu.format._label')]: [
       { label: 'Bold', action: () => editor?.chain().focus().toggleBold().run(), shortcut: 'Ctrl+B' },
@@ -439,6 +443,16 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'divider' },
       { label: 'Protect Document', action: () => {
         window.dispatchEvent(new CustomEvent('document-protection-open'));
+      }},
+      { label: 'divider' },
+      { label: 'Sign Document', action: () => {
+        window.dispatchEvent(new CustomEvent('signature-sign'));
+      }},
+      { label: 'Verify Signatures', action: () => {
+        window.dispatchEvent(new CustomEvent('signature-verify'));
+      }},
+      { label: 'Signature Panel', action: () => {
+        window.dispatchEvent(new CustomEvent('signature-panel-toggle'));
       }},
       { label: 'divider' },
       { label: t('menu.tools.accessibility'), action: onShowAccessibility },
