@@ -21,6 +21,7 @@ import SuggestionPopup from './components/SuggestionPopup';
 import SuggestionsSidebar from './components/SuggestionsSidebar';
 import FindReplace from './components/FindReplace';
 import PluginManager from './components/PluginManager';
+import SettingsPanel from './components/SettingsPanel';
 import InputDialog from './components/InputDialog';
 import LinkDialog from './components/LinkDialog';
 import ToastProvider from './components/ToastProvider';
@@ -196,6 +197,7 @@ function App() {
   const [showDocumentMap, setShowDocumentMap] = useState(false);
   const [showSnippetManager, setShowSnippetManager] = useState(false);
   const [showPluginManager, setShowPluginManager] = useState(false);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showReviewPanel, setShowReviewPanel] = useState(false);
   const [showDocumentCompare, setShowDocumentCompare] = useState(false);
   const [showRedlineView, setShowRedlineView] = useState(false);
@@ -1237,6 +1239,7 @@ function App() {
     commandRegistry.registerCommand('tools.about', 'About MD Office', 'Tools', () => setShowAbout(true));
     commandRegistry.registerCommand('tools.tour', 'Start Onboarding Tour', 'Tools', () => setRunTour(true));
     commandRegistry.registerCommand('tools.accessibility', 'Accessibility Settings', 'Tools', () => setShowA11y(true));
+    commandRegistry.registerCommand('tools.settings', 'API Keys & Webhooks', 'Tools', () => setShowSettingsPanel(true));
     commandRegistry.registerCommand('tools.macroEditor', 'Macro Editor', 'Tools', () => setShowMacroEditor(true));
 
     // Sheets-specific
@@ -2068,6 +2071,11 @@ function App() {
       {/* Plugin Manager */}
       {showPluginManager && (
         <PluginManager onClose={() => setShowPluginManager(false)} />
+      )}
+
+      {/* Settings Panel (API Keys & Webhooks) */}
+      {showSettingsPanel && (
+        <SettingsPanel onClose={() => setShowSettingsPanel(false)} />
       )}
     </div>
     </ToastProvider>

@@ -21,11 +21,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	oauthAuth "md-office-backend/auth"
+	apiPkg "md-office-backend/api"
 	"md-office-backend/gitops"
+	"md-office-backend/webhooks"
 )
 
 // JWT Configuration
-var jwtSecret = []byte("your-secret-key-change-in-production")
+var jwtSecret = func() []byte {
+	if s := os.Getenv("JWT_SECRET"); s != "" {
+		return []byte(s)
+	}
+	return []byte("your-secret-key-change-in-production")
+}()
 
 // Data structures
 type APIResponse struct {
@@ -273,14 +280,27 @@ func main() {
 		log.Printf("Warning: OAuth store init failed: %v", err)
 	}
 
+	// Initialize webhook store
+	if err := webhooks.Init(configDir); err != nil {
+		log.Printf("Warning: Webhook store init failed: %v", err)
+	}
+
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			return c.JSON(APIResponse{Error: err.Error()})
 		},
 	})
 
-	// Enable CORS
-	app.Use(cors.New())
+	// Enable CORS (configurable via CORS_ORIGINS env var)
+	corsOrigins := os.Getenv("CORS_ORIGINS")
+	if corsOrigins == "" {
+		corsOrigins = "*"
+	}
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: corsOrigins,
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
+	}))
 
 	// API routes
 	api := app.Group("/api")
@@ -323,6 +343,23 @@ func main() {
 
 	// Git provider routes (remote repos)
 	gitops.RegisterRoutes(api, authMiddleware)
+
+	// REST API v1 routes (API key auth)
+	apiV1Cfg := &apiPkg.Config{
+		WorkspaceDir: workspaceDir,
+		ConfigDir:    configDir,
+		GetUserID: func(c *fiber.Ctx) string {
+			uid, _ := c.Locals("userID").(string)
+			return uid
+		},
+	}
+	apiPkg.RegisterRoutes(app, apiV1Cfg)
+
+	// Webhook management routes (JWT auth)
+	webhooks.RegisterRoutes(protected, func(c *fiber.Ctx) string {
+		uid, _ := c.Locals("userID").(string)
+		return uid
+	})
 
 	// Git operations (local workspace)
 	gitRoutes := protected.Group("/git")
