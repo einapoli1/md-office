@@ -3,11 +3,13 @@ const Y = require('yjs');
 const fs = require('fs').promises;
 const path = require('path');
 const http = require('http');
+const jwt = require('jsonwebtoken');
 
 // Configuration
 const PORT = process.env.COLLABORATION_PORT || 1234;
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
 const WORKSPACE_DIR = process.env.WORKSPACE_PATH || './workspace';
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 // Store debounce timeouts for document saving
 const saveTimeouts = new Map();
@@ -152,15 +154,42 @@ const server = new Server({
     console.log(`Client disconnected from document: ${data.documentName}`);
   },
   
-  // Handle authentication (for future use)
+  // Verify JWT token passed by the frontend
   async onAuthenticate(data) {
-    // For now, allow all connections
-    const id = data.connection?.remoteAddress || `anon-${Date.now()}`;
-    const token = data.token || null;
+    const token = data.token;
+
+    // Allow unauthenticated access in development if no secret override is set
+    if (!token) {
+      if (process.env.JWT_SECRET) {
+        throw new Error('Authentication required');
+      }
+      // Dev fallback: anonymous guest
+      const id = data.connection?.remoteAddress || `anon-${Date.now()}`;
+      return {
+        user: {
+          id,
+          name: `Guest ${Math.random().toString(36).substring(2, 6)}`,
+        }
+      };
+    }
+
+    // Verify JWT
+    let claims;
+    try {
+      claims = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      console.warn(`JWT verification failed: ${err.message}`);
+      throw new Error('Invalid or expired token');
+    }
+
+    const userId = claims.user_id || claims.sub || claims.id;
+    const userName = claims.email || claims.username || claims.name || `User ${userId}`;
+
+    console.log(`Authenticated user: ${userName} (${userId})`);
     return {
       user: {
-        id,
-        name: token || `Guest ${Math.random().toString(36).substring(2, 6)}`,
+        id: String(userId),
+        name: userName,
       }
     };
   }
