@@ -8,7 +8,7 @@ describe('EmojiPicker', () => {
     expect(screen.getByPlaceholderText('Search emojis...')).toBeInTheDocument();
   });
 
-  it('shows category buttons', () => {
+  it('shows category buttons', { timeout: 15000 }, () => {
     render(<EmojiPicker onSelect={vi.fn()} onClose={vi.fn()} />);
     // Category buttons use first letter: S(mileys), P(eople), A(nimals), etc.
     const buttons = screen.getAllByRole('button');

@@ -53,7 +53,7 @@ export function saveRecentDocs(docs: RecentDocEntry[]) {
 /** Upsert a document into the recent list (max 20) */
 export function touchRecentDoc(path: string, content: string) {
   const docs = loadRecentDocs();
-  const title = path.replace(/\.(slides|sheet)?\.md$/i, '').replace(/\.(mds|tsv)$/i, '').replace(/.*\//, '') || 'Untitled';
+  const title = path.replace(/\.(slides\.md|sheet\.md|md)$/i, '').replace(/\.(mds|tsv)$/i, '').replace(/.*\//, '') || 'Untitled';
   const preview = content
     .replace(/^---[\s\S]*?---\s*/, '')
     .replace(/[#*_`>\-\[\]()!|]/g, '')
