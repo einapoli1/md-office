@@ -101,8 +101,6 @@ describe('SpreadsheetEditor', () => {
   it('renders formula bar', () => {
     render(<SpreadsheetEditor />);
     // The FormulaBar component should be present
-    const formulaInput = screen.queryByPlaceholderText(/formula|cell/i) ||
-                         screen.queryByRole('textbox');
     // Just verify render doesn't crash - formula bar structure varies
     expect(document.querySelector('.spreadsheet-editor, .sheet-container, [class*="sheet"]')).toBeTruthy();
   });
